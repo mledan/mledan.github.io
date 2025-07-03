@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STL Viewer with Three.js</title>
+    <title>Multiple STL Viewer with Three.js</title>
     <style>
         body { margin: 0; }
         canvas { display: block; }
@@ -32,7 +32,7 @@
         document.body.appendChild(renderer.domElement);
 
         // Add orbit controls
-        const controls = new OrbitControls(camera, renderer.domElement); // Use OrbitControls directly
+        const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
@@ -44,35 +44,56 @@
         directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
 
-        // Load STL file
+        // STL file configurations
+        const stlFiles = [
+            { path: './cornersonly.stl', color: 0xff0000 }, // Red
+            { path: './frameonly.stl', color: 0x00ff00 },   // Green
+            { path: './staticframebacking.stl.stl', color: 0x0000ff }   // Blue (replace with actual third STL file name)
+        ];
+
+        // Load STL files
         const loader = new STLLoader();
-        loader.load(
-            './cornersonly.stl',
-            (geometry) => {
-                const material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
-                const mesh = new THREE.Mesh(geometry, material);
+        let maxDim = 0; // To adjust camera based on largest model
+        let loadedModels = 0;
 
-                // Compute bounding box to center and scale
-                geometry.computeBoundingBox();
-                const center = geometry.boundingBox.getCenter(new THREE.Vector3());
-                const size = geometry.boundingBox.getSize(new THREE.Vector3());
-                const maxDim = Math.max(size.x, size.y, size.z);
-                const scale = 10 / maxDim;
+        stlFiles.forEach((stl, index) => {
+            loader.load(
+                stl.path,
+                (geometry) => {
+                    const material = new THREE.MeshPhongMaterial({ color: stl.color });
+                    const mesh = new THREE.Mesh(geometry, material);
 
-                // Adjust position and rotation
-                mesh.position.sub(center.multiplyScalar(scale));
-                mesh.rotation.x = -Math.PI / 2;
-                mesh.scale.set(scale, scale, scale);
+                    // Compute bounding box to center and scale
+                    geometry.computeBoundingBox();
+                    const center = geometry.boundingBox.getCenter(new THREE.Vector3());
+                    const size = geometry.boundingBox.getSize(new THREE.Vector3());
+                    const modelMaxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 10 / modelMaxDim; // Scale to fit view
 
-                scene.add(mesh);
+                    // Adjust position and rotation
+                    mesh.position.sub(center.multiplyScalar(scale));
+                    mesh.rotation.x = -Math.PI / 2; // Rotate to sit flat
+                    mesh.scale.set(scale, scale, scale);
 
-                // Set camera position to view the model
-                camera.position.set(0, 0, maxDim * scale * 2);
-                camera.lookAt(0, 0, 0);
-            },
-            (xhr) => console.log((xhr.loaded / xhr.total * 100) + '% loaded'),
-            (error) => console.error('Error loading STL:', error)
-        );
+                    // Offset models slightly to avoid overlap (adjust as needed)
+                    mesh.position.x += index * 15; // Spread models along x-axis
+
+                    scene.add(mesh);
+
+                    // Update max dimension for camera positioning
+                    maxDim = Math.max(maxDim, modelMaxDim * scale);
+                    loadedModels++;
+
+                    // Adjust camera once all models are loaded
+                    if (loadedModels === stlFiles.length) {
+                        camera.position.set(0, 0, maxDim * 2.5); // Adjust distance to view all models
+                        camera.lookAt(0, 0, 0);
+                    }
+                },
+                (xhr) => console.log(`${stl.path}: ${(xhr.loaded / xhr.total * 100)}% loaded`),
+                (error) => console.error(`Error loading ${stl.path}:`, error)
+            );
+        });
 
         // Animation loop
         function animate() {
