@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multiple STL Viewer with Three.js</title>
+    <title>Interactive STL Assembly Viewer</title>
     <style>
         body { margin: 0; }
         canvas { display: block; }
+        #info { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.7); padding: 10px; }
     </style>
 </head>
 <body>
+    <div id="info">Click and drag to slide interior pieces (red and green). Use mouse wheel and drag to orbit.</div>
     <script type="importmap">
         {
             "imports": {
@@ -46,47 +48,57 @@
 
         // STL file configurations
         const stlFiles = [
-            { path: './cornersonly.stl', color: 0xff0000 }, // Red
-            { path: './frameonly.stl', color: 0x00ff00 },   // Green
-            { path: './staticframebacking.stl.stl', color: 0x0000ff }   // Blue (replace with actual third STL file name)
+            { path: './cornersonly.stl', color: 0xff0000, movable: true }, // Red, interior piece
+            { path: './frameonly.stl', color: 0x00ff00, movable: true },   // Green, interior piece
+            { path: './staticframebacking.stl', color: 0x0000ff, movable: false } // Blue, fixed piece
         ];
 
         // Load STL files
         const loader = new STLLoader();
-        let maxDim = 0; // To adjust camera based on largest model
+        let maxDim = 0;
         let loadedModels = 0;
+        let movableMeshes = [];
+        let selectedMesh = null;
+        let mouse = new THREE.Vector2();
+        let raycaster = new THREE.Raycaster();
+        let plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); // Sliding plane (z=0)
+        let startPoint = null;
 
-        stlFiles.forEach((stl, index) => {
+        stlFiles.forEach((stl) => {
             loader.load(
                 stl.path,
                 (geometry) => {
                     const material = new THREE.MeshPhongMaterial({ color: stl.color });
                     const mesh = new THREE.Mesh(geometry, material);
+                    mesh.userData.movable = stl.movable;
 
                     // Compute bounding box to center and scale
                     geometry.computeBoundingBox();
                     const center = geometry.boundingBox.getCenter(new THREE.Vector3());
                     const size = geometry.boundingBox.getSize(new THREE.Vector3());
                     const modelMaxDim = Math.max(size.x, size.y, size.z);
-                    const scale = 10 / modelMaxDim; // Scale to fit view
+                    const scale = 10 / modelMaxDim;
 
-                    // Adjust position and rotation
+                    // Center and scale
                     mesh.position.sub(center.multiplyScalar(scale));
-                    mesh.rotation.x = -Math.PI / 2; // Rotate to sit flat
+                    mesh.rotation.x = -Math.PI / 2;
                     mesh.scale.set(scale, scale, scale);
 
-                    // Offset models slightly to avoid overlap (adjust as needed)
-                    mesh.position.x += index * 15; // Spread models along x-axis
-
+                    // No offset; assume models are designed to align when centered
                     scene.add(mesh);
 
-                    // Update max dimension for camera positioning
+                    // Store movable meshes
+                    if (stl.movable) {
+                        movableMeshes.push(mesh);
+                    }
+
+                    // Update max dimension
                     maxDim = Math.max(maxDim, modelMaxDim * scale);
                     loadedModels++;
 
-                    // Adjust camera once all models are loaded
+                    // Adjust camera
                     if (loadedModels === stlFiles.length) {
-                        camera.position.set(0, 0, maxDim * 2.5); // Adjust distance to view all models
+                        camera.position.set(0, 0, maxDim * 2.5);
                         camera.lookAt(0, 0, 0);
                     }
                 },
@@ -94,6 +106,44 @@
                 (error) => console.error(`Error loading ${stl.path}:`, error)
             );
         });
+
+        // Mouse interaction for sliding
+        renderer.domElement.addEventListener('mousedown', onMouseDown);
+        renderer.domElement.addEventListener('mousemove', onMouseMove);
+        renderer.domElement.addEventListener('mouseup', onMouseUp);
+
+        function onMouseDown(event) {
+            event.preventDefault();
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(movableMeshes);
+            if (intersects.length > 0) {
+                selectedMesh = intersects[0].object;
+                controls.enabled = false; // Disable orbit controls while dragging
+                const intersectPoint = raycaster.intersectObject(new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial()), plane)[0].point;
+                startPoint = intersectPoint.clone();
+            }
+        }
+
+        function onMouseMove(event) {
+            if (selectedMesh) {
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersectPoint = raycaster.intersectObject(new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial()), plane)[0].point;
+                const delta = intersectPoint.sub(startPoint);
+                selectedMesh.position.x += delta.x;
+                selectedMesh.position.y += delta.y;
+                startPoint.copy(intersectPoint);
+            }
+        }
+
+        function onMouseUp() {
+            selectedMesh = null;
+            controls.enabled = true; // Re-enable orbit controls
+            startPoint = null;
+        }
 
         // Animation loop
         function animate() {
