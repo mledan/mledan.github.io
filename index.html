@@ -32,7 +32,7 @@
         document.body.appendChild(renderer.domElement);
 
         // Add orbit controls
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        const controls = new OrbitControls(camera, renderer.domElement); // Use OrbitControls directly
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
@@ -47,9 +47,9 @@
         // Load STL file
         const loader = new STLLoader();
         loader.load(
-            './cornersonly.stl', // Updated to new file name
+            './cornersonly.stl',
             (geometry) => {
-                const material = new THREE.MeshPhongMaterial({ color: 0xff0000 }); // Red color
+                const material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
                 const mesh = new THREE.Mesh(geometry, material);
 
                 // Compute bounding box to center and scale
@@ -57,17 +57,17 @@
                 const center = geometry.boundingBox.getCenter(new THREE.Vector3());
                 const size = geometry.boundingBox.getSize(new THREE.Vector3());
                 const maxDim = Math.max(size.x, size.y, size.z);
-                const scale = 10 / maxDim; // Scale to fit view
+                const scale = 10 / maxDim;
 
                 // Adjust position and rotation
-                mesh.position.sub(center.multiplyScalar(scale)); // Center the model
-                mesh.rotation.x = -Math.PI / 2; // Rotate to sit flat (adjust if needed)
-                mesh.scale.set(scale, scale, scale); // Apply uniform scale
+                mesh.position.sub(center.multiplyScalar(scale));
+                mesh.rotation.x = -Math.PI / 2;
+                mesh.scale.set(scale, scale, scale);
 
                 scene.add(mesh);
 
                 // Set camera position to view the model
-                camera.position.set(0, 0, maxDim * scale * 2); // Adjust distance based on model size
+                camera.position.set(0, 0, maxDim * scale * 2);
                 camera.lookAt(0, 0, 0);
             },
             (xhr) => console.log((xhr.loaded / xhr.total * 100) + '% loaded'),
