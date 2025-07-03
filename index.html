@@ -7,9 +7,24 @@
     <style>
         body { margin: 0; }
         canvas { display: block; }
+        #debug-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            z-index: 10;
+            box-sizing: border-box;
+        }
+        #debug-panel div { margin: 5px 0; }
     </style>
 </head>
 <body>
+    <div id="debug-panel"></div>
     <script type="importmap">
         {
             "imports": {
@@ -22,6 +37,15 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+
+        // Debug panel setup
+        const debugPanel = document.getElementById('debug-panel');
+
+        function logToDOM(message) {
+            const div = document.createElement('div');
+            div.textContent = message;
+            debugPanel.appendChild(div);
+        }
 
         // Set up scene, camera, and renderer
         const scene = new THREE.Scene();
@@ -52,7 +76,9 @@
             { path: './staticframebacking.stl', position: new THREE.Vector3(10, 0, 0), color: 0x0000ff } // Blue
         ];
 
+        let loadedModels = 0;
         stlFiles.forEach((fileInfo) => {
+            logToDOM(`Attempting to load: ${fileInfo.path}`);
             loader.load(
                 fileInfo.path,
                 (geometry) => {
@@ -64,24 +90,27 @@
                     const center = geometry.boundingBox.getCenter(new THREE.Vector3());
                     const size = geometry.boundingBox.getSize(new THREE.Vector3());
                     const maxDim = Math.max(size.x, size.y, size.z);
-                    const scale = 10 / maxDim; // Scale to fit view
+                    const scale = 10 / maxDim;
 
                     // Adjust position and rotation
-                    mesh.position.sub(center.multiplyScalar(scale)); // Center the model
-                    mesh.position.add(fileInfo.position); // Offset based on array position
-                    mesh.rotation.x = -Math.PI / 2; // Rotate to sit flat (adjust if needed)
-                    mesh.scale.set(scale, scale, scale); // Apply uniform scale
+                    mesh.position.sub(center.multiplyScalar(scale));
+                    mesh.position.add(fileInfo.position);
+                    mesh.rotation.x = -Math.PI / 2; // Rotate to sit flat
+                    mesh.scale.set(scale, scale, scale);
 
                     scene.add(mesh);
+                    loadedModels++;
+                    logToDOM(`${fileInfo.path} loaded successfully`);
 
-                    // Adjust camera if this is the last model loaded
-                    if (fileInfo.path === stlFiles[stlFiles.length - 1].path) {
-                        camera.position.set(0, 0, Math.max(size.x, size.y, size.z) * scale * 3); // Adjust distance
+                    // Adjust camera after all models load
+                    if (loadedModels === stlFiles.length) {
+                        camera.position.set(0, 0, Math.max(size.x, size.y, size.z) * scale * 3);
                         camera.lookAt(0, 0, 0);
+                        logToDOM('All models loaded, camera adjusted');
                     }
                 },
-                (xhr) => console.log(`${fileInfo.path}: ${(xhr.loaded / xhr.total * 100)}% loaded`),
-                (error) => console.error(`Error loading ${fileInfo.path}:`, error)
+                (xhr) => logToDOM(`${fileInfo.path}: ${(xhr.loaded / xhr.total * 100)}% loaded`),
+                (error) => logToDOM(`Error loading ${fileInfo.path}: ${error.message}`)
             );
         });
 
