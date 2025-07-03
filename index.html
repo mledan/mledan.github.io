@@ -12,12 +12,14 @@
         #controls label { margin-right: 5px; }
         #controls input[type="number"] { width: 60px; margin: 2px; }
         #controls input[type="checkbox"] { margin: 2px; }
+        #controls button { margin: 5px 0; padding: 5px; }
     </style>
 </head>
 <body>
     <div id="info">Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit controls. Orbit: OFF</div>
     <div id="controls">
         <h3>Position Controls</h3>
+        <button id="apply-values">Apply Values</button>
         <!-- Position controls added dynamically -->
         <h3>Axis Controls</h3>
         <label><input type="checkbox" id="swap-xy"> Swap X/Y</label><br>
@@ -118,6 +120,25 @@
             controlsDiv.appendChild(div);
         });
 
+        // Add Apply Values button functionality
+        const applyButton = document.getElementById('apply-values');
+        applyButton.addEventListener('click', () => {
+            meshes.forEach((mesh, index) => {
+                const inputs = {
+                    x: document.getElementById(`x-${index}`),
+                    y: document.getElementById(`y-${index}`),
+                    z: document.getElementById(`z-${index}`)
+                };
+                const pos = mesh.position;
+                pos.x = parseFloat(inputs.x.value);
+                pos.y = parseFloat(inputs.y.value);
+                pos.z = parseFloat(inputs.z.value);
+                mesh.position.set(pos.x, pos.y, pos.z);
+                mesh.updateMatrixWorld(true);
+                console.log(`Applied values to ${stlFiles[index].path} at ${mesh.position.toArray()}`);
+            });
+        });
+
         // Axis flip controls
         function applyAxisTransform(mesh, geometry) {
             const position = geometry.attributes.position;
@@ -205,7 +226,7 @@
                     mesh.position.add(initialPosition); // Apply initial position
                     console.log(`Initial position set for ${stl.path} to ${initialPosition.toArray()} before final adjustment`);
 
-                    // Ensure position is not overridden by subsequent operations
+                    // Ensure position is not overridden
                     mesh.updateMatrix();
                     mesh.updateMatrixWorld(true);
                     console.log(`Instantiated ${stl.path} at ${mesh.position.toArray()} with initialPos ${stl.initialPos} after centering and matrix update`);
@@ -215,7 +236,7 @@
                     scene.add(mesh);
                     meshes.push(mesh);
 
-                    // Sync UI with initial position and force update
+                    // Sync UI with initial position
                     const inputs = {
                         x: document.getElementById(`x-${index}`),
                         y: document.getElementById(`y-${index}`),
@@ -224,11 +245,6 @@
                     inputs.x.value = stl.initialPos[0].toFixed(2);
                     inputs.y.value = stl.initialPos[1].toFixed(2);
                     inputs.z.value = stl.initialPos[2].toFixed(2);
-                    // Trigger input event to ensure position applies
-                    const event = new Event('input', { bubbles: true });
-                    inputs.x.dispatchEvent(event);
-                    inputs.y.dispatchEvent(event);
-                    inputs.z.dispatchEvent(event);
                     console.log(`UI initialized for ${stl.path} with position ${mesh.position.toArray()} from initialPos ${stl.initialPos}`);
 
                     // Position controls
@@ -255,6 +271,22 @@
                         camera.position.set(0, 0, cameraDistance);
                         camera.lookAt(0, 0, 0);
                         console.log(`All models loaded, frame size=${frameSize.toArray()}, camera at ${camera.position.toArray()}, distance=${cameraDistance}`);
+
+                        // Apply positions immediately after loading
+                        meshes.forEach((mesh, index) => {
+                            const inputs = {
+                                x: document.getElementById(`x-${index}`),
+                                y: document.getElementById(`y-${index}`),
+                                z: document.getElementById(`z-${index}`)
+                            };
+                            const pos = mesh.position;
+                            pos.x = parseFloat(inputs.x.value);
+                            pos.y = parseFloat(inputs.y.value);
+                            pos.z = parseFloat(inputs.z.value);
+                            mesh.position.set(pos.x, pos.y, pos.z);
+                            mesh.updateMatrixWorld(true);
+                            console.log(`Positions applied to ${stlFiles[index].path} at ${mesh.position.toArray()} after loading`);
+                        });
                     }
                 },
                 (xhr) => console.log(`${stl.path}: ${(xhr.loaded / xhr.total * 100).toFixed(2)}% loaded`),
