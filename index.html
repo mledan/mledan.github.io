@@ -97,6 +97,14 @@
             console.log(`Mode indicator updated: Orbit ${controls.enabled ? 'ON' : 'OFF'}, AutoRotate ${isAutorotating ? 'ON' : 'OFF'}, AutoSlide ${isAutoSliding ? 'ON' : 'OFF'}`);
         }
 
+        // Add OrbitControls change listener for event-based updates
+        controls.addEventListener('change', () => {
+            if (controls.enabled) {
+                updateModeIndicator();
+                console.log('OrbitControls changed: updating mode indicator');
+            }
+        });
+
         // Add lighting
         const ambientLight = new THREE.AmbientLight(0x404040);
         scene.add(ambientLight);
@@ -312,6 +320,7 @@
                         camera.updateProjectionMatrix();
                         defaultCameraSettings.position.copy(camera.position);
                         console.log(`All models loaded, camera at ${camera.position.toArray()}, distance=${defaultCameraSettings.distance}, FOV=${camera.fov}, target=${controls.target.toArray()}`);
+                        updateModeIndicator(); // Initial update after loading
 
                         meshes.forEach((mesh, index) => {
                             const initialPos = stlFiles[index].initialPos;
@@ -407,6 +416,7 @@
             if (selectedMesh) console.log(`Dragging ended for ${selectedMesh.userData.name}`);
             selectedMesh = null;
             startPoint = null;
+            updateModeIndicator();
         }
 
         // Animation loop with autorotation and autosliding
@@ -429,7 +439,6 @@
                 });
             }
             controls.update();
-            updateModeIndicator();
             renderer.render(scene, camera);
         }
         animate();
@@ -440,6 +449,7 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
             console.log(`Window resized to ${window.innerWidth}x${window.innerHeight}`);
+            updateModeIndicator(); // Update for camera aspect changes
         });
     </script>
 </body>
