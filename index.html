@@ -201,23 +201,34 @@
                     // Center at origin and enforce initial position
                     mesh.position.copy(new THREE.Vector3(0, 0, 0)); // Reset to origin
                     mesh.position.sub(center.multiplyScalar(scale)); // Center geometry
-                    mesh.position.add(new THREE.Vector3(...stl.initialPos)); // Apply initial position
-                    console.log(`Instantiated ${stl.path} at ${mesh.position.toArray()} with initialPos ${stl.initialPos} after centering`);
+                    const initialPosition = new THREE.Vector3(...stl.initialPos);
+                    mesh.position.add(initialPosition); // Apply initial position
+                    console.log(`Initial position set for ${stl.path} to ${initialPosition.toArray()} before final adjustment`);
+
+                    // Ensure position is not overridden by subsequent operations
+                    mesh.updateMatrix();
+                    mesh.updateMatrixWorld(true);
+                    console.log(`Instantiated ${stl.path} at ${mesh.position.toArray()} with initialPos ${stl.initialPos} after centering and matrix update`);
 
                     mesh.rotation.x = -Math.PI / 2; // Align to XY plane
                     mesh.scale.set(scale, scale, scale);
                     scene.add(mesh);
                     meshes.push(mesh);
 
-                    // Sync UI with initial position
+                    // Sync UI with initial position and force update
                     const inputs = {
                         x: document.getElementById(`x-${index}`),
                         y: document.getElementById(`y-${index}`),
                         z: document.getElementById(`z-${index}`)
                     };
-                    inputs.x.value = stl.initialPos[0].toFixed(2); // Set to initialPos directly
+                    inputs.x.value = stl.initialPos[0].toFixed(2);
                     inputs.y.value = stl.initialPos[1].toFixed(2);
                     inputs.z.value = stl.initialPos[2].toFixed(2);
+                    // Trigger input event to ensure position applies
+                    const event = new Event('input', { bubbles: true });
+                    inputs.x.dispatchEvent(event);
+                    inputs.y.dispatchEvent(event);
+                    inputs.z.dispatchEvent(event);
                     console.log(`UI initialized for ${stl.path} with position ${mesh.position.toArray()} from initialPos ${stl.initialPos}`);
 
                     // Position controls
@@ -226,6 +237,7 @@
                             const pos = mesh.position;
                             pos[axis] = parseFloat(inputs[axis].value);
                             mesh.position.set(pos.x, pos.y, pos.z);
+                            mesh.updateMatrixWorld(true); // Ensure matrix is updated
                             console.log(`Updated ${stl.path} position: ${mesh.position.toArray()}`);
                         });
                     });
@@ -239,7 +251,7 @@
                     if (loadedModels === stlFiles.length) {
                         const frameSize = frameBounds ? frameBounds.max.clone().sub(frameBounds.min) : new THREE.Vector3(maxDim, maxDim, maxDim);
                         const frameMaxDim = Math.max(frameSize.x, frameSize.y, frameSize.z);
-                        const cameraDistance = frameMaxDim * 1.0; // Adjustable camera distance
+                        const cameraDistance = frameMaxDim * 2.0; // Increased to accommodate higher z-values
                         camera.position.set(0, 0, cameraDistance);
                         camera.lookAt(0, 0, 0);
                         console.log(`All models loaded, frame size=${frameSize.toArray()}, camera at ${camera.position.toArray()}, distance=${cameraDistance}`);
