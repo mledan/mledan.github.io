@@ -5,13 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive STL Assembly Viewer</title>
     <style>
-        body { margin: 0; }
+        body { margin: 0; font-family: Arial; }
         canvas { display: block; }
-        #info { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.7); padding: 10px; font-family: Arial; }
+        #info { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.7); padding: 10px; }
+        #controls { position: absolute; top: 50px; left: 10px; color: white; background: rgba(0, 0, 0, 0.7); padding: 10px; }
+        #controls label { margin-right: 5px; }
+        #controls input { width: 60px; margin: 2px; }
     </style>
 </head>
 <body>
-    <div id="info">Click and drag to slide interior boards (red, green, yellow). Press 'o' to toggle orbit controls. Orbit: OFF</div>
+    <div id="info">Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit controls. Orbit: OFF</div>
+    <div id="controls">
+        <h3>Position Controls</h3>
+        <!-- Controls will be added dynamically -->
+    </div>
     <script type="importmap">
         {
             "imports": {
@@ -46,14 +53,14 @@
         // Update orbit mode indicator
         const infoDiv = document.getElementById('info');
         function updateOrbitIndicator() {
-            infoDiv.textContent = `Click and drag to slide interior boards (red, green, yellow). Press 'o' to toggle orbit controls. Orbit: ${controls.enabled ? 'ON' : 'OFF'}`;
+            infoDiv.textContent = `Click and drag to slide boards (red, green, yellow). Press O to toggle orbit controls. Orbit: ${controls.enabled ? 'ON' : 'OFF'}`;
             console.log(`Orbit indicator updated: Orbit ${controls.enabled ? 'ON' : 'OFF'}`);
         }
 
         // Add lighting
         const ambientLight = new THREE.AmbientLight(0x404040);
         scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        const directional underwater directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
         directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
 
@@ -65,12 +72,12 @@
         scene.add(gridHelper);
         console.log('Grid helper added: size=', gridSize, 'divisions=', gridDivisions);
 
-        // STL file configurations
+        // STL file configurations with initial positions
         const stlFiles = [
-            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false, scale: 1 }, // Blue, fixed frame
-            { path: './slidingboard.stl', color: 0xff0000, movable: true, scale: 1 }, // Red, sliding board 1
-            { path: './slidingboard.stl', color: 0x00ff00, movable: true, scale: 1 }, // Green, sliding board 2
-            { path: './slidingboard.stl', color: 0xffff00, movable: true, scale: 1 }  // Yellow, sliding board 3
+            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false, scale: 1, initialPos: [0, 0, 0] }, // Frame
+            { path: './slidingboard.stl', color: 0xff0000, movable: true, scale: 1, initialPos: [-2, 0, 0.01] }, // Board 1
+            { path: './slidingboard.stl', color: 0x00ff00, movable: true, scale: 1, initialPos: [0, 0, 0.01] },  // Board 2
+            { path: './slidingboard.stl', color: 0xffff00, movable: true, scale: 1, initialPos: [2, 0, 0.01] }   // Board 3
         ];
 
         // Load STL files
@@ -84,6 +91,21 @@
         let plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); // Sliding plane (z=0)
         let startPoint = null;
         let frameBounds = null;
+        const meshes = []; // Store meshes for position adjustments
+
+        // Create position controls
+        const controlsDiv = document.getElementById('controls');
+        stlFiles.forEach((stl, index) => {
+            const name = stl.path.split('/').pop();
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <h4>${name}</h4>
+                <label>X:</label><input type="number" id="x-${index}" value="${stl.initialPos[0]}" step="0.1">
+                <label>Y:</label><input type="number" id="y-${index}" value="${stl.initialPos[1]}" step="0.1">
+                <label>Z:</label><input type="number" id="z-${index}" value="${stl.initialPos[2]}" step="0.01">
+            `;
+            controlsDiv.appendChild(div);
+        });
 
         stlFiles.forEach((stl, index) => {
             console.log(`Loading STL ${index + 1}/${stlFiles.length}: ${stl.path}`);
@@ -93,7 +115,7 @@
                     console.log(`STL loaded: ${stl.path}`);
                     const material = new THREE.MeshPhongMaterial({ color: stl.color });
                     const mesh = new THREE.Mesh(geometry, material);
-                    mesh.userData = { movable: stl.movable, name: stl.path };
+                    mesh.userData = { movable: stl.movable, name: stl.path, index: index };
 
                     // Compute bounding box
                     geometry.computeBoundingBox();
@@ -110,23 +132,34 @@
                         frameBounds.max.multiplyScalar(scale);
                         console.log(`Frame bounds (scaled): min=${frameBounds.min.toArray()}, max=${frameBounds.max.toArray()}, scale=${scale}`);
                     } else {
-                        console.log(`Board ${stl.path} scaleckt: ${scale}, scaled size: [${(size.x * scale).toFixed(2)}, ${(size.y * scale).toFixed(2)}, ${(size.z * scale).toFixed(2)}]`);
+                        console.log(`Board ${stl.path} scale: ${scale}, scaled size: [${(size.x * scale).toFixed(2)}, ${(size.y * scale).toFixed(2)}, ${(size.z * scale).toFixed(2)}]`);
                     }
 
-                    // Center and scale
+                    // Center at origin and apply initial position
                     mesh.position.sub(center.multiplyScalar(scale));
+                    mesh.position.add(new THREE.Vector3(...stl.initialPos));
                     mesh.rotation.x = -Math.PI / 2; // Align to XY plane
                     mesh.scale.set(scale, scale, scale);
                     scene.add(mesh);
+                    meshes.push(mesh);
 
-                    // Position sliding boards
+                    // Position controls
+                    const inputs = {
+                        x: document.getElementById(`x-${index}`),
+                        y: document.getElementById(`y-${index}`),
+                        z: document.getElementById(`z-${index}`)
+                    };
+                    Object.keys(inputs).forEach(axis => {
+                        inputs[axis].addEventListener('input', () => {
+                            const pos = mesh.position;
+                            pos[axis] = parseFloat(inputs[axis].value);
+                            mesh.position.set(pos.x, pos.y, pos.z);
+                            console.log(`Updated ${stl.path} position: ${mesh.position.toArray()}`);
+                        });
+                    });
+
                     if (stl.movable) {
                         movableMeshes.push(mesh);
-                        const slotSpacing = (frameBounds?.max.x - frameBounds?.min.x) / 4 || 2;
-                        if (index === 1) mesh.position.set(-slotSpacing, 0, 0.01); // Board 1
-                        if (index === 2) mesh.position.set(0, 0, 0.01);          // Board 2
-                        if (index === 3) mesh.position.set(slotSpacing, 0, 0.01); // Board 3
-                        console.log(`Positioned ${stl.path} at ${mesh.position.toArray()}, slotSpacing=${slotSpacing}`);
                     }
 
                     maxDim = Math.max(maxDim, modelMaxDim * scale);
@@ -134,9 +167,10 @@
                     if (loadedModels === stlFiles.length) {
                         const frameSize = frameBounds ? frameBounds.max.clone().sub(frameBounds.min) : new THREE.Vector3(maxDim, maxDim, maxDim);
                         const frameMaxDim = Math.max(frameSize.x, frameSize.y, frameSize.z);
-                        camera.position.set(0, 0, frameMaxDim * 1.2); // Closer camera
+                        const cameraDistance = frameMaxDim * 1.0; // Adjustable camera distance
+                        camera.position.set(0, 0, cameraDistance);
                         camera.lookAt(0, 0, 0);
-                        console.log(`All models loaded, frame size=${frameSize.toArray()}, camera at ${camera.position.toArray()}`);
+                        console.log(`All models loaded, frame size=${frameSize.toArray()}, camera at ${camera.position.toArray()}, distance=${cameraDistance}`);
                     }
                 },
                 (xhr) => console.log(`${stl.path}: ${(xhr.loaded / xhr.total * 100).toFixed(2)}% loaded`),
@@ -188,13 +222,13 @@
                     const delta = intersectPoint.sub(startPoint);
                     let newPosX = selectedMesh.position.x + delta.x;
                     let newPosY = selectedMesh.position.y + delta.y;
-
-                    // Constrain movement within frame bounds
                     const margin = 0.1;
                     newPosX = Math.max(frameBounds.min.x + margin, Math.min(frameBounds.max.x - margin, newPosX));
                     newPosY = Math.max(frameBounds.min.y + margin, Math.min(frameBounds.max.y - margin, newPosY));
-
                     selectedMesh.position.set(newPosX, newPosY, selectedMesh.position.z);
+                    // Update UI inputs
+                    document.getElementById(`x-${selectedMesh.userData.index}`).value = newPosX.toFixed(2);
+                    document.getElementById(`y-${selectedMesh.userData.index}`).value = newPosY.toFixed(2);
                     startPoint.copy(intersectPoint);
                     console.log(`Moved ${selectedMesh.userData.name} to ${selectedMesh.position.toArray()}`);
                 }
