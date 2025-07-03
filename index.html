@@ -31,6 +31,33 @@
         #controls input[type="number"] { width: 60px; margin: 2px; }
         #controls input[type="checkbox"] { margin: 2px; }
         #controls button { margin: 5px 0; padding: 5px; }
+        #mobile-controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+        #mobile-controls button {
+            padding: 10px 15px;
+            font-size: 16px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid white;
+            border-radius: 5px;
+            cursor: pointer;
+            touch-action: manipulation; /* Prevent default touch behaviors */
+        }
+        #mobile-controls button:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
+        @media (max-width: 600px) {
+            #mobile-controls button {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -41,6 +68,11 @@
         <button id="toggle-autorotate">Toggle Autorotate</button>
         <button id="toggle-autoslide">Toggle AutoSlide</button>
         <button id="reset-camera-defaults">Reset to Defaults</button>
+    </div>
+    <div id="mobile-controls">
+        <button id="mobile-toggle-orbit">Toggle Orbit</button>
+        <button id="mobile-toggle-autorotate">Toggle AutoRotate</button>
+        <button id="mobile-toggle-autoslide">Toggle AutoSlide</button>
     </div>
     <script type="importmap">
         {
@@ -106,6 +138,31 @@
                 updateModeIndicator();
                 console.log('OrbitControls changed: updating mode indicator');
             }
+        });
+
+        // Add mobile button event listeners
+        document.getElementById('mobile-toggle-orbit').addEventListener('click', () => {
+            controls.enabled = !controls.enabled;
+            updateModeIndicator();
+            console.log(`Orbit controls toggled: ${controls.enabled ? 'enabled' : 'disabled'}`);
+        });
+
+        document.getElementById('mobile-toggle-autorotate').addEventListener('click', () => {
+            isAutorotating = !isAutorotating;
+            if (isAutorotating) {
+                scene.rotation.y += Math.PI / 2;
+            }
+            updateModeIndicator();
+            console.log(`Autorotate toggled to ${isAutorotating ? 'ON' : 'OFF'}`);
+        });
+
+        document.getElementById('mobile-toggle-autoslide').addEventListener('click', () => {
+            isAutoSliding = !isAutoSliding;
+            if (isAutoSliding) {
+                startTime = performance.now() / 1000;
+            }
+            updateModeIndicator();
+            console.log(`AutoSlide toggled to ${isAutoSliding ? 'ON' : 'OFF'}`);
         });
 
         // Add lighting
@@ -408,7 +465,7 @@
                     selectedMesh.position.set(newPosX, newPosY, selectedMesh.position.z);
                     document.getElementById(`x-${selectedMesh.userData.index}`).value = newPosX.toFixed(2);
                     document.getElementById(`y-${selectedMesh.userData.index}`).value = newPosY.toFixed(2);
-                    startPoint.copy(intersectPoint);
+                    startPoint.copy(interpoint);
                     console.log(`Moved ${selectedMesh.userData.name} to [x=${newPosX}, y=${newPosY}, z=${selectedMesh.position.z}]`);
                 }
             }
