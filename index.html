@@ -19,7 +19,7 @@
         }
         #controls { 
             position: absolute; 
-            top: 150px; 
+            top: 50px; 
             left: 10px; 
             color: white; 
             background: rgba(0, 0, 0, 0.7); 
@@ -38,7 +38,6 @@
         <button id="apply-values">Apply Values</button>
         <button id="toggle-autorotate">Toggle Autorotate</button>
         <button id="toggle-autoslide">Toggle AutoSlide</button>
-        <button id="save-camera-defaults">Save Camera Defaults</button>
         <button id="reset-camera-defaults">Reset to Defaults</button>
     </div>
     <script type="importmap">
@@ -59,7 +58,7 @@
         // Set up scene, camera, and renderer
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xdddddd);
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+        const camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 10000);
         const renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
@@ -74,11 +73,11 @@
 
         // Default camera settings with user-specified values
         const defaultCameraSettings = {
-            zoom: 100,
-            position: new THREE.Vector3(0, 0, 1000),
-            target: new THREE.Vector3(2.13, 102.34, -0.00),
-            rotation: new THREE.Euler(0, 0, 0, 'XYZ'),
-            distance: 300
+            zoom: 100, // FOV in degrees
+            position: new THREE.Vector3(), // Computed below
+            target: new THREE.Vector3(-14, 162, -8), // Pan
+            rotation: new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI / 2, 'XYZ'), // -90°, 90°, 90°
+            distance: 250 // Distance from target
         };
 
         // Update orbit, autorotate, and autoslide mode indicator with camera info
@@ -193,27 +192,6 @@
             console.log(`AutoSlide toggled to ${isAutoSliding ? 'ON' : 'OFF'}`);
         });
 
-        // Save camera defaults
-        const saveCameraButton = document.getElementById('save-camera-defaults');
-        saveCameraButton.addEventListener('click', () => {
-            defaultCameraSettings.zoom = camera.fov;
-            defaultCameraSettings.position.copy(camera.position);
-            defaultCameraSettings.target.copy(controls.target);
-            defaultCameraSettings.rotation.copy(camera.rotation);
-            defaultCameraSettings.distance = camera.position.distanceTo(controls.target);
-            console.log('Camera defaults saved:', {
-                zoom: defaultCameraSettings.zoom,
-                distance: defaultCameraSettings.distance.toFixed(2),
-                position: defaultCameraSettings.position.toArray(),
-                target: defaultCameraSettings.target.toArray(),
-                rotation: [
-                    (defaultCameraSettings.rotation.x * 180 / Math.PI).toFixed(2),
-                    (defaultCameraSettings.rotation.y * 180 / Math.PI).toFixed(2),
-                    (defaultCameraSettings.rotation.z * 180 / Math.PI).toFixed(2)
-                ]
-            });
-        });
-
         // Reset to camera defaults
         const resetCameraButton = document.getElementById('reset-camera-defaults');
         resetCameraButton.addEventListener('click', () => {
@@ -324,20 +302,16 @@
                     maxDim = Math.max(maxDim, modelMaxDim * scale);
                     loadedModels++;
                     if (loadedModels === stlFiles.length) {
-                        const frameSize = frameBounds ? frameBounds.max.clone().sub(frameBounds.min) : new THREE.Vector3(maxDim, maxDim, maxDim);
-                        const frameMaxDim = Math.max(frameSize.x, frameSize.y, frameSize.z);
-                        const cameraDistance = frameMaxDim * 2.0;
-                        defaultCameraSettings.distance = cameraDistance;
-                        camera.position.copy(defaultCameraSettings.target).add(
-                            new THREE.Vector3(0, 0, cameraDistance).applyEuler(defaultCameraSettings.rotation)
-                        );
+                        // Set camera to default settings
                         camera.fov = defaultCameraSettings.zoom;
-                        camera.updateProjectionMatrix();
                         controls.target.copy(defaultCameraSettings.target);
-                        camera.lookAt(controls.target);
+                        camera.position.copy(defaultCameraSettings.target).add(
+                            new THREE.Vector3(0, 0, defaultCameraSettings.distance).applyEuler(defaultCameraSettings.rotation)
+                        );
+                        camera.rotation.copy(defaultCameraSettings.rotation);
+                        camera.updateProjectionMatrix();
                         defaultCameraSettings.position.copy(camera.position);
-                        defaultCameraSettings.rotation.copy(camera.rotation);
-                        console.log(`All models loaded, frame size=${frameSize.toArray()}, camera at ${camera.position.toArray()}, distance=${cameraDistance}, FOV=${camera.fov}, target=${controls.target.toArray()}`);
+                        console.log(`All models loaded, camera at ${camera.position.toArray()}, distance=${defaultCameraSettings.distance}, FOV=${camera.fov}, target=${controls.target.toArray()}`);
 
                         meshes.forEach((mesh, index) => {
                             const initialPos = stlFiles[index].initialPos;
