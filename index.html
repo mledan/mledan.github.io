@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>3D Product Viewer</title>
+  <title>Sliding Whiteboard Model</title>
   <style>
     body { margin: 0; overflow: hidden; }
     #canvas { width: 100vw; height: 100vh; }
@@ -26,8 +25,92 @@
     <div id="part-controls"></div>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://threejs.org/examples/js/loaders/STLLoader.js"></script>
+  <script src="https://threejs.org/examples/js/exporters/STLExporter.js"></script>
   <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
-  <script src="app.js"></script>
+  <script>
+    // Basic Three.js setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas') });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+    camera.position.z = 10;
+
+    // Materials
+    const frameMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 }); // Dark gray frame
+    const boardMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); // White boards
+
+    // Dimensions (in units)
+    const frameWidth = 10;
+    const frameHeight = 6;
+    const frameThickness = 0.5;
+    const boardThickness = 0.1;
+    const halfBoardWidth = frameWidth / 2;
+
+    // Frame
+    const frameGeometry = new THREE.BoxGeometry(frameWidth, frameHeight, frameThickness);
+    const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+    frame.position.z = -frameThickness / 2; // Move frame to the back
+    scene.add(frame);
+
+    // Backing Board
+    const backingGeometry = new THREE.BoxGeometry(frameWidth - 2 * frameThickness, frameHeight - 2 * frameThickness, boardThickness);
+    const backingBoard = new THREE.Mesh(backingGeometry, boardMaterial);
+    backingBoard.position.z = -frameThickness - boardThickness / 2;
+    scene.add(backingBoard);
+
+    // Sliding Boards (3 half-size boards)
+    const slidingBoards = [];
+    for (let i = 0; i < 3; i++) {
+      const slidingGeometry = new THREE.BoxGeometry(halfBoardWidth - 2 * frameThickness, frameHeight - 2 * frameThickness, boardThickness);
+      const slidingBoard = new THREE.Mesh(slidingGeometry, boardMaterial);
+      slidingBoard.position.z = -frameThickness;
+      slidingBoard.position.x = -frameWidth / 2 + halfBoardWidth / 2 + i * halfBoardWidth; // Initial positions
+      scene.add(slidingBoard);
+      slidingBoards.push(slidingBoard);
+
+      // Add control for each sliding board
+      const controlPanel = document.getElementById('part-controls');
+      const div = document.createElement('div');
+      div.innerHTML = `
+        <h4>Sliding Board ${i + 1}</h4>
+        <label>X Position:</label>
+        <input type="range" id="x-pos-${i}" min="${-frameWidth / 2 + halfBoardWidth / 2}" max="${frameWidth / 2 - halfBoardWidth / 2}" value="${slidingBoard.position.x}" step="0.1">
+      `;
+      controlPanel.appendChild(div);
+
+      document.getElementById(`x-pos-${i}`).addEventListener('input', (e) => {
+        slidingBoards[i].position.x = parseFloat(e.target.value);
+      });
+    }
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    });
+
+    // Export to STL (add button or call this function manually)
+    window.exportSTL = function() {
+      const exporter = new THREE.STLExporter();
+      const result = exporter.parse(scene, { binary: true });
+      const blob = new Blob([result], { type: 'application/sla' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'sliding_whiteboard.stl';
+      link.click();
+    };
+  </script>
+  <button onclick="exportSTL()">Export as STL</button>
 </body>
 </html>
