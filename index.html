@@ -11,7 +11,7 @@
     </style>
 </head>
 <body>
-    <div id="info">Click and drag to slide interior boards (red, green, yellow). Use mouse wheel and drag to orbit.</div>
+    <div id="info">Click and drag to slide interior boards (red, green, yellow). Press 'o' to toggle orbit controls.</div>
     <script type="importmap">
         {
             "imports": {
@@ -35,25 +35,27 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Add orbit controls
+        // Add orbit controls (disabled by default)
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
+        controls.enabled = false;
+        console.log('OrbitControls initialized, disabled by default');
 
         // Add lighting
         const ambientLight = new THREE.AmbientLight(0x404040);
         scene.add(ambientLight);
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-        directionalLight.position.set(1, 1, 1); // Fixed typo here
+        directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
 
         // STL file configurations
         const stlFiles = [
-            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false }, // Blue, fixed frame
-            { path: './slidingboard.stl', color: 0xff0000, movable: true }, // Red, sliding board 1
-            { path: './slidingboard.stl', color: 0x00ff00, movable: true }, // Green, sliding board 2
-            { path: './slidingboard.stl', color: 0xffff00, movable: true }  // Yellow, sliding board 3
+            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false, scale: 1 }, // Blue, fixed frame, no scaling
+            { path: './slidingboard.stl', color: 0xff0000, movable: true, scale: null }, // Red, sliding board 1
+            { path: './slidingboard.stl', color: 0x00ff00, movable: true, scale: null }, // Green, sliding board 2
+            { path: './slidingboard.stl', color: 0xffff00, movable: true, scale: null }  // Yellow, sliding board 3
         ];
 
         // Load STL files
@@ -66,7 +68,8 @@
         let raycaster = new THREE.Raycaster();
         let plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); // Sliding plane (z=0)
         let startPoint = null;
-        let frameBounds = null; // To store frame boundaries
+        let frameBounds = null;
+        let frameScale = 1; // Store frame scale for reference
 
         stlFiles.forEach((stl, index) => {
             console.log(`Loading STL ${index + 1}/${stlFiles.length}: ${stl.path}`);
@@ -83,7 +86,20 @@
                     const center = geometry.boundingBox.getCenter(new THREE.Vector3());
                     const size = geometry.boundingBox.getSize(new THREE.Vector3());
                     const modelMaxDim = Math.max(size.x, size.y, size.z);
-                    const scale = 10 / modelMaxDim;
+
+                    // Apply scaling
+                    let scale = stl.scale || 10 / modelMaxDim; // Use custom scale or default
+                    if (!stl.movable) {
+                        frameScale = scale; // Store frame scale
+                        frameBounds = geometry.boundingBox.clone();
+                        frameBounds.min.multiplyScalar(scale);
+                        frameBounds.max.multiplyScalar(scale);
+                        console.log(`Frame bounds: min=${frameBounds.min.toArray()}, max=${frameBounds.max.toArray()}, scale=${scale}`);
+                    } else {
+                        // Scale boards relative to frame (adjust this if needed)
+                        scale = frameScale * (10 / modelMaxDim); // Example: match frame scale
+                        console.log(`Board scale: ${scale}, original size=${size.toArray()}`);
+                    }
 
                     // Center and scale
                     mesh.position.sub(center.multiplyScalar(scale));
@@ -91,22 +107,15 @@
                     mesh.scale.set(scale, scale, scale);
                     scene.add(mesh);
 
-                    // Store frame bounds for constraints
-                    if (!stl.movable) {
-                        frameBounds = geometry.boundingBox.clone();
-                        frameBounds.min.multiplyScalar(scale);
-                        frameBounds.max.multiplyScalar(scale);
-                        console.log(`Frame bounds: min=${frameBounds.min.toArray()}, max=${frameBounds.max.toArray()}`);
-                    }
-
-                    // Position sliding boards (initial placement)
+                    // Position sliding boards
                     if (stl.movable) {
                         movableMeshes.push(mesh);
-                        // Example initial positioning (adjust based on your frame's slot positions)
-                        if (index === 1) mesh.position.set(-2, 0, 0); // Board 1
-                        if (index === 2) mesh.position.set(0, 0, 0);  // Board 2
-                        if (index === 3) mesh.position.set(2, 0, 0);  // Board 3
-                        console.log(`Positioned ${stl.path} at ${mesh.position.toArray()}`);
+                        // Estimate slot spacing based on frame bounds
+                        const slotSpacing = (frameBounds?.max.x - frameBounds?.min.x) / 4 || 2;
+                        if (index === 1) mesh.position.set(-slotSpacing, 0, 0.1); // Board 1, slight z-offset
+                        if (index === 2) mesh.position.set(0, 0, 0.1);          // Board 2
+                        if (index === 3) mesh.position.set(slotSpacing, 0, 0.1); // Board 3
+                        console.log(`Positioned ${stl.path} at ${mesh.position.toArray()}, slotSpacing=${slotSpacing}`);
                     }
 
                     maxDim = Math.max(maxDim, modelMaxDim * scale);
@@ -114,11 +123,20 @@
                     if (loadedModels === stlFiles.length) {
                         camera.position.set(0, 0, maxDim * 2.5);
                         camera.lookAt(0, 0, 0);
+                        console.log(`All models loaded, camera at ${camera.position.toArray()}`);
                     }
                 },
                 (xhr) => console.log(`${stl.path}: ${(xhr.loaded / xhr.total * 100).toFixed(2)}% loaded`),
                 (error) => console.error(`Error loading ${stl.path}:`, error)
             );
+        });
+
+        // Toggle orbit controls with 'o' key
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'o') {
+                controls.enabled = !controls.enabled;
+                console.log(`Orbit controls ${controls.enabled ? 'enabled' : 'disabled'}`);
+            }
         });
 
         // Mouse interaction for sliding
@@ -139,6 +157,7 @@
                 const intersectPoint = raycaster.intersectObject(planeMesh)[0]?.point;
                 if (intersectPoint) {
                     startPoint = intersectPoint.clone();
+                    console.log(`Dragging started for ${selectedMesh.userData.name} at ${startPoint.toArray()}`);
                 }
             }
         }
@@ -155,20 +174,21 @@
                     let newPosX = selectedMesh.position.x + delta.x;
                     let newPosY = selectedMesh.position.y + delta.y;
 
-                    // Constrain movement within frame bounds (adjust margins as needed)
-                    const margin = 0.5; // Prevent boards from touching frame edges
+                    // Constrain movement within frame bounds
+                    const margin = 0.5;
                     newPosX = Math.max(frameBounds.min.x + margin, Math.min(frameBounds.max.x - margin, newPosX));
                     newPosY = Math.max(frameBounds.min.y + margin, Math.min(frameBounds.max.y - margin, newPosY));
 
                     selectedMesh.position.set(newPosX, newPosY, selectedMesh.position.z);
                     startPoint.copy(intersectPoint);
+                    console.log(`Moved ${selectedMesh.userData.name} to ${selectedMesh.position.toArray()}`);
                 }
             }
         }
 
         function onMouseUp() {
+            if (selectedMesh) console.log(`Dragging ended for ${selectedMesh.userData.name}`);
             selectedMesh = null;
-            controls.enabled = true;
             startPoint = null;
         }
 
@@ -185,6 +205,7 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            console.log(`Window resized to ${window.innerWidth}x${window.innerHeight}`);
         });
     </script>
 </body>
