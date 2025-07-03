@@ -10,14 +10,22 @@
         #info { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.7); padding: 10px; }
         #controls { position: absolute; top: 50px; left: 10px; color: white; background: rgba(0, 0, 0, 0.7); padding: 10px; }
         #controls label { margin-right: 5px; }
-        #controls input { width: 60px; margin: 2px; }
+        #controls input[type="number"] { width: 60px; margin: 2px; }
+        #controls input[type="checkbox"] { margin: 2px; }
     </style>
 </head>
 <body>
     <div id="info">Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit controls. Orbit: OFF</div>
     <div id="controls">
         <h3>Position Controls</h3>
-        <!-- Controls will be added dynamically -->
+        <!-- Position controls added dynamically -->
+        <h3>Axis Controls</h3>
+        <label><input type="checkbox" id="swap-xy"> Swap X/Y</label><br>
+        <label><input type="checkbox" id="swap-xz"> Swap X/Z</label><br>
+        <label><input type="checkbox" id="swap-yz"> Swap Y/Z</label><br>
+        <label><input type="checkbox" id="negate-x"> Negate X</label><br>
+        <label><input type="checkbox" id="negate-y"> Negate Y</label><br>
+        <label><input type="checkbox" id="negate-z"> Negate Z</label>
     </div>
     <script type="importmap">
         {
@@ -53,14 +61,14 @@
         // Update orbit mode indicator
         const infoDiv = document.getElementById('info');
         function updateOrbitIndicator() {
-            infoDiv.textContent = `Click and drag to slide boards (red, green, yellow). Press O to toggle orbit controls. Orbit: ${controls.enabled ? 'ON' : 'OFF'}`;
+            infoDiv.textContent = `Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit controls. Orbit: ${controls.enabled ? 'ON' : 'OFF'}`;
             console.log(`Orbit indicator updated: Orbit ${controls.enabled ? 'ON' : 'OFF'}`);
         }
 
         // Add lighting
         const ambientLight = new THREE.AmbientLight(0x404040);
         scene.add(ambientLight);
-        const directional underwater directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
         directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
 
@@ -72,12 +80,12 @@
         scene.add(gridHelper);
         console.log('Grid helper added: size=', gridSize, 'divisions=', gridDivisions);
 
-        // STL file configurations with initial positions
+        // STL file configurations
         const stlFiles = [
-            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false, scale: 1, initialPos: [0, 0, 0] }, // Frame
-            { path: './slidingboard.stl', color: 0xff0000, movable: true, scale: 1, initialPos: [-2, 0, 0.01] }, // Board 1
-            { path: './slidingboard.stl', color: 0x00ff00, movable: true, scale: 1, initialPos: [0, 0, 0.01] },  // Board 2
-            { path: './slidingboard.stl', color: 0xffff00, movable: true, scale: 1, initialPos: [2, 0, 0.01] }   // Board 3
+            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false, scale: 1, initialPos: [0, 0, 0] },
+            { path: './slidingboard.stl', color: 0xff0000, movable: true, scale: 1, initialPos: [-2, 0, 0.01] },
+            { path: './slidingboard.stl', color: 0x00ff00, movable: true, scale: 1, initialPos: [0, 0, 0.01] },
+            { path: './slidingboard.stl', color: 0xffff00, movable: true, scale: 1, initialPos: [2, 0, 0.01] }
         ];
 
         // Load STL files
@@ -88,10 +96,13 @@
         let selectedMesh = null;
         let mouse = new THREE.Vector2();
         let raycaster = new THREE.Raycaster();
-        let plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); // Sliding plane (z=0)
+        let plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
         let startPoint = null;
         let frameBounds = null;
-        const meshes = []; // Store meshes for position adjustments
+        const meshes = [];
+
+        // Axis flip state
+        let axisConfig = { swapXY: false, swapXZ: false, swapYZ: false, negateX: false, negateY: false, negateZ: false };
 
         // Create position controls
         const controlsDiv = document.getElementById('controls');
@@ -107,6 +118,47 @@
             controlsDiv.appendChild(div);
         });
 
+        // Axis flip controls
+        function applyAxisTransform(mesh, geometry) {
+            const position = geometry.attributes.position;
+            const offset = new THREE.Vector3(64.8, 347, 0); // Remove x: 64.8, y: 347 offset
+            for (let i = 0; i < position.count; i++) {
+                let x = position.getX(i) - offset.x;
+                let y = position.getY(i) - offset.y;
+                let z = position.getZ(i) - offset.z;
+
+                if (axisConfig.swapXY) [x, y] = [y, x];
+                if (axisConfig.swapXZ) [x, z] = [z, x];
+                if (axisConfig.swapYZ) [y, z] = [z, y];
+                if (axisConfig.negateX) x = -x;
+                if (axisConfig.negateY) y = -y;
+                if (axisConfig.negateZ) z = -z;
+
+                position.setXYZ(i, x, y, z);
+            }
+            position.needsUpdate = true;
+            geometry.computeBoundingBox();
+        }
+
+        ['swap-xy', 'swap-xz', 'swap-yz', 'negate-x', 'negate-y', 'negate-z'].forEach(id => {
+            const checkbox = document.getElementById(id);
+            checkbox.addEventListener('change', () => {
+                axisConfig[id.replace('-', '')] = checkbox.checked;
+                meshes.forEach((mesh, index) => {
+                    const geometry = mesh.geometry;
+                    geometry.attributes.position.array.fill(0); // Reset to avoid accumulation
+                    loader.load(stlFiles[index].path, (newGeometry) => {
+                        applyAxisTransform(mesh, newGeometry);
+                        mesh.geometry = newGeometry;
+                        const center = newGeometry.boundingBox.getCenter(new THREE.Vector3());
+                        mesh.position.set(0, 0, 0).sub(center.multiplyScalar(stlFiles[index].scale));
+                        mesh.position.add(new THREE.Vector3(...stlFiles[index].initialPos));
+                        console.log(`Axis transform applied to ${stlFiles[index].path}: ${JSON.stringify(axisConfig)}`);
+                    });
+                });
+            });
+        });
+
         stlFiles.forEach((stl, index) => {
             console.log(`Loading STL ${index + 1}/${stlFiles.length}: ${stl.path}`);
             loader.load(
@@ -117,8 +169,10 @@
                     const mesh = new THREE.Mesh(geometry, material);
                     mesh.userData = { movable: stl.movable, name: stl.path, index: index };
 
+                    // Remove offsets and apply axis transforms
+                    applyAxisTransform(mesh, geometry);
+
                     // Compute bounding box
-                    geometry.computeBoundingBox();
                     const center = geometry.boundingBox.getCenter(new THREE.Vector3());
                     const size = geometry.boundingBox.getSize(new THREE.Vector3());
                     const modelMaxDim = Math.max(size.x, size.y, size.z);
@@ -226,7 +280,6 @@
                     newPosX = Math.max(frameBounds.min.x + margin, Math.min(frameBounds.max.x - margin, newPosX));
                     newPosY = Math.max(frameBounds.min.y + margin, Math.min(frameBounds.max.y - margin, newPosY));
                     selectedMesh.position.set(newPosX, newPosY, selectedMesh.position.z);
-                    // Update UI inputs
                     document.getElementById(`x-${selectedMesh.userData.index}`).value = newPosX.toFixed(2);
                     document.getElementById(`y-${selectedMesh.userData.index}`).value = newPosY.toFixed(2);
                     startPoint.copy(intersectPoint);
