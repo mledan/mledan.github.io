@@ -53,9 +53,9 @@
         // STL file configurations
         const stlFiles = [
             { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false, scale: 1 }, // Blue, fixed frame, no scaling
-            { path: './slidingboard.stl', color: 0xff0000, movable: true, scale: null }, // Red, sliding board 1
-            { path: './slidingboard.stl', color: 0x00ff00, movable: true, scale: null }, // Green, sliding board 2
-            { path: './slidingboard.stl', color: 0xffff00, movable: true, scale: null }  // Yellow, sliding board 3
+            { path: './slidingboard.stl', color: 0xff0000, movable: true, scale: 1 }, // Red, sliding board 1
+            { path: './slidingboard.stl', color: 0x00ff00, movable: true, scale: 1 }, // Green, sliding board 2
+            { path: './slidingboard.stl', color: 0xffff00, movable: true, scale: 1 }  // Yellow, sliding board 3
         ];
 
         // Load STL files
@@ -69,7 +69,6 @@
         let plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); // Sliding plane (z=0)
         let startPoint = null;
         let frameBounds = null;
-        let frameScale = 1; // Store frame scale for reference
 
         stlFiles.forEach((stl, index) => {
             console.log(`Loading STL ${index + 1}/${stlFiles.length}: ${stl.path}`);
@@ -86,19 +85,17 @@
                     const center = geometry.boundingBox.getCenter(new THREE.Vector3());
                     const size = geometry.boundingBox.getSize(new THREE.Vector3());
                     const modelMaxDim = Math.max(size.x, size.y, size.z);
+                    console.log(`${stl.path} original size: ${size.toArray()}, maxDim: ${modelMaxDim}`);
 
                     // Apply scaling
-                    let scale = stl.scale || 10 / modelMaxDim; // Use custom scale or default
+                    const scale = stl.scale; // Use fixed scale from stlFiles
                     if (!stl.movable) {
-                        frameScale = scale; // Store frame scale
                         frameBounds = geometry.boundingBox.clone();
                         frameBounds.min.multiplyScalar(scale);
                         frameBounds.max.multiplyScalar(scale);
-                        console.log(`Frame bounds: min=${frameBounds.min.toArray()}, max=${frameBounds.max.toArray()}, scale=${scale}`);
+                        console.log(`Frame bounds (scaled): min=${frameBounds.min.toArray()}, max=${frameBounds.max.toArray()}, scale=${scale}`);
                     } else {
-                        // Scale boards relative to frame (adjust this if needed)
-                        scale = frameScale * (10 / modelMaxDim); // Example: match frame scale
-                        console.log(`Board scale: ${scale}, original size=${size.toArray()}`);
+                        console.log(`Board ${stl.path} scale: ${scale}, scaled size: [${(size.x * scale).toFixed(2)}, ${(size.y * scale).toFixed(2)}, ${(size.z * scale).toFixed(2)}]`);
                     }
 
                     // Center and scale
@@ -112,7 +109,7 @@
                         movableMeshes.push(mesh);
                         // Estimate slot spacing based on frame bounds
                         const slotSpacing = (frameBounds?.max.x - frameBounds?.min.x) / 4 || 2;
-                        if (index === 1) mesh.position.set(-slotSpacing, 0, 0.1); // Board 1, slight z-offset
+                        if (index === 1) mesh.position.set(-slotSpacing, 0, 0.1); // Board 1
                         if (index === 2) mesh.position.set(0, 0, 0.1);          // Board 2
                         if (index === 3) mesh.position.set(slotSpacing, 0, 0.1); // Board 3
                         console.log(`Positioned ${stl.path} at ${mesh.position.toArray()}, slotSpacing=${slotSpacing}`);
