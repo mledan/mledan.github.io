@@ -80,12 +80,12 @@
         scene.add(gridHelper);
         console.log('Grid helper added: size=', gridSize, 'divisions=', gridDivisions);
 
-        // STL file configurations with baked initial positions
+        // STL file configurations with provided position values
         const stlFiles = [
-            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false, scale: 1, initialPos: [0, 0, 0] }, // Replace with your frame position
-            { path: './slidingboard.stl', color: 0xff0000, movable: true, scale: 1, initialPos: [-2, 0, 0.01] }, // Replace with your board 1 position
-            { path: './slidingboard.stl', color: 0x00ff00, movable: true, scale: 1, initialPos: [0, 0, 0.01] },  // Replace with your board 2 position
-            { path: './slidingboard.stl', color: 0xffff00, movable: true, scale: 1, initialPos: [2, 0, 0.01] }   // Replace with your board 3 position
+            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false, scale: 1, initialPos: [0, 0, 0] }, // Frame
+            { path: './slidingboard.stl', color: 0xff0000, movable: true, scale: 1, initialPos: [12.5, 0, 100] }, // Board 1
+            { path: './slidingboard.stl', color: 0x00ff00, movable: true, scale: 1, initialPos: [7.5, 0, 20] },  // Board 2
+            { path: './slidingboard.stl', color: 0xffff00, movable: true, scale: 1, initialPos: [0, 0, 200] }   // Board 3
         ];
 
         // Load STL files
@@ -153,7 +153,16 @@
                         const center = newGeometry.boundingBox.getCenter(new THREE.Vector3());
                         mesh.position.set(0, 0, 0).sub(center.multiplyScalar(stlFiles[index].scale));
                         mesh.position.add(new THREE.Vector3(...stlFiles[index].initialPos));
-                        console.log(`Axis transform applied to ${stlFiles[index].path}: ${JSON.stringify(axisConfig)}`);
+                        // Sync UI with new position
+                        const inputs = {
+                            x: document.getElementById(`x-${index}`),
+                            y: document.getElementById(`y-${index}`),
+                            z: document.getElementById(`z-${index}`)
+                        };
+                        inputs.x.value = mesh.position.x.toFixed(2);
+                        inputs.y.value = mesh.position.y.toFixed(2);
+                        inputs.z.value = mesh.position.z.toFixed(2);
+                        console.log(`Axis transform applied to ${stlFiles[index].path}: ${JSON.stringify(axisConfig)}, position: ${mesh.position.toArray()}`);
                     });
                 });
             });
@@ -189,20 +198,29 @@
                         console.log(`Board ${stl.path} scale: ${scale}, scaled size: [${(size.x * scale).toFixed(2)}, ${(size.y * scale).toFixed(2)}, ${(size.z * scale).toFixed(2)}]`);
                     }
 
-                    // Center at origin and apply initial position
-                    mesh.position.sub(center.multiplyScalar(scale));
-                    mesh.position.add(new THREE.Vector3(...stl.initialPos));
+                    // Center at origin and enforce initial position
+                    mesh.position.copy(new THREE.Vector3(0, 0, 0)); // Reset to origin
+                    mesh.position.sub(center.multiplyScalar(scale)); // Center geometry
+                    mesh.position.add(new THREE.Vector3(...stl.initialPos)); // Apply initial position
+                    console.log(`Instantiated ${stl.path} at ${mesh.position.toArray()} with initialPos ${stl.initialPos} after centering`);
+
                     mesh.rotation.x = -Math.PI / 2; // Align to XY plane
                     mesh.scale.set(scale, scale, scale);
                     scene.add(mesh);
                     meshes.push(mesh);
 
-                    // Position controls
+                    // Sync UI with initial position
                     const inputs = {
                         x: document.getElementById(`x-${index}`),
                         y: document.getElementById(`y-${index}`),
                         z: document.getElementById(`z-${index}`)
                     };
+                    inputs.x.value = stl.initialPos[0].toFixed(2); // Set to initialPos directly
+                    inputs.y.value = stl.initialPos[1].toFixed(2);
+                    inputs.z.value = stl.initialPos[2].toFixed(2);
+                    console.log(`UI initialized for ${stl.path} with position ${mesh.position.toArray()} from initialPos ${stl.initialPos}`);
+
+                    // Position controls
                     Object.keys(inputs).forEach(axis => {
                         inputs[axis].addEventListener('input', () => {
                             const pos = mesh.position;
