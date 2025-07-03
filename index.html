@@ -47,6 +47,7 @@
         const infoDiv = document.getElementById('info');
         function updateOrbitIndicator() {
             infoDiv.textContent = `Click and drag to slide interior boards (red, green, yellow). Press 'o' to toggle orbit controls. Orbit: ${controls.enabled ? 'ON' : 'OFF'}`;
+            console.log(`Orbit indicator updated: Orbit ${controls.enabled ? 'ON' : 'OFF'}`);
         }
 
         // Add lighting
@@ -56,7 +57,7 @@
         directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
 
-        // Add grid helper (10x10 grid, 1-unit spacing)
+        // Add grid helper
         const gridSize = 100; // Adjust based on frame size
         const gridDivisions = 100;
         const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x888888, 0xcccccc);
@@ -66,7 +67,7 @@
 
         // STL file configurations
         const stlFiles = [
-            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false, scale: 1 }, // Blue, fixed frame, no scaling
+            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false, scale: 1 }, // Blue, fixed frame
             { path: './slidingboard.stl', color: 0xff0000, movable: true, scale: 1 }, // Red, sliding board 1
             { path: './slidingboard.stl', color: 0x00ff00, movable: true, scale: 1 }, // Green, sliding board 2
             { path: './slidingboard.stl', color: 0xffff00, movable: true, scale: 1 }  // Yellow, sliding board 3
@@ -109,7 +110,7 @@
                         frameBounds.max.multiplyScalar(scale);
                         console.log(`Frame bounds (scaled): min=${frameBounds.min.toArray()}, max=${frameBounds.max.toArray()}, scale=${scale}`);
                     } else {
-                        console.log(`Board ${stl.path} scale: ${scale}, scaled size: [${(size.x * scale).toFixed(2)}, ${(size.y * scale).toFixed(2)}, ${(size.z * scale).toFixed(2)}]`);
+                        console.log(`Board ${stl.path} scaleckt: ${scale}, scaled size: [${(size.x * scale).toFixed(2)}, ${(size.y * scale).toFixed(2)}, ${(size.z * scale).toFixed(2)}]`);
                     }
 
                     // Center and scale
@@ -121,9 +122,8 @@
                     // Position sliding boards
                     if (stl.movable) {
                         movableMeshes.push(mesh);
-                        // Estimate slot spacing based on frame bounds
                         const slotSpacing = (frameBounds?.max.x - frameBounds?.min.x) / 4 || 2;
-                        if (index === 1) mesh.position.set(-slotSpacing, 0, 0.01); // Board 1, minimal z-offset
+                        if (index === 1) mesh.position.set(-slotSpacing, 0, 0.01); // Board 1
                         if (index === 2) mesh.position.set(0, 0, 0.01);          // Board 2
                         if (index === 3) mesh.position.set(slotSpacing, 0, 0.01); // Board 3
                         console.log(`Positioned ${stl.path} at ${mesh.position.toArray()}, slotSpacing=${slotSpacing}`);
@@ -132,10 +132,9 @@
                     maxDim = Math.max(maxDim, modelMaxDim * scale);
                     loadedModels++;
                     if (loadedModels === stlFiles.length) {
-                        // Adjust camera to frame size
                         const frameSize = frameBounds ? frameBounds.max.clone().sub(frameBounds.min) : new THREE.Vector3(maxDim, maxDim, maxDim);
                         const frameMaxDim = Math.max(frameSize.x, frameSize.y, frameSize.z);
-                        camera.position.set(0, 0, frameMaxDim * 1.5); // Closer camera position
+                        camera.position.set(0, 0, frameMaxDim * 1.2); // Closer camera
                         camera.lookAt(0, 0, 0);
                         console.log(`All models loaded, frame size=${frameSize.toArray()}, camera at ${camera.position.toArray()}`);
                     }
@@ -146,11 +145,11 @@
         });
 
         // Toggle orbit controls with 'o' key
-        window.addEventListener('keydown', (event) => {
-            if (event.key === 'o') {
+        document.addEventListener('keydown', (event) => {
+            if (event.key.toLowerCase() === 'o') {
                 controls.enabled = !controls.enabled;
                 updateOrbitIndicator();
-                console.log(`Orbit controls ${controls.enabled ? 'enabled' : 'disabled'}`);
+                console.log(`Orbit controls toggled: ${controls.enabled ? 'enabled' : 'disabled'}`);
             }
         });
 
@@ -178,11 +177,6 @@
             }
         }
 
-        function onMouseMoveව
-
-System: **Mouse Interaction for Sliding (continued)**
-
-```javascript
         function onMouseMove(event) {
             if (selectedMesh && frameBounds) {
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -196,7 +190,7 @@ System: **Mouse Interaction for Sliding (continued)**
                     let newPosY = selectedMesh.position.y + delta.y;
 
                     // Constrain movement within frame bounds
-                    const margin = 0.1; // Reduced margin for finer control
+                    const margin = 0.1;
                     newPosX = Math.max(frameBounds.min.x + margin, Math.min(frameBounds.max.x - margin, newPosX));
                     newPosY = Math.max(frameBounds.min.y + margin, Math.min(frameBounds.max.y - margin, newPosY));
 
