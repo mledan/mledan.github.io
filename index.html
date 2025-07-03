@@ -80,12 +80,12 @@
         scene.add(gridHelper);
         console.log('Grid helper added: size=', gridSize, 'divisions=', gridDivisions);
 
-        // STL file configurations
+        // STL file configurations with baked initial positions
         const stlFiles = [
-            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false, scale: 1, initialPos: [0, 0, 0] },
-            { path: './slidingboard.stl', color: 0xff0000, movable: true, scale: 1, initialPos: [-2, 0, 0.01] },
-            { path: './slidingboard.stl', color: 0x00ff00, movable: true, scale: 1, initialPos: [0, 0, 0.01] },
-            { path: './slidingboard.stl', color: 0xffff00, movable: true, scale: 1, initialPos: [2, 0, 0.01] }
+            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false, scale: 1, initialPos: [0, 0, 0] }, // Replace with your frame position
+            { path: './slidingboard.stl', color: 0xff0000, movable: true, scale: 1, initialPos: [-2, 0, 0.01] }, // Replace with your board 1 position
+            { path: './slidingboard.stl', color: 0x00ff00, movable: true, scale: 1, initialPos: [0, 0, 0.01] },  // Replace with your board 2 position
+            { path: './slidingboard.stl', color: 0xffff00, movable: true, scale: 1, initialPos: [2, 0, 0.01] }   // Replace with your board 3 position
         ];
 
         // Load STL files
