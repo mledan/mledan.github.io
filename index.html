@@ -75,8 +75,8 @@
         scene.add(directionalLight);
 
         // Add grid helper
-        const gridSize = 100; // Adjust based on frame size
-        const gridDivisions = 100;
+        const gridSize = 1000; // Adjust based on frame size
+        const gridDivisions = 1000;
         const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x888888, 0xcccccc);
         gridHelper.rotation.x = -Math.PI / 2; // Align to XY plane
         scene.add(gridHelper);
@@ -113,9 +113,9 @@
             const div = document.createElement('div');
             div.innerHTML = `
                 <h4>${name}</h4>
-                <label>X:</label><input type="number" id="x-${index}" value="${stl.initialPos[0]}" step="0.1">
-                <label>Y:</label><input type="number" id="y-${index}" value="${stl.initialPos[1]}" step="0.1">
-                <label>Z:</label><input type="number" id="z-${index}" value="${stl.initialPos[2]}" step="0.01">
+                <label>X:</label><input type="number" id="x-${index}" value="${stl.initialPos[0]}" step="1">
+                <label>Y:</label><input type="number" id="y-${index}" value="${stl.initialPos[1]}" step="1">
+                <label>Z:</label><input type="number" id="z-${index}" value="${stl.initialPos[2]}" step="1">
             `;
             controlsDiv.appendChild(div);
         });
@@ -142,11 +142,11 @@
         // Axis flip controls
         function applyAxisTransform(mesh, geometry) {
             const position = geometry.attributes.position;
-            const offset = new THREE.Vector3(64.8, 347, 0); // Remove x: 64.8, y: 347 offset
+            // Removed offset: no subtraction of (64.8, 347, 0)
             for (let i = 0; i < position.count; i++) {
-                let x = position.getX(i) - offset.x;
-                let y = position.getY(i) - offset.y;
-                let z = position.getZ(i) - offset.z;
+                let x = position.getX(i);
+                let y = position.getY(i);
+                let z = position.getZ(i);
 
                 if (axisConfig.swapXY) [x, y] = [y, x];
                 if (axisConfig.swapXZ) [x, z] = [z, x];
@@ -199,7 +199,7 @@
                     const mesh = new THREE.Mesh(geometry, material);
                     mesh.userData = { movable: stl.movable, name: stl.path, index: index };
 
-                    // Remove offsets and apply axis transforms
+                    // Apply axis transforms without offset
                     applyAxisTransform(mesh, geometry);
 
                     // Compute bounding box
@@ -223,13 +223,13 @@
                     mesh.position.copy(new THREE.Vector3(0, 0, 0)); // Reset to origin
                     mesh.position.sub(center.multiplyScalar(scale)); // Center geometry
                     const initialPosition = new THREE.Vector3(...stl.initialPos);
-                    mesh.position.add(initialPosition); // Apply initial position
-                    console.log(`Initial position set for ${stl.path} to ${initialPosition.toArray()} before final adjustment`);
+                    mesh.position.add(initialPosition); // Apply all x, y, z
+                    console.log(`Initial position set for ${stl.path} to [x=${initialPosition.x}, y=${initialPosition.y}, z=${initialPosition.z}] without offset`);
 
                     // Ensure position is not overridden
                     mesh.updateMatrix();
                     mesh.updateMatrixWorld(true);
-                    console.log(`Instantiated ${stl.path} at ${mesh.position.toArray()} with initialPos ${stl.initialPos} after centering and matrix update`);
+                    console.log(`Instantiated ${stl.path} at [x=${mesh.position.x}, y=${mesh.position.y}, z=${mesh.position.z}] with initialPos ${stl.initialPos} after centering and matrix update`);
 
                     mesh.rotation.x = -Math.PI / 2; // Align to XY plane
                     mesh.scale.set(scale, scale, scale);
@@ -254,7 +254,7 @@
                             pos[axis] = parseFloat(inputs[axis].value) || stl.initialPos[axis === 'x' ? 0 : axis === 'y' ? 1 : 2];
                             mesh.position.set(pos.x, pos.y, pos.z);
                             mesh.updateMatrixWorld(true); // Ensure matrix is updated
-                            console.log(`Updated ${stl.path} position: ${mesh.position.toArray()}`);
+                            console.log(`Updated ${stl.path} position: [x=${pos.x}, y=${pos.y}, z=${pos.z}]`);
                         });
                     });
 
@@ -272,16 +272,17 @@
                         camera.lookAt(0, 0, 0);
                         console.log(`All models loaded, frame size=${frameSize.toArray()}, camera at ${camera.position.toArray()}, distance=${cameraDistance}`);
 
-                        // Apply positions immediately after loading
+                        // Apply all x, y, z positions immediately after loading
                         meshes.forEach((mesh, index) => {
-                            const initialPos = stlFiles[index].initialPos; // Use initialPos directly
+                            const initialPos = stlFiles[index].initialPos;
                             const pos = mesh.position;
+                            console.log(`Before apply for ${stlFiles[index].path}: [x=${pos.x}, y=${pos.y}, z=${pos.z}]`);
                             pos.x = initialPos[0];
                             pos.y = initialPos[1];
                             pos.z = initialPos[2];
                             mesh.position.set(pos.x, pos.y, pos.z);
                             mesh.updateMatrixWorld(true);
-                            console.log(`Positions applied to ${stlFiles[index].path} at ${mesh.position.toArray()} using initialPos ${initialPos}`);
+                            console.log(`Positions applied to ${stlFiles[index].path} at [x=${pos.x}, y=${pos.y}, z=${pos.z}] using initialPos ${initialPos} without offset`);
                         });
                     }
                 },
@@ -341,7 +342,7 @@
                     document.getElementById(`x-${selectedMesh.userData.index}`).value = newPosX.toFixed(2);
                     document.getElementById(`y-${selectedMesh.userData.index}`).value = newPosY.toFixed(2);
                     startPoint.copy(intersectPoint);
-                    console.log(`Moved ${selectedMesh.userData.name} to ${selectedMesh.position.toArray()}`);
+                    console.log(`Moved ${selectedMesh.userData.name} to [x=${newPosX}, y=${newPosY}, z=${selectedMesh.position.z}]`);
                 }
             }
         }
