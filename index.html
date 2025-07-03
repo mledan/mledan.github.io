@@ -1,116 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Sliding Whiteboard Model</title>
-  <style>
-    body { margin: 0; overflow: hidden; }
-    #canvas { width: 100vw; height: 100vh; }
-    #controls {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 10px;
-      border-radius: 5px;
-    }
-    #controls label { margin-right: 10px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STL Viewer with Three.js</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
 </head>
 <body>
-  <div id="canvas"></div>
-  <div id="controls">
-    <h3>Control Panel</h3>
-    <div id="part-controls"></div>
-  </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://threejs.org/examples/js/exporters/STLExporter.js"></script>
-  <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
-  <script>
-    // Basic Three.js setup
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas') });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 
-    camera.position.z = 10;
+        // Set up scene, camera, and renderer
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xdddddd);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-    // Materials
-    const frameMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 }); // Dark gray frame
-    const boardMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); // White boards
+        // Add orbit controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
 
-    // Dimensions (in units)
-    const frameWidth = 10;
-    const frameHeight = 6;
-    const frameThickness = 0.5;
-    const boardThickness = 0.1;
-    const halfBoardWidth = frameWidth / 2;
+        // Add lighting
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
 
-    // Frame
-    const frameGeometry = new THREE.BoxGeometry(frameWidth, frameHeight, frameThickness);
-    const frame = new THREE.Mesh(frameGeometry, frameMaterial);
-    frame.position.z = -frameThickness / 2; // Move frame to the back
-    scene.add(frame);
+        // Load STL file
+        const loader = new STLLoader();
+        loader.load(
+            './model.stl', // Replace with your STL file path in the repository
+            (geometry) => {
+                const material = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
+                const mesh = new THREE.Mesh(geometry, material);
+                scene.add(mesh);
 
-    // Backing Board
-    const backingGeometry = new THREE.BoxGeometry(frameWidth - 2 * frameThickness, frameHeight - 2 * frameThickness, boardThickness);
-    const backingBoard = new THREE.Mesh(backingGeometry, boardMaterial);
-    backingBoard.position.z = -frameThickness - boardThickness / 2;
-    scene.add(backingBoard);
+                // Center and scale the model
+                geometry.computeBoundingBox();
+                const center = geometry.boundingBox.getCenter(new THREE.Vector3());
+                const size = geometry.boundingBox.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const scale = 10 / maxDim; // Adjust scale to fit view
+                mesh.scale.set(scale, scale, scale);
+                mesh.position.sub(center.multiplyScalar(scale));
 
-    // Sliding Boards (3 half-size boards)
-    const slidingBoards = [];
-    for (let i = 0; i < 3; i++) {
-      const slidingGeometry = new THREE.BoxGeometry(halfBoardWidth - 2 * frameThickness, frameHeight - 2 * frameThickness, boardThickness);
-      const slidingBoard = new THREE.Mesh(slidingGeometry, boardMaterial);
-      slidingBoard.position.z = -frameThickness;
-      slidingBoard.position.x = -frameWidth / 2 + halfBoardWidth / 2 + i * halfBoardWidth; // Initial positions
-      scene.add(slidingBoard);
-      slidingBoards.push(slidingBoard);
+                camera.position.z = maxDim * scale * 2;
+            },
+            (xhr) => console.log((xhr.loaded / xhr.total * 100) + '% loaded'),
+            (error) => console.error('Error loading STL:', error)
+        );
 
-      // Add control for each sliding board
-      const controlPanel = document.getElementById('part-controls');
-      const div = document.createElement('div');
-      div.innerHTML = `
-        <h4>Sliding Board ${i + 1}</h4>
-        <label>X Position:</label>
-        <input type="range" id="x-pos-${i}" min="${-frameWidth / 2 + halfBoardWidth / 2}" max="${frameWidth / 2 - halfBoardWidth / 2}" value="${slidingBoard.position.x}" step="0.1">
-      `;
-      controlPanel.appendChild(div);
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
 
-      document.getElementById(`x-pos-${i}`).addEventListener('input', (e) => {
-        slidingBoards[i].position.x = parseFloat(e.target.value);
-      });
-    }
-
-    // Animation loop
-    function animate() {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    // Handle window resize
-    window.addEventListener('resize', () => {
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-    });
-
-    // Export to STL (add button or call this function manually)
-    window.exportSTL = function() {
-      const exporter = new THREE.STLExporter();
-      const result = exporter.parse(scene, { binary: true });
-      const blob = new Blob([result], { type: 'application/sla' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'sliding_whiteboard.stl';
-      link.click();
-    };
-  </script>
-  <button onclick="exportSTL()">Export as STL</button>
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
 </body>
 </html>
