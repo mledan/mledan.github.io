@@ -7,39 +7,9 @@
     <style>
         body { margin: 0; font-family: Arial; }
         canvas { display: block; }
-        #info { 
-            position: absolute; 
-            top: 10px; 
-            left: 10px; 
-            color: white; 
-            background: rgba(0, 0, 0, 0.7); 
-            padding: 10px; 
-            max-width: 400px; 
-            font-size: 14px;
-        }
-        #controls { 
-            position: absolute; 
-            top: 50px; 
-            left: 10px; 
-            color: white; 
-            background: rgba(0, 0, 0, 0.7); 
-            padding: 10px; 
-        }
-        #controls label { margin-right: 5px; }
-        #controls input[type="number"] { width: 60px; margin: 2px; }
-        #controls input[type="checkbox"] { margin: 2px; }
-        #controls button { margin: 5px 0; padding: 5px; }
     </style>
 </head>
 <body>
-    <div id="info">Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate, 'a' to toggle autoslide. Orbit: OFF, AutoRotate: OFF, AutoSlide: OFF</div>
-    <div id="controls">
-        <h3>Position Controls</h3>
-        <button id="apply-values">Apply Values</button>
-        <button id="toggle-autorotate">Toggle Autorotate</button>
-        <button id="toggle-autoslide">Toggle AutoSlide</button>
-        <button id="reset-camera-defaults">Reset to Defaults</button>
-    </div>
     <script type="importmap">
         {
             "imports": {
@@ -80,31 +50,6 @@
             distance: 250 // Distance from target
         };
 
-        // Update orbit, autorotate, and autoslide mode indicator with camera info
-        const infoDiv = document.getElementById('info');
-        let isAutorotating = false;
-        let isAutoSliding = false;
-        function updateModeIndicator() {
-            let infoText = `Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate, 'a' to toggle autoslide. Orbit: ${controls.enabled ? 'ON' : 'OFF'}, AutoRotate: ${isAutorotating ? 'ON' : 'OFF'}, AutoSlide: ${isAutoSliding ? 'ON' : 'OFF'}`;
-            if (controls.enabled) {
-                const zoom = camera.fov;
-                const pan = controls.target;
-                const rotation = camera.rotation;
-                const distance = camera.position.distanceTo(controls.target);
-                infoText += `<br>Zoom (FOV): ${zoom.toFixed(2)}°<br>Distance: ${distance.toFixed(2)} units<br>Pan: [x=${pan.x.toFixed(2)}, y=${pan.y.toFixed(2)}, z=${pan.z.toFixed(2)}]<br>Rotation: [x=${(rotation.x * 180 / Math.PI).toFixed(2)}°, y=${(rotation.y * 180 / Math.PI).toFixed(2)}°, z=${(rotation.z * 180 / Math.PI).toFixed(2)}°]`;
-            }
-            infoDiv.innerHTML = infoText;
-            console.log(`Mode indicator updated: Orbit ${controls.enabled ? 'ON' : 'OFF'}, AutoRotate ${isAutorotating ? 'ON' : 'OFF'}, AutoSlide ${isAutoSliding ? 'ON' : 'OFF'}`);
-        }
-
-        // Add OrbitControls change listener for event-based updates
-        controls.addEventListener('change', () => {
-            if (controls.enabled) {
-                updateModeIndicator();
-                console.log('OrbitControls changed: updating mode indicator');
-            }
-        });
-
         // Add lighting
         const ambientLight = new THREE.AmbientLight(0x404040);
         scene.add(ambientLight);
@@ -114,7 +59,7 @@
 
         // STL file configurations with provided position values
         const stlFiles = [
-            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false, scale: 1, initialPos: [0, 0, 500] },
+            { path: './completeframe-nosliders.stl', color: 0ල0x0000ff, movable: false, scale: 1, initialPos: [0, 0, 500] },
             { path: './slidingboard.stl', color: 0xff0000, movable: true, scale: 1, initialPos: [12.5, 0, 600], phase: 0 },
             { path: './slidingboard.stl', color: 0x00ff00, movable: true, scale: 1, initialPos: [7.5, 0, 520], phase: 2 * Math.PI / 3 },
             { path: './slidingboard.stl', color: 0xffff00, movable: true, scale: 1, initialPos: [0, 0, 700], phase: 4 * Math.PI / 3 }
@@ -134,96 +79,9 @@
         const meshes = [];
         const slideBounds = { minZ: 495, maxZ: 725 };
         const slidePeriod = 10;
+        let isAutorotating = false;
+        let isAutoSliding = true; // AutoSlide ON by default
         let startTime = performance.now() / 1000;
-
-        // Create position controls
-        const controlsDiv = document.getElementById('controls');
-        stlFiles.forEach((stl, index) => {
-            const name = stl.path.split('/').pop();
-            const div = document.createElement('div');
-            div.innerHTML = `
-                <h4>${name}</h4>
-                <label>X:</label><input type="number" id="x-${index}" value="${stl.initialPos[0]}" step="1">
-                <label>Y:</label><input type="number" id="y-${index}" value="${stl.initialPos[1]}" step="1">
-                <label>Z:</label><input type="number" id="z-${index}" value="${stl.initialPos[2]}" step="1">
-            `;
-            controlsDiv.appendChild(div);
-        });
-
-        // Add Apply Values button functionality
-        const applyButton = document.getElementById('apply-values');
-        applyButton.addEventListener('click', () => {
-            meshes.forEach((mesh, index) => {
-                const inputs = {
-                    x: document.getElementById(`x-${index}`),
-                    y: document.getElementById(`y-${index}`),
-                    z: document.getElementById(`z-${index}`)
-                };
-                const pos = mesh.position;
-                const newX = parseFloat(inputs.x.value) || pos.x;
-                const newY = parseFloat(inputs.y.value) || pos.y;
-                let newZ = parseFloat(inputs.z.value) || pos.z;
-                newZ = Math.max(slideBounds.minZ, Math.min(slideBounds.maxZ, newZ));
-
-                if (isNaN(newX) || isNaN(newY) || isNaN(newZ)) {
-                    console.warn(`Invalid input for ${stlFiles[index].path}: x=${inputs.x.value}, y=${inputs.y.value}, z=${inputs.z.value}. Using current position as fallback.`);
-                }
-
-                pos.x = newX;
-                pos.y = newY;
-                pos.z = newZ;
-                mesh.position.set(pos.x, pos.y, pos.z);
-                mesh.updateMatrixWorld(true);
-                console.log(`Applied values to ${stlFiles[index].path} at ${mesh.position.toArray()} from sliders`);
-            });
-        });
-
-        // Add Toggle Autorotate button functionality
-        const toggleAutorotateButton = document.getElementById('toggle-autorotate');
-        toggleAutorotateButton.addEventListener('click', () => {
-            isAutorotating = !isAutorotating;
-            if (isAutorotating) {
-                scene.rotation.y += Math.PI / 2;
-            }
-            updateModeIndicator();
-            console.log(`Autorotate toggled to ${isAutorotating ? 'ON' : 'OFF'}`);
-        });
-
-        // Add Toggle AutoSlide button functionality
-        const toggleAutoSlideButton = document.getElementById('toggle-autoslide');
-        toggleAutoSlideButton.addEventListener('click', () => {
-            isAutoSliding = !isAutoSliding;
-            if (isAutoSliding) {
-                startTime = performance.now() / 1000;
-            }
-            updateModeIndicator();
-            console.log(`AutoSlide toggled to ${isAutoSliding ? 'ON' : 'OFF'}`);
-        });
-
-        // Reset to camera defaults
-        const resetCameraButton = document.getElementById('reset-camera-defaults');
-        resetCameraButton.addEventListener('click', () => {
-            camera.fov = defaultCameraSettings.zoom;
-            controls.target.copy(defaultCameraSettings.target);
-            camera.position.copy(defaultCameraSettings.target).add(
-                new THREE.Vector3(0, 0, defaultCameraSettings.distance).applyEuler(defaultCameraSettings.rotation)
-            );
-            camera.rotation.copy(defaultCameraSettings.rotation);
-            camera.updateProjectionMatrix();
-            controls.update();
-            updateModeIndicator();
-            console.log('Camera reset to defaults:', {
-                zoom: camera.fov,
-                distance: camera.position.distanceTo(controls.target).toFixed(2),
-                position: camera.position.toArray(),
-                target: controls.target.toArray(),
-                rotation: [
-                    (camera.rotation.x * 180 / Math.PI).toFixed(2),
-                    (camera.rotation.y * 180 / Math.PI).toFixed(2),
-                    (camera.rotation.z * 180 / Math.PI).toFixed(2)
-                ]
-            });
-        });
 
         // Axis flip controls
         function applyAxisTransform(mesh, geometry) {
@@ -280,29 +138,6 @@
                     scene.add(mesh);
                     meshes.push(mesh);
 
-                    const inputs = {
-                        x: document.getElementById(`x-${index}`),
-                        y: document.getElementById(`y-${index}`),
-                        z: document.getElementById(`z-${index}`)
-                    };
-                    inputs.x.value = stl.initialPos[0].toFixed(2);
-                    inputs.y.value = stl.initialPos[1].toFixed(2);
-                    inputs.z.value = stl.initialPos[2].toFixed(2);
-                    console.log(`UI initialized for ${stl.path} with slider values: x=${inputs.x.value}, y=${inputs.y.value}, z=${inputs.z.value}`);
-
-                    Object.keys(inputs).forEach(axis => {
-                        inputs[axis].addEventListener('input', () => {
-                            const pos = mesh.position;
-                            pos[axis] = parseFloat(inputs[axis].value) || stl.initialPos[axis === 'x' ? 0 : axis === 'y' ? 1 : 2];
-                            if (axis === 'z') {
-                                pos[axis] = Math.max(slideBounds.minZ, Math.min(slideBounds.maxZ, pos[axis]));
-                            }
-                            mesh.position.set(pos.x, pos.y, pos.z);
-                            mesh.updateMatrixWorld(true);
-                            console.log(`Updated ${stl.path} position: [x=${pos.x}, y=${pos.y}, z=${pos.z}]`);
-                        });
-                    });
-
                     if (stl.movable) {
                         movableMeshes.push(mesh);
                     }
@@ -320,7 +155,6 @@
                         camera.updateProjectionMatrix();
                         defaultCameraSettings.position.copy(camera.position);
                         console.log(`All models loaded, camera at ${camera.position.toArray()}, distance=${defaultCameraSettings.distance}, FOV=${camera.fov}, target=${controls.target.toArray()}`);
-                        updateModeIndicator(); // Initial update after loading
 
                         meshes.forEach((mesh, index) => {
                             const initialPos = stlFiles[index].initialPos;
@@ -345,21 +179,18 @@
             const key = event.key.toLowerCase();
             if (key === 'o') {
                 controls.enabled = !controls.enabled;
-                updateModeIndicator();
                 console.log(`Orbit controls toggled: ${controls.enabled ? 'enabled' : 'disabled'}`);
             } else if (key === 'r') {
                 isAutorotating = !isAutorotating;
                 if (isAutorotating) {
                     scene.rotation.y += Math.PI / 2;
                 }
-                updateModeIndicator();
                 console.log(`Autorotate toggled to ${isAutorotating ? 'ON' : 'OFF'}`);
             } else if (key === 'a') {
                 isAutoSliding = !isAutoSliding;
                 if (isAutoSliding) {
                     startTime = performance.now() / 1000;
                 }
-                updateModeIndicator();
                 console.log(`AutoSlide toggled to ${isAutoSliding ? 'ON' : 'OFF'}`);
             }
         });
@@ -379,12 +210,11 @@
                 selectedMesh = intersects[0].object;
                 controls.enabled = false;
                 isAutoSliding = false;
-                updateModeIndicator();
+                console.log(`Dragging started for ${selectedMesh.userData.name} at ${startPoint?.toArray() || 'unknown'}`);
                 const planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial());
                 const intersectPoint = raycaster.intersectObject(planeMesh)[0]?.point;
                 if (intersectPoint) {
                     startPoint = intersectPoint.clone();
-                    console.log(`Dragging started for ${selectedMesh.userData.name} at ${startPoint.toArray()}`);
                 }
             }
         }
@@ -404,8 +234,6 @@
                     newPosX = Math.max(frameBounds.min.x + margin, Math.min(frameBounds.max.x - margin, newPosX));
                     newPosY = Math.max(frameBounds.min.y + margin, Math.min(frameBounds.max.y - margin, newPosY));
                     selectedMesh.position.set(newPosX, newPosY, selectedMesh.position.z);
-                    document.getElementById(`x-${selectedMesh.userData.index}`).value = newPosX.toFixed(2);
-                    document.getElementById(`y-${selectedMesh.userData.index}`).value = newPosY.toFixed(2);
                     startPoint.copy(intersectPoint);
                     console.log(`Moved ${selectedMesh.userData.name} to [x=${newPosX}, y=${newPosY}, z=${selectedMesh.position.z}]`);
                 }
@@ -416,7 +244,6 @@
             if (selectedMesh) console.log(`Dragging ended for ${selectedMesh.userData.name}`);
             selectedMesh = null;
             startPoint = null;
-            updateModeIndicator();
         }
 
         // Animation loop with autorotation and autosliding
@@ -433,7 +260,6 @@
                     const amplitude = (slideBounds.maxZ - slideBounds.minZ) / 2;
                     const zPos = midZ + amplitude * Math.sin((2 * Math.PI * currentTime / slidePeriod) + phase);
                     mesh.position.z = zPos;
-                    document.getElementById(`z-${mesh.userData.index}`).value = zPos.toFixed(2);
                     mesh.updateMatrixWorld(true);
                     console.log(`AutoSlide: ${mesh.userData.name} at z=${zPos.toFixed(2)}`);
                 });
@@ -449,7 +275,6 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
             console.log(`Window resized to ${window.innerWidth}x${window.innerHeight}`);
-            updateModeIndicator(); // Update for camera aspect changes
         });
     </script>
 </body>
