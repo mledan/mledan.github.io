@@ -130,12 +130,12 @@
                     z: document.getElementById(`z-${index}`)
                 };
                 const pos = mesh.position;
-                pos.x = parseFloat(inputs.x.value);
-                pos.y = parseFloat(inputs.y.value);
-                pos.z = parseFloat(inputs.z.value);
+                pos.x = parseFloat(inputs.x.value) || stlFiles[index].initialPos[0];
+                pos.y = parseFloat(inputs.y.value) || stlFiles[index].initialPos[1];
+                pos.z = parseFloat(inputs.z.value) || stlFiles[index].initialPos[2];
                 mesh.position.set(pos.x, pos.y, pos.z);
                 mesh.updateMatrixWorld(true);
-                console.log(`Applied values to ${stlFiles[index].path} at ${mesh.position.toArray()}`);
+                console.log(`Applied values to ${stlFiles[index].path} at ${mesh.position.toArray()} from sliders or initialPos`);
             });
         });
 
@@ -245,13 +245,13 @@
                     inputs.x.value = stl.initialPos[0].toFixed(2);
                     inputs.y.value = stl.initialPos[1].toFixed(2);
                     inputs.z.value = stl.initialPos[2].toFixed(2);
-                    console.log(`UI initialized for ${stl.path} with position ${mesh.position.toArray()} from initialPos ${stl.initialPos}`);
+                    console.log(`UI initialized for ${stl.path} with slider values: x=${inputs.x.value}, y=${inputs.y.value}, z=${inputs.z.value}`);
 
                     // Position controls
                     Object.keys(inputs).forEach(axis => {
                         inputs[axis].addEventListener('input', () => {
                             const pos = mesh.position;
-                            pos[axis] = parseFloat(inputs[axis].value);
+                            pos[axis] = parseFloat(inputs[axis].value) || stl.initialPos[axis === 'x' ? 0 : axis === 'y' ? 1 : 2];
                             mesh.position.set(pos.x, pos.y, pos.z);
                             mesh.updateMatrixWorld(true); // Ensure matrix is updated
                             console.log(`Updated ${stl.path} position: ${mesh.position.toArray()}`);
@@ -274,18 +274,14 @@
 
                         // Apply positions immediately after loading
                         meshes.forEach((mesh, index) => {
-                            const inputs = {
-                                x: document.getElementById(`x-${index}`),
-                                y: document.getElementById(`y-${index}`),
-                                z: document.getElementById(`z-${index}`)
-                            };
+                            const initialPos = stlFiles[index].initialPos; // Use initialPos directly
                             const pos = mesh.position;
-                            pos.x = parseFloat(inputs.x.value);
-                            pos.y = parseFloat(inputs.y.value);
-                            pos.z = parseFloat(inputs.z.value);
+                            pos.x = initialPos[0];
+                            pos.y = initialPos[1];
+                            pos.z = initialPos[2];
                             mesh.position.set(pos.x, pos.y, pos.z);
                             mesh.updateMatrixWorld(true);
-                            console.log(`Positions applied to ${stlFiles[index].path} at ${mesh.position.toArray()} after loading`);
+                            console.log(`Positions applied to ${stlFiles[index].path} at ${mesh.position.toArray()} using initialPos ${initialPos}`);
                         });
                     }
                 },
