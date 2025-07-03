@@ -44,35 +44,46 @@
         directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
 
-        // Load and position model.stl
+        // Load the top 3 STL files
         const loader = new STLLoader();
-        loader.load(
-            './model.stl', // Path to your STL file in the repository
-            (geometry) => {
-                const material = new THREE.MeshPhongMaterial({ color: 0xff0000 }); // Red color for visibility
-                const mesh = new THREE.Mesh(geometry, material);
+        const stlFiles = [
+            { path: './cornersonly.stl', position: new THREE.Vector3(-10, 0, 0), color: 0xff0000 }, // Red
+            { path: './frameonly.stl', position: new THREE.Vector3(0, 0, 0), color: 0x00ff00 },   // Green
+            { path: './staticframebacking.stl', position: new THREE.Vector3(10, 0, 0), color: 0x0000ff } // Blue
+        ];
 
-                // Compute bounding box to center and scale
-                geometry.computeBoundingBox();
-                const center = geometry.boundingBox.getCenter(new THREE.Vector3());
-                const size = geometry.boundingBox.getSize(new THREE.Vector3());
-                const maxDim = Math.max(size.x, size.y, size.z);
-                const scale = 10 / maxDim; // Scale to fit view
+        stlFiles.forEach((fileInfo) => {
+            loader.load(
+                fileInfo.path,
+                (geometry) => {
+                    const material = new THREE.MeshPhongMaterial({ color: fileInfo.color });
+                    const mesh = new THREE.Mesh(geometry, material);
 
-                // Adjust position and rotation
-                mesh.position.sub(center.multiplyScalar(scale)); // Center the model
-                mesh.rotation.x = -Math.PI / 2; // Rotate to sit flat (adjust if needed)
-                mesh.scale.set(scale, scale, scale); // Apply uniform scale
+                    // Compute bounding box to center and scale
+                    geometry.computeBoundingBox();
+                    const center = geometry.boundingBox.getCenter(new THREE.Vector3());
+                    const size = geometry.boundingBox.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 10 / maxDim; // Scale to fit view
 
-                scene.add(mesh);
+                    // Adjust position and rotation
+                    mesh.position.sub(center.multiplyScalar(scale)); // Center the model
+                    mesh.position.add(fileInfo.position); // Offset based on array position
+                    mesh.rotation.x = -Math.PI / 2; // Rotate to sit flat (adjust if needed)
+                    mesh.scale.set(scale, scale, scale); // Apply uniform scale
 
-                // Set camera position to view the model
-                camera.position.set(0, 0, maxDim * scale * 2); // Adjust distance based on model size
-                camera.lookAt(0, 0, 0); // Look at the scene center
-            },
-            (xhr) => console.log((xhr.loaded / xhr.total * 100) + '% loaded'),
-            (error) => console.error('Error loading STL:', error)
-        );
+                    scene.add(mesh);
+
+                    // Adjust camera if this is the last model loaded
+                    if (fileInfo.path === stlFiles[stlFiles.length - 1].path) {
+                        camera.position.set(0, 0, Math.max(size.x, size.y, size.z) * scale * 3); // Adjust distance
+                        camera.lookAt(0, 0, 0);
+                    }
+                },
+                (xhr) => console.log(`${fileInfo.path}: ${(xhr.loaded / xhr.total * 100)}% loaded`),
+                (error) => console.error(`Error loading ${fileInfo.path}:`, error)
+            );
+        });
 
         // Animation loop
         function animate() {
