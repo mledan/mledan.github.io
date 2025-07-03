@@ -21,6 +21,14 @@
         <h3>Position Controls</h3>
         <button id="apply-values">Apply Values</button>
         <button id="toggle-autorotate">Toggle Autorotate</button>
+        <!-- Position controls added dynamically -->
+        <h3>Axis Controls</h3>
+        <label><input type="checkbox" id="swap-xy"> Swap X/Y</label><br>
+        <label><input type="checkbox" id="swap-xz"> Swap X/Z</label><br>
+        <label><input type="checkbox" id="swap-yz"> Swap Y/Z</label><br>
+        <label><input type="checkbox" id="negate-x"> Negate X</label><br>
+        <label><input type="checkbox" id="negate-y"> Negate Y</label><br>
+        <label><input type="checkbox" id="negate-z"> Negate Z</label>
     </div>
     <script type="importmap">
         {
@@ -68,20 +76,12 @@
         directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
 
-        // Add grid helper
-        // const gridSize = 1000; // Adjust based on frame size
-        // const gridDivisions = 100;
-        // const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x888888, 0xcccccc);
-        // gridHelper.rotation.x = -Math.PI / 2; // Align to XY plane
-        // scene.add(gridHelper);
-        // console.log('Grid helper added: size=', gridSize, 'divisions=', gridDivisions);
-
         // STL file configurations with provided position values
         const stlFiles = [
-            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false, scale: 1, initialPos: [0, 0, 500] }, // Frame
-            { path: './slidingboard.stl', color: 0xff0000, movable: true, scale: 1, initialPos: [12.5, 0, 520] }, // Board 1
-            { path: './slidingboard.stl', color: 0x00ff00, movable: true, scale: 1, initialPos: [7.5, 0, 600] },  // Board 2
-            { path: './slidingboard.stl', color: 0xffff00, movable: true, scale: 1, initialPos: [0, 0, 700] }   // Board 3
+            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false, scale: 1, initialPos: [0, 0, 0] }, // Frame
+            { path: './slidingboard.stl', color: 0xff0000, movable: true, scale: 1, initialPos: [12.5, 0, 100] }, // Board 1
+            { path: './slidingboard.stl', color: 0x00ff00, movable: true, scale: 1, initialPos: [7.5, 0, 20] },  // Board 2
+            { path: './slidingboard.stl', color: 0xffff00, movable: true, scale: 1, initialPos: [0, 0, 200] }   // Board 3
         ];
 
         // Load STL files
@@ -97,7 +97,9 @@
         let frameBounds = null;
         const meshes = [];
 
-    
+        // Axis flip state
+        let axisConfig = { swapXY: false, swapXZ: false, swapYZ: false, negateX: false, negateY: false, negateZ: false };
+
         // Create position controls
         const controlsDiv = document.getElementById('controls');
         stlFiles.forEach((stl, index) => {
@@ -122,12 +124,20 @@
                     z: document.getElementById(`z-${index}`)
                 };
                 const pos = mesh.position;
-                pos.x = parseFloat(inputs.x.value) || stlFiles[index].initialPos[0];
-                pos.y = parseFloat(inputs.y.value) || stlFiles[index].initialPos[1];
-                pos.z = parseFloat(inputs.z.value) || stlFiles[index].initialPos[2];
+                const newX = parseFloat(inputs.x.value) || pos.x; // Default to current x if invalid
+                const newY = parseFloat(inputs.y.value) || pos.y; // Default to current y if invalid
+                const newZ = parseFloat(inputs.z.value) || pos.z; // Default to current z if invalid
+
+                if (isNaN(newX) || isNaN(newY) || isNaN(newZ)) {
+                    console.warn(`Invalid input for ${stlFiles[index].path}: x=${inputs.x.value}, y=${inputs.y.value}, z=${inputs.z.value}. Using current position as fallback.`);
+                }
+
+                pos.x = newX;
+                pos.y = newY;
+                pos.z = newZ;
                 mesh.position.set(pos.x, pos.y, pos.z);
                 mesh.updateMatrixWorld(true);
-                console.log(`Applied values to ${stlFiles[index].path} at ${mesh.position.toArray()} from sliders or initialPos`);
+                console.log(`Applied values to ${stlFiles[index].path} at ${mesh.position.toArray()} from sliders`);
             });
         });
 
@@ -152,7 +162,12 @@
                 let y = position.getY(i);
                 let z = position.getZ(i);
 
-               
+                if (axisConfig.swapXY) [x, y] = [y, x];
+                if (axisConfig.swapXZ) [x, z] = [z, x];
+                if (axisConfig.swapYZ) [y, z] = [z, y];
+                if (axisConfig.negateX) x = -x;
+                if (axisConfig.negateY) y = -y;
+                if (axisConfig.negateZ) z = -z;
 
                 position.setXYZ(i, x, y, z);
             }
@@ -160,7 +175,33 @@
             geometry.computeBoundingBox();
         }
 
-        
+        ['swap-xy', 'swap-xz', 'swap-yz', 'negate-x', 'negate-y', 'negate-z'].forEach(id => {
+            const checkbox = document.getElementById(id);
+            checkbox.addEventListener('change', () => {
+                axisConfig[id.replace('-', '')] = checkbox.checked;
+                meshes.forEach((mesh, index) => {
+                    const geometry = mesh.geometry;
+                    geometry.attributes.position.array.fill(0); // Reset to avoid accumulation
+                    loader.load(stlFiles[index].path, (newGeometry) => {
+                        applyAxisTransform(mesh, newGeometry);
+                        mesh.geometry = newGeometry;
+                        const center = newGeometry.boundingBox.getCenter(new THREE.Vector3());
+                        mesh.position.set(0, 0, 0).sub(center.multiplyScalar(stlFiles[index].scale));
+                        mesh.position.add(new THREE.Vector3(...stlFiles[index].initialPos));
+                        // Sync UI with new position
+                        const inputs = {
+                            x: document.getElementById(`x-${index}`),
+                            y: document.getElementById(`y-${index}`),
+                            z: document.getElementById(`z-${index}`)
+                        };
+                        inputs.x.value = mesh.position.x.toFixed(2);
+                        inputs.y.value = mesh.position.y.toFixed(2);
+                        inputs.z.value = mesh.position.z.toFixed(2);
+                        console.log(`Axis transform applied to ${stlFiles[index].path}: ${JSON.stringify(axisConfig)}, position: ${mesh.position.toArray()}`);
+                    });
+                });
+            });
+        });
 
         stlFiles.forEach((stl, index) => {
             console.log(`Loading STL ${index + 1}/${stlFiles.length}: ${stl.path}`);
