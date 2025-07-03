@@ -16,10 +16,11 @@
     </style>
 </head>
 <body>
-    <div id="info">Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit controls. Orbit: OFF</div>
+    <div id="info">Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate. Orbit: OFF, AutoRotate: OFF</div>
     <div id="controls">
         <h3>Position Controls</h3>
         <button id="apply-values">Apply Values</button>
+        <button id="toggle-autorotate">Toggle Autorotate</button>
         <!-- Position controls added dynamically -->
         <h3>Axis Controls</h3>
         <label><input type="checkbox" id="swap-xy"> Swap X/Y</label><br>
@@ -60,11 +61,12 @@
         controls.enabled = false;
         console.log('OrbitControls initialized, disabled by default');
 
-        // Update orbit mode indicator
+        // Update orbit and autorotate mode indicator
         const infoDiv = document.getElementById('info');
-        function updateOrbitIndicator() {
-            infoDiv.textContent = `Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit controls. Orbit: ${controls.enabled ? 'ON' : 'OFF'}`;
-            console.log(`Orbit indicator updated: Orbit ${controls.enabled ? 'ON' : 'OFF'}`);
+        let isAutorotating = false;
+        function updateModeIndicator() {
+            infoDiv.textContent = `Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate. Orbit: ${controls.enabled ? 'ON' : 'OFF'}, AutoRotate: ${isAutorotating ? 'ON' : 'OFF'}`;
+            console.log(`Mode indicator updated: Orbit ${controls.enabled ? 'ON' : 'OFF'}, AutoRotate ${isAutorotating ? 'ON' : 'OFF'}`);
         }
 
         // Add lighting
@@ -139,10 +141,22 @@
             });
         });
 
+        // Add Toggle Autorotate button functionality
+        const toggleAutorotateButton = document.getElementById('toggle-autorotate');
+        toggleAutorotateButton.addEventListener('click', () => {
+            isAutorotating = !isAutorotating;
+            if (isAutorotating) {
+                // Apply initial 90-degree right rotation (clockwise around y-axis)
+                scene.rotation.y += Math.PI / 2; // 90 degrees = π/2 radians
+            }
+            updateModeIndicator();
+            console.log(`Autorotate toggled to ${isAutorotating ? 'ON' : 'OFF'}`);
+        });
+
         // Axis flip controls
         function applyAxisTransform(mesh, geometry) {
             const position = geometry.attributes.position;
-            // Removed offset: no subtraction of (64.8, 347, 0)
+            // No offset applied
             for (let i = 0; i < position.count; i++) {
                 let x = position.getX(i);
                 let y = position.getY(i);
@@ -295,8 +309,16 @@
         document.addEventListener('keydown', (event) => {
             if (event.key.toLowerCase() === 'o') {
                 controls.enabled = !controls.enabled;
-                updateOrbitIndicator();
+                updateModeIndicator();
                 console.log(`Orbit controls toggled: ${controls.enabled ? 'enabled' : 'disabled'}`);
+            } else if (event.key.toLowerCase() === 'r') {
+                isAutorotating = !isAutorotating;
+                if (isAutorotating) {
+                    // Apply initial 90-degree right rotation (clockwise around y-axis)
+                    scene.rotation.y += Math.PI / 2; // 90 degrees = π/2 radians
+                }
+                updateModeIndicator();
+                console.log(`Autorotate toggled to ${isAutorotating ? 'ON' : 'OFF'}`);
             }
         });
 
@@ -314,7 +336,7 @@
             if (intersects.length > 0) {
                 selectedMesh = intersects[0].object;
                 controls.enabled = false;
-                updateOrbitIndicator();
+                updateModeIndicator();
                 const planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial());
                 const intersectPoint = raycaster.intersectObject(planeMesh)[0]?.point;
                 if (intersectPoint) {
@@ -353,9 +375,13 @@
             startPoint = null;
         }
 
-        // Animation loop
+        // Animation loop with autorotation
         function animate() {
             requestAnimationFrame(animate);
+            if (isAutorotating) {
+                // Continuous rotation around y-axis (right rotation)
+                scene.rotation.y += 0.01; // Adjust 0.01 for rotation speed
+            }
             controls.update();
             renderer.render(scene, camera);
         }
