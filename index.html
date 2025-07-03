@@ -11,7 +11,7 @@
     </style>
 </head>
 <body>
-    <div id="info">Click and drag to slide interior pieces (red and green). Use mouse wheel and drag to orbit.</div>
+    <div id="info">Click and drag to slide interior boards (red, green, yellow). Use mouse wheel and drag to orbit.</div>
     <script type="importmap">
         {
             "imports": {
@@ -28,39 +28,33 @@
         console.log('Starting STL Viewer initialization...');
 
         // Set up scene, camera, and renderer
-        console.log('Setting up scene, camera, and renderer');
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xdddddd);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
-        console.log('Renderer initialized with size:', window.innerWidth, 'x', window.innerHeight);
 
         // Add orbit controls
-        console.log('Initializing OrbitControls');
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
-        console.log('OrbitControls configured');
 
         // Add lighting
-        console.log('Adding lighting');
         const ambientLight = new THREE.AmbientLight(0x404040);
         scene.add(ambientLight);
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-        directionalLight.position.set(1, 1, 1);
+        directionalLight Negotiations position.set(1, 1, 1);
         scene.add(directionalLight);
-        console.log('Lighting added: ambient and directional');
 
         // STL file configurations
         const stlFiles = [
-            { path: './cornersonly.stl', color: 0xff0000, movable: true }, // Red, interior piece
-            { path: './frameonly.stl', color: 0x00ff00, movable: true },   // Green, interior piece
-            { path: './staticframebacking.stl', color: 0x0000ff, movable: false } // Blue, fixed piece
+            { path: './completeframe-nosliders.stl', color: 0x0000ff, movable: false }, // Blue, fixed frame
+            { path: './slidingboard.stl', color: 0xff0000, movable: true }, // Red, sliding board 1
+            { path: './slidingboard.stl', color: 0x00ff00, movable: true }, // Green, sliding board 2
+            { path: './slidingboard.stl', color: 0xffff00, movable: true }  // Yellow, sliding board 3
         ];
-        console.log('STL files to load:', stlFiles.map(stl => stl.path));
 
         // Load STL files
         const loader = new STLLoader();
@@ -72,62 +66,54 @@
         let raycaster = new THREE.Raycaster();
         let plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); // Sliding plane (z=0)
         let startPoint = null;
+        let frameBounds = null; // To store frame boundaries
 
-        console.log('Starting STL loading process');
         stlFiles.forEach((stl, index) => {
             console.log(`Loading STL ${index + 1}/${stlFiles.length}: ${stl.path}`);
             loader.load(
                 stl.path,
                 (geometry) => {
-                    console.log(`STL loaded successfully: ${stl.path}`);
-                    try {
-                        console.log(`Processing geometry for ${stl.path}`);
-                        const material = new THREE.MeshPhongMaterial({ color: stl.color });
-                        const mesh = new THREE.Mesh(geometry, material);
-                        mesh.userData = { movable: stl.movable, name: stl.path };
-                        console.log(`Mesh created for ${stl.path}, movable: ${stl.movable}`);
+                    console.log(`STL loaded: ${stl.path}`);
+                    const material = new THREE.MeshPhongMaterial({ color: stl.color });
+                    const mesh = new THREE.Mesh(geometry, material);
+                    mesh.userData = { movable: stl.movable, name: stl.path };
 
-                        // Compute bounding box to center and scale
-                        geometry.computeBoundingBox();
-                        const center = geometry.boundingBox.getCenter(new THREE.Vector3());
-                        const size = geometry.boundingBox.getSize(new THREE.Vector3());
-                        const modelMaxDim = Math.max(size.x, size.y, size.z);
-                        const scale = 10 / modelMaxDim;
-                        console.log(`Bounding box for ${stl.path}:`, {
-                            center: center.toArray(),
-                            size: size.toArray(),
-                            scale: scale
-                        });
+                    // Compute bounding box
+                    geometry.computeBoundingBox();
+                    const center = geometry.boundingBox.getCenter(new THREE.Vector3());
+                    const size = geometry.boundingBox.getSize(new THREE.Vector3());
+                    const modelMaxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 10 / modelMaxDim;
 
-                        // Center and scale
-                        mesh.position.sub(center.multiplyScalar(scale));
-                        mesh.rotation.x = -Math.PI / 2;
-                        mesh.scale.set(scale, scale, scale);
-                        console.log(`Mesh transformed for ${stl.path}: position=${mesh.position.toArray()}, rotation=${mesh.rotation.x}, scale=${scale}`);
+                    // Center and scale
+                    mesh.position.sub(center.multiplyScalar(scale));
+                    mesh.rotation.x = -Math.PI / 2; // Align to XY plane
+                    mesh.scale.set(scale, scale, scale);
+                    scene.add(mesh);
 
-                        scene.add(mesh);
-                        console.log(`Mesh added to scene: ${stl.path}`);
+                    // Store frame bounds for constraints
+                    if (!stl.movable) {
+                        frameBounds = geometry.boundingBox.clone();
+                        frameBounds.min.multiplyScalar(scale);
+                        frameBounds.max.multiplyScalar(scale);
+                        console.log(`Frame bounds: min=${frameBounds.min.toArray()}, max=${frameBounds.max.toArray()}`);
+                    }
 
-                        // Store movable meshes
-                        if (stl.movable) {
-                            movableMeshes.push(mesh);
-                            console.log(`Added ${stl.path} to movable meshes (total: ${movableMeshes.length})`);
-                        }
+                    // Position sliding boards (initial placement)
+                    if (stl.movable) {
+                        movableMeshes.push(mesh);
+                        // Example initial positioning (adjust based on your frame's slot positions)
+                        if (index === 1) mesh.position.set(-2, 0, 0); // Board 1
+                        if (index === 2) mesh.position.set(0, 0, 0);  // Board 2
+                        if (index === 3) mesh.position.set(2, 0, 0);  // Board 3
+                        console.log(`Positioned ${stl.path} at ${mesh.position.toArray()}`);
+                    }
 
-                        // Update max dimension
-                        maxDim = Math.max(maxDim, modelMaxDim * scale);
-                        loadedModels++;
-                        console.log(`Loaded model ${loadedModels}/${stlFiles.length}, maxDim: ${maxDim}`);
-
-                        // Adjust camera when all models are loaded
-                        if (loadedModels === stlFiles.length) {
-                            console.log('All models loaded, adjusting camera');
-                            camera.position.set(0, 0, maxDim * 2.5);
-                            camera.lookAt(0, 0, 0);
-                            console.log(`Camera positioned at: ${camera.position.toArray()}`);
-                        }
-                    } catch (error) {
-                        console.error(`Error processing geometry for ${stl.path}:`, error);
+                    maxDim = Math.max(maxDim, modelMaxDim * scale);
+                    loadedModels++;
+                    if (loadedModels === stlFiles.length) {
+                        camera.position.set(0, 0, maxDim * 2.5);
+                        camera.lookAt(0, 0, 0);
                     }
                 },
                 (xhr) => console.log(`${stl.path}: ${(xhr.loaded / xhr.total * 100).toFixed(2)}% loaded`),
@@ -136,41 +122,29 @@
         });
 
         // Mouse interaction for sliding
-        console.log('Setting up mouse event listeners');
         renderer.domElement.addEventListener('mousedown', onMouseDown);
         renderer.domElement.addEventListener('mousemove', onMouseMove);
         renderer.domElement.addEventListener('mouseup', onMouseUp);
 
         function onMouseDown(event) {
             event.preventDefault();
-            console.log('Mouse down event triggered');
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            console.log(`Mouse coords: (${mouse.x}, ${mouse.y})`);
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(movableMeshes);
-            console.log(`Raycaster intersects: ${intersects.length} objects`);
             if (intersects.length > 0) {
                 selectedMesh = intersects[0].object;
-                console.log(`Selected mesh: ${selectedMesh.userData.name}`);
-                controls.enabled = false; // Disable orbit controls while dragging
+                controls.enabled = false;
                 const planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial());
                 const intersectPoint = raycaster.intersectObject(planeMesh)[0]?.point;
                 if (intersectPoint) {
                     startPoint = intersectPoint.clone();
-                    console.log(`Start point: ${startPoint.toArray()}`);
-                } else {
-                    console.warn('No intersection with sliding plane');
-                    selectedMesh = null;
                 }
-            } else {
-                console.log('No movable mesh intersected');
             }
         }
 
         function onMouseMove(event) {
-            if (selectedMesh) {
-                console.log(`Dragging mesh: ${selectedMesh.userData.name}`);
+            if (selectedMesh && frameBounds) {
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
                 raycaster.setFromCamera(mouse, camera);
@@ -178,27 +152,27 @@
                 const intersectPoint = raycaster.intersectObject(planeMesh)[0]?.point;
                 if (intersectPoint) {
                     const delta = intersectPoint.sub(startPoint);
-                    selectedMesh.position.x += delta.x;
-                    selectedMesh.position.y += delta.y;
-                    console.log(`Moved ${selectedMesh.userData.name} by delta: (${delta.x}, ${delta.y}), new position: ${selectedMesh.position.toArray()}`);
+                    let newPosX = selectedMesh.position.x + delta.x;
+                    let newPosY = selectedMesh.position.y + delta.y;
+
+                    // Constrain movement within frame bounds (adjust margins as needed)
+                    const margin = 0.5; // Prevent boards from touching frame edges
+                    newPosX = Math.max(frameBounds.min.x + margin, Math.min(frameBounds.max.x - margin, newPosX));
+                    newPosY = Math.max(frameBounds.min.y + margin, Math.min(frameBounds.max.y - margin, newPosY));
+
+                    selectedMesh.position.set(newPosX, newPosY, selectedMesh.position.z);
                     startPoint.copy(intersectPoint);
-                } else {
-                    console.warn('No intersection with sliding plane during drag');
                 }
             }
         }
 
         function onMouseUp() {
-            if (selectedMesh) {
-                console.log(`Released mesh: ${selectedMesh.userData.name}`);
-            }
             selectedMesh = null;
-            controls.enabled = true; // Re-enable orbit controls
+            controls.enabled = true;
             startPoint = null;
         }
 
         // Animation loop
-        console.log('Starting animation loop');
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
@@ -207,21 +181,10 @@
         animate();
 
         // Handle window resize
-        console.log('Setting up window resize listener');
         window.addEventListener('resize', () => {
-            console.log('Window resized, updating camera and renderer');
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            console.log(`New renderer size: ${window.innerWidth} x ${window.innerHeight}`);
-        });
-
-        // Log WebGL context info for debugging
-        const gl = renderer.getContext();
-        console.log('WebGL Context:', {
-            version: gl.getParameter(gl.VERSION),
-            renderer: gl.getParameter(gl.RENDERER),
-            vendor: gl.getParameter(gl.VENDOR)
         });
     </script>
 </body>
