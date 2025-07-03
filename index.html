@@ -32,8 +32,10 @@
         document.body.appendChild(renderer.domElement);
 
         // Add orbit controls
-        const controls = new OrbitControls(camera, renderer.domElement);
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.screenSpacePanning = true;
 
         // Add lighting
         const ambientLight = new THREE.AmbientLight(0x404040);
@@ -42,25 +44,31 @@
         directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
 
-        // Load STL file
+        // Load and position model.stl
         const loader = new STLLoader();
         loader.load(
-            './model.stl', // Replace with your STL file path in the repository
+            './model.stl', // Path to your STL file in the repository
             (geometry) => {
-                const material = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
+                const material = new THREE.MeshPhongMaterial({ color: 0xff0000 }); // Red color for visibility
                 const mesh = new THREE.Mesh(geometry, material);
-                scene.add(mesh);
 
-                // Center and scale the model
+                // Compute bounding box to center and scale
                 geometry.computeBoundingBox();
                 const center = geometry.boundingBox.getCenter(new THREE.Vector3());
                 const size = geometry.boundingBox.getSize(new THREE.Vector3());
                 const maxDim = Math.max(size.x, size.y, size.z);
-                const scale = 10 / maxDim; // Adjust scale to fit view
-                mesh.scale.set(scale, scale, scale);
-                mesh.position.sub(center.multiplyScalar(scale));
+                const scale = 10 / maxDim; // Scale to fit view
 
-                camera.position.z = maxDim * scale * 2;
+                // Adjust position and rotation
+                mesh.position.sub(center.multiplyScalar(scale)); // Center the model
+                mesh.rotation.x = -Math.PI / 2; // Rotate to sit flat (adjust if needed)
+                mesh.scale.set(scale, scale, scale); // Apply uniform scale
+
+                scene.add(mesh);
+
+                // Set camera position to view the model
+                camera.position.set(0, 0, maxDim * scale * 2); // Adjust distance based on model size
+                camera.lookAt(0, 0, 0); // Look at the scene center
             },
             (xhr) => console.log((xhr.loaded / xhr.total * 100) + '% loaded'),
             (error) => console.error('Error loading STL:', error)
