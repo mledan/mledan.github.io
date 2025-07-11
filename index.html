@@ -52,35 +52,16 @@
         #mobile-controls button:hover {
             background: rgba(0, 0, 0, 0.7);
         }
-        /* New styles for big controls panel */
-        #big-controls {
-            position: absolute;
-            top: 50px;
-            right: 10px; /* Place on right side for better visibility */
-            color: white;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            max-width: 400px;
-            max-height: 80vh;
-            overflow-y: auto;
-            display: none; /* Hidden by default */
-            z-index: 20;
-        }
-        #big-controls h3, #big-controls h4 { margin: 10px 0 5px; }
-        #big-controls label { display: inline-block; width: 120px; margin: 2px 5px 2px 0; }
-        #big-controls input[type="number"] { width: 80px; margin: 2px; }
-        #big-controls button { margin: 10px 0; padding: 5px; width: 100%; }
         @media (max-width: 600px) {
             #mobile-controls button {
                 padding: 8px 12px;
                 font-size: 14px;
             }
-            #big-controls { display: none !important; } /* Always hide on small screens */
         }
     </style>
 </head>
 <body>
-    <div id="info">Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate, 'a' to toggle autoslide, 's' to toggle big controls (large screens only). Orbit: OFF, AutoRotate: OFF, AutoSlide: OFF</div>
+    <div id="info">Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate, 'a' to toggle autoslide. Orbit: OFF, AutoRotate: OFF, AutoSlide: OFF</div>
     <div id="controls">
         <h3>Position Controls</h3>
         <button id="apply-values">Apply Values</button>
@@ -92,27 +73,6 @@
         <button id="mobile-toggle-orbit">Toggle Orbit</button>
         <button id="mobile-toggle-autorotate">Toggle AutoRotate</button>
         <button id="mobile-toggle-autoslide">Toggle AutoSlide</button>
-    </div>
-    <!-- New big controls panel -->
-    <div id="big-controls">
-        <h3>Big Controls</h3>
-        <h4>Camera Settings</h4>
-        <label>Camera FOV (°):</label><input type="number" id="camera-fov" step="1" min="10" max="120"><br>
-        <label>Camera Pos X:</label><input type="number" id="camera-pos-x" step="1"><br>
-        <label>Camera Pos Y:</label><input type="number" id="camera-pos-y" step="1"><br>
-        <label>Camera Pos Z:</label><input type="number" id="camera-pos-z" step="1"><br>
-        <label>Camera Rot X (°):</label><input type="number" id="camera-rot-x" step="1"><br>
-        <label>Camera Rot Y (°):</label><input type="number" id="camera-rot-y" step="1"><br>
-        <label>Camera Rot Z (°):</label><input type="number" id="camera-rot-z" step="1"><br>
-        <label>Target X (Pan):</label><input type="number" id="target-x" step="1"><br>
-        <label>Target Y (Pan):</label><input type="number" id="target-y" step="1"><br>
-        <label>Target Z (Pan):</label><input type="number" id="target-z" step="1"><br>
-        <label>Camera Distance:</label><input type="number" id="camera-distance" step="1" min="10"><br>
-        <h4>Scene Settings</h4>
-        <label>Autorotate Speed:</label><input type="number" id="autorotate-speed" step="0.01" value="0.01"><br>
-        <label>Autoslide Period (s):</label><input type="number" id="autoslide-period" step="1" min="1" value="10"><br>
-        <!-- Model position controls will be dynamically added -->
-        <button id="apply-big-controls">Apply All Changes</button>
     </div>
     <script type="importmap">
         {
@@ -147,7 +107,7 @@
 
         // Default camera settings with user-specified values
         const defaultCameraSettings = {
-            zoom: 50, // FOV in degrees
+            zoom: 100, // FOV in degrees
             position: new THREE.Vector3(), // Computed below
             target: new THREE.Vector3(-14, 162, -8), // Pan
             rotation: new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI / 2, 'XYZ'), // -90°, 90°, 90°
@@ -159,10 +119,8 @@
         let isAutorotating = false;
         let isAutoSliding = true; // AutoSlide ON by default
         let startTime = performance.now() / 1000;
-        let autorotateSpeed = 0.01; // Default autorotation speed
-        let slidePeriod = 10; // Default autoslide period
         function updateModeIndicator() {
-            let infoText = `Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate, 'a' to toggle autoslide, 's' to toggle big controls (large screens only). Orbit: ${controls.enabled ? 'ON' : 'OFF'}, AutoRotate: ${isAutorotating ? 'ON' : 'OFF'}, AutoSlide: ${isAutoSliding ? 'ON' : 'OFF'}`;
+            let infoText = `Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate, 'a' to toggle autoslide. Orbit: ${controls.enabled ? 'ON' : 'OFF'}, AutoRotate: ${isAutorotating ? 'ON' : 'OFF'}, AutoSlide: ${isAutoSliding ? 'ON' : 'OFF'}`;
             if (controls.enabled) {
                 const zoom = camera.fov;
                 const pan = controls.target;
@@ -178,8 +136,7 @@
         controls.addEventListener('change', () => {
             if (controls.enabled) {
                 updateModeIndicator();
-                updateBigControlsInputs(); // Update big controls inputs when camera changes
-                console.log('OrbitControls changed: updating mode indicator and big controls');
+                console.log('OrbitControls changed: updating mode indicator');
             }
         });
 
@@ -236,8 +193,9 @@
         let frameBounds = null;
         const meshes = [];
         const slideBounds = { minZ: 495, maxZ: 725 };
+        const slidePeriod = 10;
 
-        // Create position controls for regular controls
+        // Create position controls
         const controlsDiv = document.getElementById('controls');
         stlFiles.forEach((stl, index) => {
             const name = stl.path.split('/').pop();
@@ -251,94 +209,7 @@
             controlsDiv.appendChild(div);
         });
 
-        // Create big controls for model positions
-        const bigControlsDiv = document.getElementById('big-controls');
-        stlFiles.forEach((stl, index) => {
-            const name = stl.path.split('/').pop();
-            const div = document.createElement('div');
-            div.innerHTML = `
-                <h4>${name} Position</h4>
-                <label>X:</label><input type="number" id="big-x-${index}" step="1"><br>
-                <label>Y:</label><input type="number" id="big-y-${index}" step="1"><br>
-                <label>Z:</label><input type="number" id="big-z-${index}" step="1"><br>
-            `;
-            bigControlsDiv.appendChild(div);
-        });
-
-        // Function to update big controls inputs with current values
-        function updateBigControlsInputs() {
-            document.getElementById('camera-fov').value = camera.fov.toFixed(2);
-            document.getElementById('camera-pos-x').value = camera.position.x.toFixed(2);
-            document.getElementById('camera-pos-y').value = camera.position.y.toFixed(2);
-            document.getElementById('camera-pos-z').value = camera.position.z.toFixed(2);
-            document.getElementById('camera-rot-x').value = (camera.rotation.x * 180 / Math.PI).toFixed(2);
-            document.getElementById('camera-rot-y').value = (camera.rotation.y * 180 / Math.PI).toFixed(2);
-            document.getElementById('camera-rot-z').value = (camera.rotation.z * 180 / Math.PI).toFixed(2);
-            document.getElementById('target-x').value = controls.target.x.toFixed(2);
-            document.getElementById('target-y').value = controls.target.y.toFixed(2);
-            document.getElementById('target-z').value = controls.target.z.toFixed(2);
-            document.getElementById('camera-distance').value = camera.position.distanceTo(controls.target).toFixed(2);
-            document.getElementById('autorotate-speed').value = autorotateSpeed.toFixed(2);
-            document.getElementById('autoslide-period').value = slidePeriod.toFixed(2);
-            meshes.forEach((mesh, index) => {
-                document.getElementById(`big-x-${index}`).value = mesh.position.x.toFixed(2);
-                document.getElementById(`big-y-${index}`).value = mesh.position.y.toFixed(2);
-                document.getElementById(`big-z-${index}`).value = mesh.position.z.toFixed(2);
-            });
-            console.log('Big controls inputs updated');
-        }
-
-        // Apply big controls values
-        const applyBigControlsButton = document.getElementById('apply-big-controls');
-        applyBigControlsButton.addEventListener('click', () => {
-            // Camera settings
-            camera.fov = parseFloat(document.getElementById('camera-fov').value) || defaultCameraSettings.zoom;
-            camera.position.x = parseFloat(document.getElementById('camera-pos-x').value) || camera.position.x;
-            camera.position.y = parseFloat(document.getElementById('camera-pos-y').value) || camera.position.y;
-            camera.position.z = parseFloat(document.getElementById('camera-pos-z').value) || camera.position.z;
-            camera.rotation.set(
-                (parseFloat(document.getElementById('camera-rot-x').value) || 0) * Math.PI / 180,
-                (parseFloat(document.getElementById('camera-rot-y').value) || 0) * Math.PI / 180,
-                (parseFloat(document.getElementById('camera-rot-z').value) || 0) * Math.PI / 180,
-                'XYZ'
-            );
-            controls.target.set(
-                parseFloat(document.getElementById('target-x').value) || controls.target.x,
-                parseFloat(document.getElementById('target-y').value) || controls.target.y,
-                parseFloat(document.getElementById('target-z').value) || controls.target.z
-            );
-            const distance = parseFloat(document.getElementById('camera-distance').value) || defaultCameraSettings.distance;
-            camera.position.copy(controls.target).add(
-                new THREE.Vector3(0, 0, distance).applyEuler(camera.rotation)
-            );
-            camera.updateProjectionMatrix();
-            controls.update();
-
-            // Scene settings
-            autorotateSpeed = parseFloat(document.getElementById('autorotate-speed').value) || 0.01;
-            slidePeriod = parseFloat(document.getElementById('autoslide-period').value) || 10;
-
-            // Model positions
-            meshes.forEach((mesh, index) => {
-                const pos = mesh.position;
-                const newX = parseFloat(document.getElementById(`big-x-${index}`).value) || pos.x;
-                const newY = parseFloat(document.getElementById(`big-y-${index}`).value) || pos.y;
-                let newZ = parseFloat(document.getElementById(`big-z-${index}`).value) || pos.z;
-                newZ = Math.max(slideBounds.minZ, Math.min(slideBounds.maxZ, newZ));
-                pos.set(newX, newY, newZ);
-                mesh.updateMatrixWorld(true);
-                // Update regular controls
-                document.getElementById(`x-${index}`).value = newX.toFixed(2);
-                document.getElementById(`y-${index}`).value = newY.toFixed(2);
-                document.getElementById(`z-${index}`).value = newZ.toFixed(2);
-                console.log(`Applied big controls to ${stlFiles[index].path} at [x=${newX}, y=${newY}, z=${newZ}]`);
-            });
-
-            updateModeIndicator();
-            console.log('Big controls applied');
-        });
-
-        // Add Apply Values button functionality for regular controls
+        // Add Apply Values button functionality
         const applyButton = document.getElementById('apply-values');
         applyButton.addEventListener('click', () => {
             meshes.forEach((mesh, index) => {
@@ -362,10 +233,6 @@
                 pos.z = newZ;
                 mesh.position.set(pos.x, pos.y, pos.z);
                 mesh.updateMatrixWorld(true);
-                // Update big controls
-                document.getElementById(`big-x-${index}`).value = newX.toFixed(2);
-                document.getElementById(`big-y-${index}`).value = newY.toFixed(2);
-                document.getElementById(`big-z-${index}`).value = newZ.toFixed(2);
                 console.log(`Applied values to ${stlFiles[index].path} at ${mesh.position.toArray()} from sliders`);
             });
         });
@@ -404,7 +271,6 @@
             camera.updateProjectionMatrix();
             controls.update();
             updateModeIndicator();
-            updateBigControlsInputs();
             console.log('Camera reset to defaults:', {
                 zoom: camera.fov,
                 distance: camera.position.distanceTo(controls.target).toFixed(2),
@@ -434,6 +300,7 @@
         stlFiles.forEach((stl, index) => {
             console.log(`Loading STL ${index + 1}/${stlFiles.length}: ${stl.path}`);
             loader.load(
+                stl.path,
                 (geometry) => {
                     console.log(`STL loaded: ${stl.path}`);
                     const material = new THREE.MeshPhongMaterial({ color: stl.color });
@@ -477,17 +344,9 @@
                         y: document.getElementById(`y-${index}`),
                         z: document.getElementById(`z-${index}`)
                     };
-                    const bigInputs = {
-                        x: document.getElementById(`big-x-${index}`),
-                        y: document.getElementById(`big-y-${index}`),
-                        z: document.getElementById(`big-z-${index}`)
-                    };
                     inputs.x.value = stl.initialPos[0].toFixed(2);
                     inputs.y.value = stl.initialPos[1].toFixed(2);
                     inputs.z.value = stl.initialPos[2].toFixed(2);
-                    bigInputs.x.value = stl.initialPos[0].toFixed(2);
-                    bigInputs.y.value = stl.initialPos[1].toFixed(2);
-                    bigInputs.z.value = stl.initialPos[2].toFixed(2);
                     console.log(`UI initialized for ${stl.path} with slider values: x=${inputs.x.value}, y=${inputs.y.value}, z=${inputs.z.value}`);
 
                     Object.keys(inputs).forEach(axis => {
@@ -499,24 +358,7 @@
                             }
                             mesh.position.set(pos.x, pos.y, pos.z);
                             mesh.updateMatrixWorld(true);
-                            // Update big controls
-                            document.getElementById(`big-${axis}-${index}`).value = pos[axis].toFixed(2);
                             console.log(`Updated ${stl.path} position: [x=${pos.x}, y=${pos.y}, z=${pos.z}]`);
-                        });
-                    });
-
-                    Object.keys(bigInputs).forEach(axis => {
-                        bigInputs[axis].addEventListener('input', () => {
-                            const pos = mesh.position;
-                            pos[axis] = parseFloat(bigInputs[axis].value) || stl.initialPos[axis === 'x' ? 0 : axis === 'y' ? 1 : 2];
-                            if (axis === 'z') {
-                                pos[axis] = Math.max(slideBounds.minZ, Math.min(slideBounds.maxZ, pos[axis]));
-                            }
-                            mesh.position.set(pos.x, pos.y, pos.z);
-                            mesh.updateMatrixWorld(true);
-                            // Update regular controls
-                            document.getElementById(`${axis}-${index}`).value = pos[axis].toFixed(2);
-                            console.log(`Updated ${stl.path} position from big controls: [x=${pos.x}, y=${pos.y}, z=${pos.z}]`);
                         });
                     });
 
@@ -538,7 +380,6 @@
                         defaultCameraSettings.position.copy(camera.position);
                         console.log(`All models loaded, camera at ${camera.position.toArray()}, distance=${defaultCameraSettings.distance}, FOV=${camera.fov}, target=${controls.target.toArray()}`);
                         updateModeIndicator(); // Initial update after loading
-                        updateBigControlsInputs(); // Initialize big controls inputs
 
                         meshes.forEach((mesh, index) => {
                             const initialPos = stlFiles[index].initialPos;
@@ -549,9 +390,6 @@
                             pos.z = Math.max(slideBounds.minZ, Math.min(slideBounds.maxZ, initialPos[2]));
                             mesh.position.set(pos.x, pos.y, pos.z);
                             mesh.updateMatrixWorld(true);
-                            document.getElementById(`big-x-${index}`).value = pos.x.toFixed(2);
-                            document.getElementById(`big-y-${index}`).value = pos.y.toFixed(2);
-                            document.getElementById(`big-z-${index}`).value = pos.z.toFixed(2);
                             console.log(`Positions applied to ${stlFiles[index].path} at [x=${pos.x}, y=${pos.y}, z=${pos.z}] using initialPos ${initialPos}`);
                         });
                     }
@@ -567,7 +405,6 @@
             if (key === 'o') {
                 controls.enabled = !controls.enabled;
                 updateModeIndicator();
-                updateBigControlsInputs();
                 console.log(`Orbit controls toggled: ${controls.enabled ? 'enabled' : 'disabled'}`);
             } else if (key === 'r') {
                 isAutorotating = !isAutorotating;
@@ -583,13 +420,6 @@
                 }
                 updateModeIndicator();
                 console.log(`AutoSlide toggled to ${isAutoSliding ? 'ON' : 'OFF'}`);
-            } else if (key === 's' && window.innerWidth > 600) {
-                const bigControls = document.getElementById('big-controls');
-                bigControls.style.display = bigControls.style.display === 'block' ? 'none' : 'block';
-                if (bigControls.style.display === 'block') {
-                    updateBigControlsInputs();
-                }
-                console.log(`Big controls toggled to ${bigControls.style.display === 'block' ? 'visible' : 'hidden'}`);
             }
         });
 
@@ -635,9 +465,7 @@
                     selectedMesh.position.set(newPosX, newPosY, selectedMesh.position.z);
                     document.getElementById(`x-${selectedMesh.userData.index}`).value = newPosX.toFixed(2);
                     document.getElementById(`y-${selectedMesh.userData.index}`).value = newPosY.toFixed(2);
-                    document.getElementById(`big-x-${selectedMesh.userData.index}`).value = newPosX.toFixed(2);
-                    document.getElementById(`big-y-${selectedMesh.userData.index}`).value = newPosY.toFixed(2);
-                    startPoint.copy(intersectPoint);
+                    startPoint.copy(interpoint);
                     console.log(`Moved ${selectedMesh.userData.name} to [x=${newPosX}, y=${newPosY}, z=${selectedMesh.position.z}]`);
                 }
             }
@@ -654,7 +482,7 @@
         function animate() {
             requestAnimationFrame(animate);
             if (isAutorotating) {
-                scene.rotation.y += autorotateSpeed;
+                scene.rotation.y += 0.01;
             }
             if (isAutoSliding) {
                 const currentTime = performance.now() / 1000 - startTime;
@@ -665,7 +493,6 @@
                     const zPos = midZ + amplitude * Math.sin((2 * Math.PI * currentTime / slidePeriod) + phase);
                     mesh.position.z = zPos;
                     document.getElementById(`z-${mesh.userData.index}`).value = zPos.toFixed(2);
-                    document.getElementById(`big-z-${mesh.userData.index}`).value = zPos.toFixed(2);
                     mesh.updateMatrixWorld(true);
                     console.log(`AutoSlide: ${mesh.userData.name} at z=${zPos.toFixed(2)}`);
                 });
@@ -682,10 +509,6 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             console.log(`Window resized to ${window.innerWidth}x${window.innerHeight}`);
             updateModeIndicator();
-            if (window.innerWidth <= 600) {
-                document.getElementById('big-controls').style.display = 'none';
-                console.log('Big controls hidden due to small screen size');
-            }
         });
     </script>
 </body>
