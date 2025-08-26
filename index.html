@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive STL Assembly Viewer</title>
-    <link rel="icon" href="https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/icon.svg" type="image/svg+xml"> <!-- Favicon fix -->
     <style>
         body { margin: 0; font-family: Arial; }
         canvas { display: block; }
@@ -17,38 +16,28 @@
             padding: 10px; 
             max-width: 400px; 
             font-size: 14px;
-            z-index: 9999;
-        }
-        #overlay { 
-            position: absolute; 
-            top: 50px; 
-            left: 10px; 
-            color: black; 
-            font-family: 'Permanent Marker', cursive;
-            font-size: 24px;
-            background: rgba(255, 255, 255, 0.5);
-            padding: 10px;
-            z-index: 10000;
+            display: none; /* Hide the info menu */
         }
         #controls { 
             position: absolute; 
-            top: 100px; 
+            top: 50px; 
             left: 10px; 
             color: white; 
             background: rgba(0, 0, 0, 0.7); 
             padding: 10px; 
-            display: none;
+            display: none; /* Hide the controls menu */
         }
         #controls label { margin-right: 5px; }
         #controls input[type="number"] { width: 60px; margin: 2px; }
+        #controls input[type="checkbox"] { margin: 2px; }
         #controls button { margin: 5px 0; padding: 5px; }
         #mobile-controls {
             position: absolute;
             top: 10px;
-            right: 10px;
+            left: 10px;
             display: flex;
             gap: 10px;
-            z-index: 9998;
+            z-index: 10;
         }
         #mobile-controls button {
             padding: 10px 15px;
@@ -58,29 +47,33 @@
             border: 1px solid white;
             border-radius: 5px;
             cursor: pointer;
+            touch-action: manipulation; /* Prevent default touch behaviors */
+        }
+        #mobile-controls button:hover {
+            background: rgba(0, 0, 0, 0.7);
         }
         @media (max-width: 600px) {
-            #mobile-controls button { padding: 8px 12px; font-size: 14px; }
+            #mobile-controls button {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
         }
-        @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap');
     </style>
 </head>
 <body>
-    <div id="info">Click/drag to slide boards. Keys: 'o' (orbit), 'r' (autorotate), 'a' (autoslide). Orbit: OFF, AutoRotate: OFF, AutoSlide: ON</div>
-    <div id="overlay"></div>
+    <div id="info">Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate, 'a' to toggle autoslide. Orbit: OFF, AutoRotate: OFF, AutoSlide: OFF</div>
     <div id="controls">
         <h3>Position Controls</h3>
         <button id="apply-values">Apply Values</button>
         <button id="toggle-autorotate">Toggle Autorotate</button>
         <button id="toggle-autoslide">Toggle AutoSlide</button>
-        <button id="reset-camera">Reset Camera</button>
+        <button id="reset-camera-defaults">Reset to Defaults</button>
     </div>
     <div id="mobile-controls">
-        <button id="mobile-toggle-orbit">Orbit</button>
-        <button id="mobile-toggle-autorotate">AutoRotate</button>
-        <button id="mobile-toggle-autoslide">AutoSlide</button>
+        <button id="mobile-toggle-orbit">Toggle Orbit</button>
+        <button id="mobile-toggle-autorotate">Toggle AutoRotate</button>
+        <button id="mobile-toggle-autoslide">Toggle AutoSlide</button>
     </div>
-    <div id="canvas"></div>
     <script type="importmap">
         {
             "imports": {
@@ -89,6 +82,434 @@
             }
         }
     </script>
-    <script type="module" src="app.js"></script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+
+        console.log('Starting STL Viewer initialization...');
+
+        // Set up scene, camera, and renderer
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xdddddd);
+        const camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 10000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Add orbit controls (disabled by default)
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.screenSpacePanning = true;
+        controls.enabled = false;
+        console.log('OrbitControls initialized, disabled by default');
+
+        // Default camera settings with user-specified values
+        const defaultCameraSettings = {
+            zoom: 100, // FOV in degrees
+            position: new THREE.Vector3(), // Computed below
+            target: new THREE.Vector3(-14, 162, -8), // Pan
+            rotation: new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI / 2, 'XYZ'), // -90°, 90°, 90°
+            distance: 250 // Distance from target
+        };
+
+        // Update orbit, autorotate, and autoslide mode indicator with camera info
+        const infoDiv = document.getElementById('info');
+        let isAutorotating = false;
+        let isAutoSliding = true; // AutoSlide ON by default
+        let startTime = performance.now() / 1000;
+        function updateModeIndicator() {
+            let infoText = `Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate, 'a' to toggle autoslide. Orbit: ${controls.enabled ? 'ON' : 'OFF'}, AutoRotate: ${isAutorotating ? 'ON' : 'OFF'}, AutoSlide: ${isAutoSliding ? 'ON' : 'OFF'}`;
+            if (controls.enabled) {
+                const zoom = camera.fov;
+                const pan = controls.target;
+                const rotation = camera.rotation;
+                const distance = camera.position.distanceTo(controls.target);
+                infoText += `<br>Zoom (FOV): ${zoom.toFixed(2)}°<br>Distance: ${distance.toFixed(2)} units<br>Pan: [x=${pan.x.toFixed(2)}, y=${pan.y.toFixed(2)}, z=${pan.z.toFixed(2)}]<br>Rotation: [x=${(rotation.x * 180 / Math.PI).toFixed(2)}°, y=${(rotation.y * 180 / Math.PI).toFixed(2)}°, z=${(rotation.z * 180 / Math.PI).toFixed(2)}°]`;
+            }
+            infoDiv.innerHTML = infoText;
+            console.log(`Mode indicator updated: Orbit ${controls.enabled ? 'ON' : 'OFF'}, AutoRotate ${isAutorotating ? 'ON' : 'OFF'}, AutoSlide ${isAutoSliding ? 'ON' : 'OFF'}`);
+        }
+
+        // Add OrbitControls change listener for event-based updates
+        controls.addEventListener('change', () => {
+            if (controls.enabled) {
+                updateModeIndicator();
+                console.log('OrbitControls changed: updating mode indicator');
+            }
+        });
+
+        // Add mobile button event listeners
+        document.getElementById('mobile-toggle-orbit').addEventListener('click', () => {
+            controls.enabled = !controls.enabled;
+            updateModeIndicator();
+            console.log(`Orbit controls toggled: ${controls.enabled ? 'enabled' : 'disabled'}`);
+        });
+
+        document.getElementById('mobile-toggle-autorotate').addEventListener('click', () => {
+            isAutorotating = !isAutorotating;
+            if (isAutorotating) {
+                scene.rotation.y += Math.PI / 2;
+            }
+            updateModeIndicator();
+            console.log(`Autorotate toggled to ${isAutorotating ? 'ON' : 'OFF'}`);
+        });
+
+        document.getElementById('mobile-toggle-autoslide').addEventListener('click', () => {
+            isAutoSliding = !isAutoSliding;
+            if (isAutoSliding) {
+                startTime = performance.now() / 1000;
+            }
+            updateModeIndicator();
+            console.log(`AutoSlide toggled to ${isAutoSliding ? 'ON' : 'OFF'}`);
+        });
+
+        // Add lighting
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
+
+        // STL file configurations with provided position values
+        const stlFiles = [
+            { path: './completeframe-nosliders.stl', color: 0xececec, movable: false, scale: 1, initialPos: [0, 0, 500] },
+            { path: './slidingboard.stl', color: 0xcccccc, movable: true, scale: 1, initialPos: [12.5, 0, 600], phase: 0 },
+            { path: './slidingboard.stl', color: 0xbbbbbb, movable: true, scale: 1, initialPos: [7.5, 0, 520], phase: 2 * Math.PI / 3 },
+            { path: './slidingboard.stl', color: 0xaaaaaa, movable: true, scale: 1, initialPos: [0, 0, 700], phase: 4 * Math.PI / 3 }
+        ];
+
+        // Load STL files
+        const loader = new STLLoader();
+        let maxDim = 0;
+        let loadedModels = 0;
+        let movableMeshes = [];
+        let selectedMesh = null;
+        let mouse = new THREE.Vector2();
+        let raycaster = new THREE.Raycaster();
+        let plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+        let startPoint = null;
+        let frameBounds = null;
+        const meshes = [];
+        const slideBounds = { minZ: 495, maxZ: 725 };
+        const slidePeriod = 10;
+
+        // Create position controls
+        const controlsDiv = document.getElementById('controls');
+        stlFiles.forEach((stl, index) => {
+            const name = stl.path.split('/').pop();
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <h4>${name}</h4>
+                <label>X:</label><input type="number" id="x-${index}" value="${stl.initialPos[0]}" step="1">
+                <label>Y:</label><input type="number" id="y-${index}" value="${stl.initialPos[1]}" step="1">
+                <label>Z:</label><input type="number" id="z-${index}" value="${stl.initialPos[2]}" step="1">
+            `;
+            controlsDiv.appendChild(div);
+        });
+
+        // Add Apply Values button functionality
+        const applyButton = document.getElementById('apply-values');
+        applyButton.addEventListener('click', () => {
+            meshes.forEach((mesh, index) => {
+                const inputs = {
+                    x: document.getElementById(`x-${index}`),
+                    y: document.getElementById(`y-${index}`),
+                    z: document.getElementById(`z-${index}`)
+                };
+                const pos = mesh.position;
+                const newX = parseFloat(inputs.x.value) || pos.x;
+                const newY = parseFloat(inputs.y.value) || pos.y;
+                let newZ = parseFloat(inputs.z.value) || pos.z;
+                newZ = Math.max(slideBounds.minZ, Math.min(slideBounds.maxZ, newZ));
+
+                if (isNaN(newX) || isNaN(newY) || isNaN(newZ)) {
+                    console.warn(`Invalid input for ${stlFiles[index].path}: x=${inputs.x.value}, y=${inputs.y.value}, z=${inputs.z.value}. Using current position as fallback.`);
+                }
+
+                pos.x = newX;
+                pos.y = newY;
+                pos.z = newZ;
+                mesh.position.set(pos.x, pos.y, pos.z);
+                mesh.updateMatrixWorld(true);
+                console.log(`Applied values to ${stlFiles[index].path} at ${mesh.position.toArray()} from sliders`);
+            });
+        });
+
+        // Add Toggle Autorotate button functionality
+        const toggleAutorotateButton = document.getElementById('toggle-autorotate');
+        toggleAutorotateButton.addEventListener('click', () => {
+            isAutorotating = !isAutorotating;
+            if (isAutorotating) {
+                scene.rotation.y += Math.PI / 2;
+            }
+            updateModeIndicator();
+            console.log(`Autorotate toggled to ${isAutorotating ? 'ON' : 'OFF'}`);
+        });
+
+        // Add Toggle AutoSlide button functionality
+        const toggleAutoSlideButton = document.getElementById('toggle-autoslide');
+        toggleAutoSlideButton.addEventListener('click', () => {
+            isAutoSliding = !isAutoSliding;
+            if (isAutoSliding) {
+                startTime = performance.now() / 1000;
+            }
+            updateModeIndicator();
+            console.log(`AutoSlide toggled to ${isAutoSliding ? 'ON' : 'OFF'}`);
+        });
+
+        // Reset to camera defaults
+        const resetCameraButton = document.getElementById('reset-camera-defaults');
+        resetCameraButton.addEventListener('click', () => {
+            camera.fov = defaultCameraSettings.zoom;
+            controls.target.copy(defaultCameraSettings.target);
+            camera.position.copy(defaultCameraSettings.target).add(
+                new THREE.Vector3(0, 0, defaultCameraSettings.distance).applyEuler(defaultCameraSettings.rotation)
+            );
+            camera.rotation.copy(defaultCameraSettings.rotation);
+            camera.updateProjectionMatrix();
+            controls.update();
+            updateModeIndicator();
+            console.log('Camera reset to defaults:', {
+                zoom: camera.fov,
+                distance: camera.position.distanceTo(controls.target).toFixed(2),
+                position: camera.position.toArray(),
+                target: controls.target.toArray(),
+                rotation: [
+                    (camera.rotation.x * 180 / Math.PI).toFixed(2),
+                    (camera.rotation.y * 180 / Math.PI).toFixed(2),
+                    (camera.rotation.z * 180 / Math.PI).toFixed(2)
+                ]
+            });
+        });
+
+        // Axis flip controls
+        function applyAxisTransform(mesh, geometry) {
+            const position = geometry.attributes.position;
+            for (let i = 0; i < position.count; i++) {
+                let x = position.getX(i);
+                let y = position.getY(i);
+                let z = position.getZ(i);
+                position.setXYZ(i, x, y, z);
+            }
+            position.needsUpdate = true;
+            geometry.computeBoundingBox();
+        }
+
+        stlFiles.forEach((stl, index) => {
+            console.log(`Loading STL ${index + 1}/${stlFiles.length}: ${stl.path}`);
+            loader.load(
+                stl.path,
+                (geometry) => {
+                    console.log(`STL loaded: ${stl.path}`);
+                    const material = new THREE.MeshPhongMaterial({ color: stl.color });
+                    const mesh = new THREE.Mesh(geometry, material);
+                    mesh.userData = { movable: stl.movable, name: stl.path, index: index, phase: stl.phase || 0 };
+
+                    applyAxisTransform(mesh, geometry);
+
+                    const center = geometry.boundingBox.getCenter(new THREE.Vector3());
+                    const size = geometry.boundingBox.getSize(new THREE.Vector3());
+                    const modelMaxDim = Math.max(size.x, size.y, size.z);
+                    console.log(`${stl.path} original size: ${size.toArray()}, maxDim: ${modelMaxDim}`);
+
+                    const scale = stl.scale;
+                    if (!stl.movable) {
+                        frameBounds = geometry.boundingBox.clone();
+                        frameBounds.min.multiplyScalar(scale);
+                        frameBounds.max.multiplyScalar(scale);
+                        console.log(`Frame bounds (scaled): min=${frameBounds.min.toArray()}, max=${frameBounds.max.toArray()}, scale=${scale}`);
+                    } else {
+                        console.log(`Board ${stl.path} scale: ${scale}, scaled size: [${(size.x * scale).toFixed(2)}, ${(size.y * scale).toFixed(2)}, ${(size.z * scale).toFixed(2)}]`);
+                    }
+
+                    mesh.position.copy(new THREE.Vector3(0, 0, 0));
+                    mesh.position.sub(center.multiplyScalar(scale));
+                    const initialPosition = new THREE.Vector3(...stl.initialPos);
+                    mesh.position.add(initialPosition);
+                    console.log(`Initial position set for ${stl.path} to [x=${initialPosition.x}, y=${initialPosition.y}, z=${initialPosition.z}]`);
+
+                    mesh.updateMatrix();
+                    mesh.updateMatrixWorld(true);
+                    console.log(`Instantiated ${stl.path} at [x=${mesh.position.x}, y=${mesh.position.y}, z=${mesh.position.z}] with initialPos ${stl.initialPos}`);
+
+                    mesh.rotation.x = -Math.PI / 2;
+                    mesh.scale.set(scale, scale, scale);
+                    scene.add(mesh);
+                    meshes.push(mesh);
+
+                    const inputs = {
+                        x: document.getElementById(`x-${index}`),
+                        y: document.getElementById(`y-${index}`),
+                        z: document.getElementById(`z-${index}`)
+                    };
+                    inputs.x.value = stl.initialPos[0].toFixed(2);
+                    inputs.y.value = stl.initialPos[1].toFixed(2);
+                    inputs.z.value = stl.initialPos[2].toFixed(2);
+                    console.log(`UI initialized for ${stl.path} with slider values: x=${inputs.x.value}, y=${inputs.y.value}, z=${inputs.z.value}`);
+
+                    Object.keys(inputs).forEach(axis => {
+                        inputs[axis].addEventListener('input', () => {
+                            const pos = mesh.position;
+                            pos[axis] = parseFloat(inputs[axis].value) || stl.initialPos[axis === 'x' ? 0 : axis === 'y' ? 1 : 2];
+                            if (axis === 'z') {
+                                pos[axis] = Math.max(slideBounds.minZ, Math.min(slideBounds.maxZ, pos[axis]));
+                            }
+                            mesh.position.set(pos.x, pos.y, pos.z);
+                            mesh.updateMatrixWorld(true);
+                            console.log(`Updated ${stl.path} position: [x=${pos.x}, y=${pos.y}, z=${pos.z}]`);
+                        });
+                    });
+
+                    if (stl.movable) {
+                        movableMeshes.push(mesh);
+                    }
+
+                    maxDim = Math.max(maxDim, modelMaxDim * scale);
+                    loadedModels++;
+                    if (loadedModels === stlFiles.length) {
+                        // Set camera to default settings
+                        camera.fov = defaultCameraSettings.zoom;
+                        controls.target.copy(defaultCameraSettings.target);
+                        camera.position.copy(defaultCameraSettings.target).add(
+                            new THREE.Vector3(0, 0, defaultCameraSettings.distance).applyEuler(defaultCameraSettings.rotation)
+                        );
+                        camera.rotation.copy(defaultCameraSettings.rotation);
+                        camera.updateProjectionMatrix();
+                        defaultCameraSettings.position.copy(camera.position);
+                        console.log(`All models loaded, camera at ${camera.position.toArray()}, distance=${defaultCameraSettings.distance}, FOV=${camera.fov}, target=${controls.target.toArray()}`);
+                        updateModeIndicator(); // Initial update after loading
+
+                        meshes.forEach((mesh, index) => {
+                            const initialPos = stlFiles[index].initialPos;
+                            const pos = mesh.position;
+                            console.log(`Before apply for ${stlFiles[index].path}: [x=${pos.x}, y=${pos.y}, z=${pos.z}]`);
+                            pos.x = initialPos[0];
+                            pos.y = initialPos[1];
+                            pos.z = Math.max(slideBounds.minZ, Math.min(slideBounds.maxZ, initialPos[2]));
+                            mesh.position.set(pos.x, pos.y, pos.z);
+                            mesh.updateMatrixWorld(true);
+                            console.log(`Positions applied to ${stlFiles[index].path} at [x=${pos.x}, y=${pos.y}, z=${pos.z}] using initialPos ${initialPos}`);
+                        });
+                    }
+                },
+                (xhr) => console.log(`${stl.path}: ${(xhr.loaded / xhr.total * 100).toFixed(2)}% loaded`),
+                (error) => console.error(`Error loading ${stl.path}:`, error)
+            );
+        });
+
+        // Toggle controls with keys
+        document.addEventListener('keydown', (event) => {
+            const key = event.key.toLowerCase();
+            if (key === 'o') {
+                controls.enabled = !controls.enabled;
+                updateModeIndicator();
+                console.log(`Orbit controls toggled: ${controls.enabled ? 'enabled' : 'disabled'}`);
+            } else if (key === 'r') {
+                isAutorotating = !isAutorotating;
+                if (isAutorotating) {
+                    scene.rotation.y += Math.PI / 2;
+                }
+                updateModeIndicator();
+                console.log(`Autorotate toggled to ${isAutorotating ? 'ON' : 'OFF'}`);
+            } else if (key === 'a') {
+                isAutoSliding = !isAutoSliding;
+                if (isAutoSliding) {
+                    startTime = performance.now() / 1000;
+                }
+                updateModeIndicator();
+                console.log(`AutoSlide toggled to ${isAutoSliding ? 'ON' : 'OFF'}`);
+            }
+        });
+
+        // Mouse interaction for sliding
+        renderer.domElement.addEventListener('mousedown', onMouseDown);
+        renderer.domElement.addEventListener('mousemove', onMouseMove);
+        renderer.domElement.addEventListener('mouseup', onMouseUp);
+
+        function onMouseDown(event) {
+            event.preventDefault();
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(movableMeshes);
+            if (intersects.length > 0) {
+                selectedMesh = intersects[0].object;
+                controls.enabled = false;
+                isAutoSliding = false;
+                updateModeIndicator();
+                const planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial());
+                const intersectPoint = raycaster.intersectObject(planeMesh)[0]?.point;
+                if (intersectPoint) {
+                    startPoint = intersectPoint.clone();
+                    console.log(`Dragging started for ${selectedMesh.userData.name} at ${startPoint.toArray()}`);
+                }
+            }
+        }
+
+        function onMouseMove(event) {
+            if (selectedMesh && frameBounds) {
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial());
+                const intersectPoint = raycaster.intersectObject(planeMesh)[0]?.point;
+                if (intersectPoint) {
+                    const delta = intersectPoint.sub(startPoint);
+                    let newPosX = selectedMesh.position.x + delta.x;
+                    let newPosY = selectedMesh.position.y + delta.y;
+                    const margin = 0.1;
+                    newPosX = Math.max(frameBounds.min.x + margin, Math.min(frameBounds.max.x - margin, newPosX));
+                    newPosY = Math.max(frameBounds.min.y + margin, Math.min(frameBounds.max.y - margin, newPosY));
+                    selectedMesh.position.set(newPosX, newPosY, selectedMesh.position.z);
+                    document.getElementById(`x-${selectedMesh.userData.index}`).value = newPosX.toFixed(2);
+                    document.getElementById(`y-${selectedMesh.userData.index}`).value = newPosY.toFixed(2);
+                    startPoint.copy(interpoint);
+                    console.log(`Moved ${selectedMesh.userData.name} to [x=${newPosX}, y=${newPosY}, z=${selectedMesh.position.z}]`);
+                }
+            }
+        }
+
+        function onMouseUp() {
+            if (selectedMesh) console.log(`Dragging ended for ${selectedMesh.userData.name}`);
+            selectedMesh = null;
+            startPoint = null;
+            updateModeIndicator();
+        }
+
+        // Animation loop with autorotation and autosliding
+        function animate() {
+            requestAnimationFrame(animate);
+            if (isAutorotating) {
+                scene.rotation.y += 0.01;
+            }
+            if (isAutoSliding) {
+                const currentTime = performance.now() / 1000 - startTime;
+                movableMeshes.forEach((mesh, i) => {
+                    const phase = mesh.userData.phase;
+                    const midZ = (slideBounds.minZ + slideBounds.maxZ) / 2;
+                    const amplitude = (slideBounds.maxZ - slideBounds.minZ) / 2;
+                    const zPos = midZ + amplitude * Math.sin((2 * Math.PI * currentTime / slidePeriod) + phase);
+                    mesh.position.z = zPos;
+                    document.getElementById(`z-${mesh.userData.index}`).value = zPos.toFixed(2);
+                    mesh.updateMatrixWorld(true);
+                    console.log(`AutoSlide: ${mesh.userData.name} at z=${zPos.toFixed(2)}`);
+                });
+            }
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            console.log(`Window resized to ${window.innerWidth}x${window.innerHeight}`);
+            updateModeIndicator();
+        });
+    </script>
 </body>
 </html>
