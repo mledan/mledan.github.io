@@ -58,6 +58,80 @@
                 font-size: 14px;
             }
         }
+        /* Handwritten text styles */
+        .panel-text {
+            position: absolute;
+            width: 200px;
+            height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            font-family: 'Kalam', cursive;
+            color: #2c3e50;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 5px;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .handwritten {
+            font-family: 'Kalam', cursive;
+            font-weight: 700;
+            font-size: 18px;
+            line-height: 1.4;
+            letter-spacing: 0.5px;
+            text-shadow: 0.5px 0.5px 0px rgba(0,0,0,0.1);
+        }
+        
+        .handwritten-large {
+            font-size: 22px;
+            font-weight: 700;
+        }
+        
+        .handwritten-small {
+            font-size: 16px;
+        }
+        
+        /* Add slight variations to make it look more natural */
+        .char-1 { transform: rotate(-1deg); display: inline-block; }
+        .char-2 { transform: rotate(0.5deg); display: inline-block; }
+        .char-3 { transform: rotate(-0.5deg); display: inline-block; }
+        .char-4 { transform: rotate(1deg); display: inline-block; }
+        .char-5 { transform: rotate(-0.3deg); display: inline-block; }
+        
+        .countdown-text {
+            color: #e74c3c;
+            margin-bottom: 5px;
+        }
+        
+        .camping-text {
+            color: #27ae60;
+        }
+        
+        .love-text {
+            color: #e91e63;
+        }
+        
+        .heart-icon {
+            color: #e74c3c;
+            font-size: 24px;
+            animation: heartbeat 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .campfire-icon {
+            width: 30px;
+            height: 30px;
+            margin: 5px;
+        }
     </style>
 </head>
 <body>
@@ -82,6 +156,7 @@
             }
         }
     </script>
+    <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Permanent+Marker&display=swap" rel="stylesheet">
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -194,6 +269,179 @@
         const meshes = [];
         const slideBounds = { minZ: 495, maxZ: 725 };
         const slidePeriod = 10;
+        const panelTexts = [];
+        
+        // Create text sprite for panels
+        function createTextSprite(message, panelIndex) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 512;
+            canvas.height = 256;
+            
+            // Clear canvas with transparent background
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // NO BACKGROUND - fully transparent
+            
+            // Set font styles
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            
+            // Add text shadow for better readability
+            context.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            context.shadowBlur = 4;
+            context.shadowOffsetX = 2;
+            context.shadowOffsetY = 2;
+            
+            if (panelIndex === 0) {
+                // Panel 1: Countdown - white text with shadow
+                context.fillStyle = '#ffffff';
+                context.strokeStyle = '#e74c3c';
+                context.lineWidth = 3;
+                context.font = 'bold 36px Kalam';
+                const countdownText = message.countdown || 'Loading...';
+                context.strokeText(countdownText, canvas.width / 2, canvas.height / 2 - 30);
+                context.fillText(countdownText, canvas.width / 2, canvas.height / 2 - 30);
+                
+                context.fillStyle = '#ffffff';
+                context.strokeStyle = '#333333';
+                context.lineWidth = 2;
+                context.font = '24px Kalam';
+                context.strokeText('time until plane lands!', canvas.width / 2, canvas.height / 2 + 10);
+                context.fillText('time until plane lands!', canvas.width / 2, canvas.height / 2 + 10);
+                context.strokeText('August 31st at 1:30pm CST!!', canvas.width / 2, canvas.height / 2 + 40);
+                context.fillText('August 31st at 1:30pm CST!!', canvas.width / 2, canvas.height / 2 + 40);
+            } else if (panelIndex === 1) {
+                // Panel 2: Camping - white text with green outline
+                context.fillStyle = '#ffffff';
+                context.strokeStyle = '#27ae60';
+                context.lineWidth = 2;
+                context.font = '28px Kalam';
+                context.strokeText("Can't wait for", canvas.width / 2, canvas.height / 2 - 40);
+                context.fillText("Can't wait for", canvas.width / 2, canvas.height / 2 - 40);
+                
+                context.lineWidth = 3;
+                context.font = 'bold 42px Kalam';
+                context.strokeText('CAMPING!', canvas.width / 2, canvas.height / 2);
+                context.fillText('CAMPING!', canvas.width / 2, canvas.height / 2);
+                
+                // Draw simple campfire with outline
+                context.fillStyle = '#ff6b35';
+                context.strokeStyle = '#d84315';
+                context.lineWidth = 2;
+                context.beginPath();
+                context.moveTo(canvas.width / 2, canvas.height / 2 + 50);
+                context.lineTo(canvas.width / 2 - 15, canvas.height / 2 + 70);
+                context.lineTo(canvas.width / 2 + 15, canvas.height / 2 + 70);
+                context.closePath();
+                context.stroke();
+                context.fill();
+            } else if (panelIndex === 2) {
+                // Panel 3: Love message - white text with pink outline
+                context.fillStyle = '#ffffff';
+                context.strokeStyle = '#e91e63';
+                context.lineWidth = 2;
+                context.font = '32px Kalam';
+                context.strokeText('Miljana,', canvas.width / 2, canvas.height / 2 - 50);
+                context.fillText('Miljana,', canvas.width / 2, canvas.height / 2 - 50);
+                
+                context.lineWidth = 3;
+                context.font = 'bold 40px Kalam';
+                context.strokeText('I love you', canvas.width / 2, canvas.height / 2 - 10);
+                context.fillText('I love you', canvas.width / 2, canvas.height / 2 - 10);
+                
+                context.font = '48px serif';
+                context.fillStyle = '#e74c3c';
+                context.strokeStyle = '#ffffff';
+                context.lineWidth = 2;
+                context.strokeText('❤', canvas.width / 2, canvas.height / 2 + 30);
+                context.fillText('❤', canvas.width / 2, canvas.height / 2 + 30);
+                
+                context.fillStyle = '#ffffff';
+                context.strokeStyle = '#e91e63';
+                context.lineWidth = 2;
+                context.font = '28px Kalam';
+                context.strokeText('-Mladen', canvas.width / 2, canvas.height / 2 + 70);
+                context.fillText('-Mladen', canvas.width / 2, canvas.height / 2 + 70);
+            }
+            
+            // Create texture from canvas
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+            
+            // Create sprite material and sprite
+            const spriteMaterial = new THREE.SpriteMaterial({ 
+                map: texture,
+                transparent: true
+            });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(40, 20, 1);
+            
+            return { sprite, canvas, context, texture };
+        }
+        
+        // Countdown timer function
+        function getCountdownText() {
+            const targetDate = new Date('2025-08-31T13:30:00-05:00'); // August 31st, 1:30 PM CST
+            const now = new Date();
+            const difference = targetDate - now;
+            
+            if (difference > 0) {
+                const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+                
+                return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            } else {
+                return 'Plane has landed!';
+            }
+        }
+        
+        // Update countdown sprite
+        function updateCountdownSprite() {
+            if (panelTexts[0]) {
+                const { canvas, context, texture } = panelTexts[0];
+                
+                // Clear and redraw
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // NO BACKGROUND - fully transparent
+                
+                // Set text properties
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                
+                // Add text shadow for readability
+                context.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                context.shadowBlur = 4;
+                context.shadowOffsetX = 2;
+                context.shadowOffsetY = 2;
+                
+                // Draw countdown with white text and colored outline
+                context.fillStyle = '#ffffff';
+                context.strokeStyle = '#e74c3c';
+                context.lineWidth = 3;
+                context.font = 'bold 36px Kalam';
+                const countdownText = getCountdownText();
+                context.strokeText(countdownText, canvas.width / 2, canvas.height / 2 - 30);
+                context.fillText(countdownText, canvas.width / 2, canvas.height / 2 - 30);
+                
+                context.fillStyle = '#ffffff';
+                context.strokeStyle = '#333333';
+                context.lineWidth = 2;
+                context.font = '24px Kalam';
+                context.strokeText('time until plane lands!', canvas.width / 2, canvas.height / 2 + 10);
+                context.fillText('time until plane lands!', canvas.width / 2, canvas.height / 2 + 10);
+                context.strokeText('August 31st at 1:30pm CST!!', canvas.width / 2, canvas.height / 2 + 40);
+                context.fillText('August 31st at 1:30pm CST!!', canvas.width / 2, canvas.height / 2 + 40);
+                
+                texture.needsUpdate = true;
+            }
+        }
+        
+        // Start countdown updates
+        setInterval(updateCountdownSprite, 1000);
 
         // Create position controls
         const controlsDiv = document.getElementById('controls');
@@ -364,6 +612,23 @@
 
                     if (stl.movable) {
                         movableMeshes.push(mesh);
+                        
+                        // Create and attach text sprites to movable panels
+                        if (movableMeshes.length <= 3) {
+                            const textData = createTextSprite({ countdown: getCountdownText() }, movableMeshes.length - 1);
+                            
+                            // Store reference for updating position
+                            panelTexts.push({
+                                mesh: mesh,
+                                sprite: textData.sprite,
+                                canvas: textData.canvas,
+                                context: textData.context,
+                                texture: textData.texture,
+                                offset: new THREE.Vector3(0, 0, 15) // Offset from panel surface
+                            });
+                            
+                            scene.add(textData.sprite);
+                        }
                     }
 
                     maxDim = Math.max(maxDim, modelMaxDim * scale);
@@ -465,7 +730,7 @@
                     selectedMesh.position.set(newPosX, newPosY, selectedMesh.position.z);
                     document.getElementById(`x-${selectedMesh.userData.index}`).value = newPosX.toFixed(2);
                     document.getElementById(`y-${selectedMesh.userData.index}`).value = newPosY.toFixed(2);
-                    startPoint.copy(interpoint);
+                    startPoint.copy(intersectPoint);
                     console.log(`Moved ${selectedMesh.userData.name} to [x=${newPosX}, y=${newPosY}, z=${selectedMesh.position.z}]`);
                 }
             }
@@ -497,6 +762,23 @@
                     console.log(`AutoSlide: ${mesh.userData.name} at z=${zPos.toFixed(2)}`);
                 });
             }
+            
+            // Update text sprite positions to follow panels
+            panelTexts.forEach(panelText => {
+                if (panelText.mesh && panelText.sprite) {
+                    // Get panel's world position
+                    const worldPos = new THREE.Vector3();
+                    panelText.mesh.getWorldPosition(worldPos);
+                    
+                    // Apply offset in front of the panel
+                    const offsetPos = worldPos.clone();
+                    offsetPos.add(panelText.offset);
+                    
+                    // Update sprite position
+                    panelText.sprite.position.copy(offsetPos);
+                }
+            });
+            
             controls.update();
             renderer.render(scene, camera);
         }
