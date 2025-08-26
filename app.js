@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
-import { BufferGeometryUtils } from 'three/addons/utils/BufferGeometryUtils.js';
+import BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js'; // Fixed import
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -42,6 +42,10 @@ const loader = new STLLoader();
 
 // Detect dominant normal
 function detectDominantNormal(geometry) {
+    if (!geometry.attributes.position) {
+        console.warn('Geometry has no position attribute');
+        return new THREE.Vector3(0, 0, 1); // Fallback normal
+    }
     const positions = geometry.attributes.position.array;
     const normals = [];
     for (let i = 0; i < positions.length / 9; i++) {
@@ -86,9 +90,12 @@ function createPanels() {
         const panelGeos = [];
         for (let j = 0; j < 4; j++) {
             const idx = i * 4 + j;
-            const part = parts[idx];
-            scene.remove(part);
-            panelGeos.push(part.geometry);
+            if (parts[idx]) {
+                scene.remove(parts[idx]);
+                panelGeos.push(parts[idx].geometry);
+            } else {
+                console.warn(`Part ${idx} not loaded`);
+            }
         }
 
         const merged = panelGeos.length ? BufferGeometryUtils.mergeBufferGeometries(panelGeos) : new THREE.BufferGeometry();
@@ -225,13 +232,18 @@ function createPanels() {
     }
 
     // Frame
-    const frameGeo = parts[16].geometry;
-    frameGeo.computeBoundingBox();
-    frameBounds = frameGeo.boundingBox.clone();
-    const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
-    const frameMesh = new THREE.Mesh(frameGeo, frameMaterial);
-    frameMesh.userData = { movable: false };
-    scene.add(frameMesh);
+    if (parts[16]) {
+        const frameGeo = parts[16].geometry;
+        frameGeo.computeBoundingBox();
+        frameBounds = frameGeo.boundingBox.clone();
+        const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+        const frameMesh = new THREE.Mesh(frameGeo, frameMaterial);
+        frameMesh.userData = { movable: false };
+        scene.add(frameMesh);
+        console.log('Frame added with bounds:', frameBounds.min.toArray(), frameBounds.max.toArray());
+    } else {
+        console.warn('Frame STL not loaded');
+    }
 }
 
 // Load STLs
@@ -244,11 +256,16 @@ stlFiles.forEach((file, index) => {
         scene.add(mesh);
         parts.push(mesh);
         loaded++;
+        console.log(`Loaded STL ${index + 1}/${stlFiles.length}: ${file}`);
         if (loaded === stlFiles.length) {
             console.log('All STLs loaded');
             createPanels();
         }
-    }, undefined, (error) => console.error(`Error loading ${file}:`, error));
+    }, (xhr) => {
+        console.log(`${file}: ${(xhr.loaded / xhr.total * 100).toFixed(2)}% loaded`);
+    }, (error) => {
+        console.error(`Error loading ${file}:`, error);
+    });
 });
 
 // Mouse interaction
@@ -269,6 +286,7 @@ function onMouseDown(event) {
         const plane = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial());
         const intersectPoint = raycaster.intersectObject(plane)[0]?.point;
         if (intersectPoint) startPoint = intersectPoint.clone();
+        console.log(`Dragging started for panel ${selectedMesh.userData.index}`);
     }
 }
 function onMouseMove(event) {
@@ -287,10 +305,12 @@ function onMouseMove(event) {
             newPosY = Math.max(frameBounds.min.y + margin, Math.min(frameBounds.max.y - margin, newPosY));
             selectedMesh.position.set(newPosX, newPosY, selectedMesh.position.z);
             startPoint.copy(intersectPoint);
+            console.log(`Moved panel ${selectedMesh.userData.index} to [x=${newPosX}, y=${newPosY}, z=${selectedMesh.position.z}]`);
         }
     }
 }
 function onMouseUp() {
+    if (selectedMesh) console.log(`Dragging ended for panel ${selectedMesh.userData.index}`);
     selectedMesh = null;
     startPoint = null;
 }
@@ -302,24 +322,29 @@ renderer.domElement.addEventListener('mouseup', onMouseUp);
 document.getElementById('mobile-toggle-orbit').addEventListener('click', () => {
     controls.enabled = !controls.enabled;
     updateModeIndicator();
+    console.log(`Orbit controls: ${controls.enabled ? 'ON' : 'OFF'}`);
 });
 document.getElementById('mobile-toggle-autorotate').addEventListener('click', () => {
     isAutorotating = !isAutorotating;
     updateModeIndicator();
+    console.log(`Autorotate: ${isAutorotating ? 'ON' : 'OFF'}`);
 });
 document.getElementById('mobile-toggle-autoslide').addEventListener('click', () => {
     isAutoSliding = !isAutoSliding;
     if (isAutoSliding) startTime = performance.now() / 1000;
     updateModeIndicator();
+    console.log(`AutoSlide: ${isAutoSliding ? 'ON' : 'OFF'}`);
 });
 document.getElementById('toggle-autorotate').addEventListener('click', () => {
     isAutorotating = !isAutorotating;
     updateModeIndicator();
+    console.log(`Autorotate: ${isAutorotating ? 'ON' : 'OFF'}`);
 });
 document.getElementById('toggle-autoslide').addEventListener('click', () => {
     isAutoSliding = !isAutoSliding;
     if (isAutoSliding) startTime = performance.now() / 1000;
     updateModeIndicator();
+    console.log(`AutoSlide: ${isAutoSliding ? 'ON' : 'OFF'}`);
 });
 document.getElementById('reset-camera').addEventListener('click', () => {
     camera.position.set(0, 0, 250);
@@ -328,18 +353,22 @@ document.getElementById('reset-camera').addEventListener('click', () => {
     camera.updateProjectionMatrix();
     controls.update();
     updateModeIndicator();
+    console.log('Camera reset');
 });
 document.addEventListener('keydown', (e) => {
     if (e.key === 'o') {
         controls.enabled = !controls.enabled;
         updateModeIndicator();
+        console.log(`Orbit controls: ${controls.enabled ? 'ON' : 'OFF'}`);
     } else if (e.key === 'r') {
         isAutorotating = !isAutorotating;
         updateModeIndicator();
+        console.log(`Autorotate: ${isAutorotating ? 'ON' : 'OFF'}`);
     } else if (e.key === 'a') {
         isAutoSliding = !isAutoSliding;
         if (isAutoSliding) startTime = performance.now() / 1000;
         updateModeIndicator();
+        console.log(`AutoSlide: ${isAutoSliding ? 'ON' : 'OFF'}`);
     }
 });
 
@@ -379,6 +408,7 @@ function animate() {
         ctx.textBaseline = 'middle';
         ctx.fillText(calculateCountdown(), canvases[0].width / 2, canvases[0].height / 2);
         groups[0].children[0].material.map.needsUpdate = true;
+        console.log(`Updated countdown: ${calculateCountdown()}`);
     }
 
     // Update overlay
@@ -394,4 +424,5 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    console.log(`Window resized to ${window.innerWidth}x${window.innerHeight}`);
 });
