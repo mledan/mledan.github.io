@@ -623,7 +623,7 @@
         // Main messages for each panel
         const mainMessages = [
             { getText: () => getCountdownText(), id: 'countdown' },
-            { getText: () => "Can't wait for\nCAMPING!!", id: 'camping' },
+            { getText: () => "", id: 'camping' },
             { getText: () => "♥ I love you!!", id: 'love' }
         ];
         
@@ -631,14 +631,14 @@
         const additionalMessages = [
             // Panel 1 (Pink) messages
             { getText: () => getCountdownText2(), font: "WhiteboardRegular", panelIndex: 0 },
-            { getText: () => "You're still\nEnough!", font: "SmoothMarker", panelIndex: 0 },
+            { getText: () => "", font: "SmoothMarker", panelIndex: 0 },
             
             // Panel 2 (Green) messages
             { getText: () => "Camping Checklist:\n□ Tent\n□ Sleeping bag\n□ Marshmallows\n□ Stories", font: "MarkerFont", panelIndex: 1 },
             
             // Panel 3 (Blue) messages
-            { getText: () => "TODO List:\n• Drink water\n• Charge your phone\n• Be good!", font: "DfThin", panelIndex: 2 },
-            { getText: () => "Miles apart\nbut close\nat heart\n♥", font: "Pwscritch", panelIndex: 2 }
+            { getText: () => "TODO List:\n Rest!", font: "DfThin", panelIndex: 2 },
+            { getText: () => "♥", font: "Pwscritch", panelIndex: 2 }
         ];
         
         // Countdown timer function
