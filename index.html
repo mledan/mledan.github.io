@@ -320,7 +320,7 @@
         window.textControls = {};
         window.allTextPanels = [];  // Store all text panels for UI control
         
-        // Default saved state - will be populated with exported values for production
+        // Default saved state - updated to include only active messages
         const DEFAULT_TEXT_STATE = [
           {
             "name": "Countdown",
@@ -339,8 +339,8 @@
             "assignedPanel": 0
           },
           {
-            "name": "Pink Panel - Have a...",
-            "font": "Kalam",
+            "name": "Pink Panel - until I see bae!",
+            "font": "WhiteboardRegular",
             "size": 95,
             "offset": {
               "x": -11.4,
@@ -353,102 +353,6 @@
               "z": 3.3510321638291125
             },
             "assignedPanel": 0
-          },
-          {
-            "name": "Pink Panel - You're still...",
-            "font": "Shadows Into Light",
-            "size": 77,
-            "offset": {
-              "x": -11.4,
-              "y": 167,
-              "z": -585
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.141592653589793
-            },
-            "assignedPanel": 1
-          },
-          {
-            "name": "Camping",
-            "font": "Patrick Hand",
-            "size": 85,
-            "offset": {
-              "x": -11.4,
-              "y": 91,
-              "z": -650
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 2.9146998508305306
-            },
-            "assignedPanel": 2
-          },
-          {
-            "name": "Green Panel - Camping Checklist:...",
-            "font": "MarkerFont",
-            "size": 75,
-            "offset": {
-              "x": -11.4,
-              "y": 217,
-              "z": -589
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.141592653589793
-            },
-            "assignedPanel": 2
-          },
-          {
-            "name": "Love",
-            "font": "Indie Flower",
-            "size": 96,
-            "offset": {
-              "x": -11.4,
-              "y": 45,
-              "z": -621
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.4033920413889422
-            },
-            "assignedPanel": 1
-          },
-          {
-            "name": "Blue Panel - TODO List:...",
-            "font": "DfThin",
-            "size": 61,
-            "offset": {
-              "x": -11.4,
-              "y": 150,
-              "z": -568
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.1764992386296798
-            },
-            "assignedPanel": 0
-          },
-          {
-            "name": "Blue Panel - Miles apart...",
-            "font": "Shadows Into Light",
-            "size": 52,
-            "offset": {
-              "x": -11.4,
-              "y": 222,
-              "z": -675
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.141592653589793
-            },
-            "assignedPanel": 1
           }
         ]
 
@@ -623,25 +527,26 @@
         // Main messages for each panel
         const mainMessages = [
             { getText: () => getCountdownText(), id: 'countdown' },
-            { getText: () => "Can't wait for\nCAMPING!!", id: 'camping' },
-            { getText: () => "♥ I love you!!", id: 'love' }
+            // { getText: () => "Can't wait for\nCAMPING!!", id: 'camping' },
+            // { getText: () => "♥ I love you!!", id: 'love' }
         ];
         
         // Additional cute messages - deterministic assignment (using custom fonts)
         const additionalMessages = [
             // Panel 1 (Pink) messages
-            { getText: () => "Have a\nsafe journey!", font: "WhiteboardRegular", panelIndex: 0 },
-            { getText: () => "You're still\nEnough!", font: "SmoothMarker", panelIndex: 0 },
+            // { getText: () => "Have a\nsafe journey!", font: "WhiteboardRegular", panelIndex: 0 },
+            { getText: () => getMidnightCountdownText(), font: "WhiteboardRegular", panelIndex: 0 },
+            // { getText: () => "You're still\nEnough!", font: "SmoothMarker", panelIndex: 0 },
             
             // Panel 2 (Green) messages
-            { getText: () => "Camping Checklist:\n□ Tent\n□ Sleeping bag\n□ Marshmallows\n□ Stories", font: "MarkerFont", panelIndex: 1 },
+            // { getText: () => "Camping Checklist:\n□ Tent\n□ Sleeping bag\n□ Marshmallows\n□ Stories", font: "MarkerFont", panelIndex: 1 },
             
             // Panel 3 (Blue) messages
-            { getText: () => "TODO List:\n• Drink water\n• Charge your phone\n• Be good!", font: "DfThin", panelIndex: 2 },
-            { getText: () => "Miles apart\nbut close\nat heart\n♥", font: "Pwscritch", panelIndex: 2 }
+            // { getText: () => "TODO List:\n• Drink water\n• Charge your phone\n• Be good!", font: "DfThin", panelIndex: 2 },
+            // { getText: () => "Miles apart\nbut close\nat heart\n♥", font: "Pwscritch", panelIndex: 2 }
         ];
         
-        // Countdown timer function
+        // Countdown timer function for original countdown
         function getCountdownText() {
             const targetDate = new Date('2025-08-31T13:30:00-05:00'); // August 31st, 1:30 PM CST
             const now = new Date();
@@ -655,6 +560,26 @@
                 return `${days}d ${hours}h ${minutes}m\nuntil you're back\nin Chicago!`;
             } else {
                 return 'Welcome home!';
+            }
+        }
+        
+        // New countdown timer function for midnight tonight
+        function getMidnightCountdownText() {
+            const now = new Date();
+            const midnight = new Date();
+            midnight.setHours(24, 0, 0, 0); // Set to midnight tonight Central Time
+            midnight.setTime(midnight.getTime() + (midnight.getTimezoneOffset() * 60000) - (5 * 3600000)); // Adjust to CDT (-5 hours)
+            
+            const difference = midnight - now;
+            
+            if (difference > 0) {
+                const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+                
+                return `${hours}h ${minutes}m ${seconds}s\nuntil I see bae!`;
+            } else {
+                return 'Time to see bae!';
             }
         }
         
@@ -680,12 +605,26 @@
             return panel;
         }
         
-        // Update countdown panel every second
+        // Update countdown panels every second
         function updateCountdownPanel() {
+            // Update first countdown (original)
             if (textPanels[0]) {
                 const panel = textPanels[0];
                 const newText = panel.userData.messageFunc();
                 const textureData = createHandwritingTexture(newText);
+                panel.material.map = textureData.texture;
+                panel.material.needsUpdate = true;
+                panel.userData.textureData = textureData;
+            }
+            
+            // Update new midnight countdown
+            const midnightPanelIndex = window.allTextPanels.findIndex(panel => 
+                panel.fullText && panel.fullText.includes('until I see bae!')
+            );
+            if (midnightPanelIndex !== -1 && textPanels[midnightPanelIndex]) {
+                const panel = textPanels[midnightPanelIndex];
+                const newText = getMidnightCountdownText();
+                const textureData = createHandwritingTexture(newText, '#000000', window.allTextPanels[midnightPanelIndex].font);
                 panel.material.map = textureData.texture;
                 panel.material.needsUpdate = true;
                 panel.userData.textureData = textureData;
@@ -713,7 +652,7 @@
         const applyButton = document.getElementById('apply-values');
         applyButton.addEventListener('click', () => {
             meshes.forEach((mesh, index) => {
-                const inputs = {
+                const inputsسان {
                     x: document.getElementById(`x-${index}`),
                     y: document.getElementById(`y-${index}`),
                     z: document.getElementById(`z-${index}`)
@@ -845,62 +784,93 @@
                         if (movableMeshes.length <= 3) {
                             const messageIndex = movableMeshes.length - 1;
                             
-                            // Different fonts for main messages (using custom fonts)
-                            const mainFonts = ['WhiteboardRegular', 'MarkerFont', 'SmoothMarker'];
-                            const textPanel = createTextPanel(mainMessages[messageIndex].getText, messageIndex, mainFonts[messageIndex]);
-                            
-                            // Match STL panel rotation (they're rotated -90 degrees on X)
-                            textPanel.rotation.x = mesh.rotation.x;
-                            
-                            // Initial position will be set in animation loop
-                            textPanel.position.copy(mesh.position);
-                            
-                            textPanels.push(textPanel);
-                            scene.add(textPanel);
-                            
-                            // Deterministic positions for main panels (X fixed at -11.4)
-                            const mainPositions = [
-                                { x: -11.4, y: 150, z: -600 },  // Countdown
-                                { x: -11.4, y: 140, z: -600 },  // Camping
-                                { x: -11.4, y: 160, z: -600 }   // Love
-                            ];
-                            
-                            const position = mainPositions[messageIndex];
-                            
-                            // Store reference for position tracking with specified offsets
-                            const panelTextObj = {
-                                stlMesh: mesh,
-                                textPanel: textPanel,
-                                offset: new THREE.Vector3(position.x, position.y, position.z)
-                            };
-                            panelTexts.push(panelTextObj);
-                            
-                            // Store for UI control
-                            window.allTextPanels.push({
-                                name: ['Countdown', 'Camping', 'Love'][messageIndex],
-                                panelObj: panelTextObj,
-                                panel: textPanel,
-                                font: mainFonts[messageIndex],
-                                size: 76,
-                                isMain: true,
-                                assignedPanel: messageIndex,
-                                stlMesh: mesh
-                            });
-                            
-                            // Add to global controls with friendly names
-                            const panelName = ['countdown', 'camping', 'love'][messageIndex];
-                            
-                            // Deterministic rotation for main panels
-                            const mainRotations = [178, 180, 182]; // Slight variation but consistent
-                            const zRotation = mainRotations[messageIndex];
-                            
-                            // Store additional rotation offset for text panel
-                            const rotationOffset = new THREE.Euler(
-                                -90 * Math.PI / 180,  // -90 degrees on X
-                                90 * Math.PI / 180,   // 90 degrees on Y  
-                                zRotation * Math.PI / 180   // Deterministic Z rotation
-                            );
-                            panelTextObj.rotationOffset = rotationOffset;
+                            // Only create text panels for active main messages
+                            if (mainMessages[messageIndex]) {
+                                const mainFonts = ['WhiteboardRegular', 'MarkerFont', 'SmoothMarker'];
+                                const textPanel = createTextPanel(mainMessages[messageIndex].getText, messageIndex, mainFonts[messageIndex]);
+                                
+                                // Match STL panel rotation (they're rotated -90 degrees on X)
+                                textPanel.rotation.x = mesh.rotation.x;
+                                
+                                // Initial position will be set in animation loop
+                                textPanel.position.copy(mesh.position);
+                                
+                                textPanels.push(textPanel);
+                                scene.add(textPanel);
+                                
+                                // Deterministic positions for main panels (X fixed at -11.4)
+                                const mainPositions = [
+                                    { x: -11.4, y: 150, z: -600 },  // Countdown
+                                    { x: -11.4, y: 140, z: -600 },  // Camping
+                                    { x: -11.4, y: 160, z: -600 }   // Love
+                                ];
+                                
+                                const position = mainPositions[messageIndex];
+                                
+                                // Store reference for position tracking with specified offsets
+                                const panelTextObj = {
+                                    stlMesh: mesh,
+                                    textPanel: textPanel,
+                                    offset: new THREE.Vector3(position.x, position.y, position.z)
+                                };
+                                panelTexts.push(panelTextObj);
+                                
+                                // Store for UI control
+                                window.allTextPanels.push({
+                                    name: ['Countdown', 'Camping', 'Love'][messageIndex],
+                                    panelObj: panelTextObj,
+                                    panel: textPanel,
+                                    font: mainFonts[messageIndex],
+                                    size: 76,
+                                    isMain: true,
+                                    assignedPanel: messageIndex,
+                                    stlMesh: mesh
+                                });
+                                
+                                // Add to global controls with friendly names
+                                const panelName = ['countdown', 'camping', 'love'][messageIndex];
+                                
+                                // Deterministic rotation for main panels
+                                const mainRotations = [178, 180, 182]; // Slight variation but consistent
+                                const zRotation = mainRotations[messageIndex];
+                                
+                                // Store additional rotation offset for text panel
+                                const rotationOffset = new THREE.Euler(
+                                    -90 * Math.PI / 180,  // -90 degrees on X
+                                    90 * Math.PI / 180,   // 90 degrees on Y  
+                                    zRotation * Math.PI / 180   // Deterministic Z rotation
+                                );
+                                panelTextObj.rotationOffset = rotationOffset;
+                                
+                                window.textControls[panelName] = {
+                                    panel: textPanel,
+                                    offset: panelTextObj.offset,
+                                    rotationOffset: rotationOffset,
+                                    setPosition: (x, y, z) => {
+                                        if (x !== undefined) panelTextObj.offset.x = x;
+                                        if (y !== undefined) panelTextObj.offset.y = y;
+                                        if (z !== undefined) panelTextObj.offset.z = z;
+                                    },
+                                    setRotation: (x, y, z) => {
+                                        if (x !== undefined) rotationOffset.x = x * Math.PI / 180;
+                                        if (y !== undefined) rotationOffset.y = y * Math.PI / 180;
+                                        if (z !== undefined) rotationOffset.z = z * Math.PI / 180;
+                                    },
+                                    getInfo: () => ({
+                                        offset: panelTextObj.offset.toArray(),
+                                        rotationOffset: [
+                                            rotationOffset.x * 180 / Math.PI,
+                                            rotationOffset.y * 180 / Math.PI,
+                                            rotationOffset.z * 180 / Math.PI
+                                        ],
+                                        actualRotation: [
+                                            textPanel.rotation.x * 180 / Math.PI,
+                                            textPanel.rotation.y * 180 / Math.PI,
+                                            textPanel.rotation.z * 180 / Math.PI
+                                        ]
+                                    })
+                                };
+                            }
                             
                             // Create additional message panels for this STL panel - deterministic
                             const panelMessages = additionalMessages.filter(msg => msg.panelIndex === messageIndex);
@@ -951,35 +921,6 @@
                                     stlMesh: mesh
                                 });
                             });
-                            
-                            window.textControls[panelName] = {
-                                panel: textPanel,
-                                offset: panelTextObj.offset,
-                                rotationOffset: rotationOffset,
-                                setPosition: (x, y, z) => {
-                                    if (x !== undefined) panelTextObj.offset.x = x;
-                                    if (y !== undefined) panelTextObj.offset.y = y;
-                                    if (z !== undefined) panelTextObj.offset.z = z;
-                                },
-                                setRotation: (x, y, z) => {
-                                    if (x !== undefined) rotationOffset.x = x * Math.PI / 180;
-                                    if (y !== undefined) rotationOffset.y = y * Math.PI / 180;
-                                    if (z !== undefined) rotationOffset.z = z * Math.PI / 180;
-                                },
-                                getInfo: () => ({
-                                    offset: panelTextObj.offset.toArray(),
-                                    rotationOffset: [
-                                        rotationOffset.x * 180 / Math.PI,
-                                        rotationOffset.y * 180 / Math.PI,
-                                        rotationOffset.z * 180 / Math.PI
-                                    ],
-                                    actualRotation: [
-                                        textPanel.rotation.x * 180 / Math.PI,
-                                        textPanel.rotation.y * 180 / Math.PI,
-                                        textPanel.rotation.z * 180 / Math.PI
-                                    ]
-                                })
-                            };
                         }
                     }
 
@@ -1149,7 +1090,6 @@
                     mesh.position.z = zPos;
                     document.getElementById(`z-${mesh.userData.index}`).value = zPos.toFixed(2);
                     mesh.updateMatrixWorld(true);
-                    // Removed excessive logging
                 });
             }
             
