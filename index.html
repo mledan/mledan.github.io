@@ -255,7 +255,7 @@
     </style>
 </head>
 <body>
-    <div id="info">Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate, 'a' to toggle autoslide. Orbit: OFF, AutoRotate: OFF, AutoSlide: OFF</div>
+    <div id="info">Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate, 'a' to toggle autoslide, 'w' to toggle writing mode. Orbit: OFF, AutoRotate: OFF, AutoSlide: OFF, Writing: OFF</div>
     <div id="controls">
         <h3>Position Controls</h3>
         <button id="apply-values">Apply Values</button>
@@ -267,6 +267,7 @@
         <button id="mobile-toggle-orbit">Toggle Orbit</button>
         <button id="mobile-toggle-autorotate">Toggle AutoRotate</button>
         <button id="mobile-toggle-autoslide">Toggle AutoSlide</button>
+        <button id="mobile-toggle-writing">Toggle Writing</button>
     </div>
     <button id="toggle-text-controls">Text Controls</button>
     <div id="text-controls">
@@ -323,10 +324,11 @@
         const infoDiv = document.getElementById('info');
         let isAutorotating = false;
         let isAutoSliding = true;
+        let isWritingMode = false;
         let startTime = performance.now() / 1000;
 
         function updateModeIndicator() {
-            let infoText = `Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate, 'a' to toggle autoslide. Orbit: ${controls.enabled ? 'ON' : 'OFF'}, AutoRotate: ${isAutorotating ? 'ON' : 'OFF'}, AutoSlide: ${isAutoSliding ? 'ON' : 'OFF'}`;
+            let infoText = `Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate, 'a' to toggle autoslide, 'w' to toggle writing mode. Orbit: ${controls.enabled ? 'ON' : 'OFF'}, AutoRotate: ${isAutorotating ? 'ON' : 'OFF'}, AutoSlide: ${isAutoSliding ? 'ON' : 'OFF'}, Writing: ${isWritingMode ? 'ON' : 'OFF'}`;
             if (controls.enabled) {
                 const zoom = camera.fov;
                 const pan = controls.target;
@@ -345,6 +347,14 @@
 
         document.getElementById('mobile-toggle-orbit').addEventListener('click', () => {
             controls.enabled = !controls.enabled;
+            if (controls.enabled) {
+                isWritingMode = false;
+                isAutoSliding = false;
+                drawing3DPanel = null;
+                document.querySelectorAll('[id^="draw3d-"]').forEach(btn => {
+                    btn.textContent = 'Draw on 3D';
+                });
+            }
             updateModeIndicator();
         });
 
@@ -352,6 +362,11 @@
             isAutorotating = !isAutorotating;
             if (isAutorotating) {
                 scene.rotation.y += Math.PI / 2;
+                isWritingMode = false;
+                drawing3DPanel = null;
+                document.querySelectorAll('[id^="draw3d-"]').forEach(btn => {
+                    btn.textContent = 'Draw on 3D';
+                });
             }
             updateModeIndicator();
         });
@@ -360,6 +375,44 @@
             isAutoSliding = !isAutoSliding;
             if (isAutoSliding) {
                 startTime = performance.now() / 1000;
+                isWritingMode = false;
+                drawing3DPanel = null;
+                document.querySelectorAll('[id^="draw3d-"]').forEach(btn => {
+                    btn.textContent = 'Draw on 3D';
+                });
+            }
+            updateModeIndicator();
+        });
+
+        document.getElementById('mobile-toggle-writing').addEventListener('click', () => {
+            isWritingMode = !isWritingMode;
+            if (isWritingMode) {
+                controls.enabled = false;
+                isAutoSliding = false;
+                isAutorotating = false;
+                const panelIndex = prompt("Select panel to write on (0=Pink, 1=Green, 2=Blue):", "0");
+                const selectedPanel = parseInt(panelIndex) || 0;
+                if (selectedPanel >= 0 && selectedPanel < window.allTextPanels.length) {
+                    const textItem = window.allTextPanels.find(item => item.assignedPanel === selectedPanel && item.type === 'draw');
+                    if (textItem) {
+                        drawing3DPanel = textItem;
+                        const draw3dBtn = document.getElementById(`draw3d-${textItem.panel.userData.index - 100}`);
+                        if (draw3dBtn) {
+                            draw3dBtn.textContent = 'Exit 3D Draw';
+                        }
+                    } else {
+                        alert('No drawing panel assigned to this board. Please add a hand-drawn panel first.');
+                        isWritingMode = false;
+                    }
+                } else {
+                    alert('Invalid panel selection.');
+                    isWritingMode = false;
+                }
+            } else {
+                drawing3DPanel = null;
+                document.querySelectorAll('[id^="draw3d-"]').forEach(btn => {
+                    btn.textContent = 'Draw on 3D';
+                });
             }
             updateModeIndicator();
         });
@@ -421,7 +474,7 @@
             ctx.globalAlpha = 0.95;
 
             const lines = text.split('\n');
-            const lineHeight = 80; // Adjusted for shorter height
+            const lineHeight = 80;
             const startY = canvas.height / 2 - (lines.length - 1) * lineHeight / 2;
 
             lines.forEach((line, i) => {
@@ -496,6 +549,11 @@
             isAutorotating = !isAutorotating;
             if (isAutorotating) {
                 scene.rotation.y += Math.PI / 2;
+                isWritingMode = false;
+                drawing3DPanel = null;
+                document.querySelectorAll('[id^="draw3d-"]').forEach(btn => {
+                    btn.textContent = 'Draw on 3D';
+                });
             }
             updateModeIndicator();
         });
@@ -505,6 +563,11 @@
             isAutoSliding = !isAutoSliding;
             if (isAutoSliding) {
                 startTime = performance.now() / 1000;
+                isWritingMode = false;
+                drawing3DPanel = null;
+                document.querySelectorAll('[id^="draw3d-"]').forEach(btn => {
+                    btn.textContent = 'Draw on 3D';
+                });
             }
             updateModeIndicator();
         });
@@ -601,7 +664,6 @@
                             console.log('Text panel controls initialized.');
                             console.log('Click "Text Controls" button in top right for UI controls.');
                             console.log('Use "Add New Panel" to create text or drawing panels.');
-                            // Initialize hand-drawn panels for panels 0, 1, and 2
                             [0, 1, 2].forEach(panelIndex => {
                                 const newIndex = window.allTextPanels.length;
                                 const newName = `HandDrawn ${newIndex + 1}`;
@@ -663,17 +725,65 @@
             const key = event.key.toLowerCase();
             if (key === 'o') {
                 controls.enabled = !controls.enabled;
+                if (controls.enabled) {
+                    isWritingMode = false;
+                    drawing3DPanel = null;
+                    document.querySelectorAll('[id^="draw3d-"]').forEach(btn => {
+                        btn.textContent = 'Draw on 3D';
+                    });
+                }
                 updateModeIndicator();
             } else if (key === 'r') {
                 isAutorotating = !isAutorotating;
                 if (isAutorotating) {
                     scene.rotation.y += Math.PI / 2;
+                    isWritingMode = false;
+                    drawing3DPanel = null;
+                    document.querySelectorAll('[id^="draw3d-"]').forEach(btn => {
+                        btn.textContent = 'Draw on 3D';
+                    });
                 }
                 updateModeIndicator();
             } else if (key === 'a') {
                 isAutoSliding = !isAutoSliding;
                 if (isAutoSliding) {
                     startTime = performance.now() / 1000;
+                    isWritingMode = false;
+                    drawing3DPanel = null;
+                    document.querySelectorAll('[id^="draw3d-"]').forEach(btn => {
+                        btn.textContent = 'Draw on 3D';
+                    });
+                }
+                updateModeIndicator();
+            } else if (key === 'w') {
+                isWritingMode = !isWritingMode;
+                if (isWritingMode) {
+                    controls.enabled = false;
+                    isAutoSliding = false;
+                    isAutorotating = false;
+                    const panelIndex = prompt("Select panel to write on (0=Pink, 1=Green, 2=Blue):", "0");
+                    const selectedPanel = parseInt(panelIndex) || 0;
+                    if (selectedPanel >= 0 && selectedPanel < window.allTextPanels.length) {
+                        const textItem = window.allTextPanels.find(item => item.assignedPanel === selectedPanel && item.type === 'draw');
+                        if (textItem) {
+                            drawing3DPanel = textItem;
+                            const draw3dBtn = document.getElementById(`draw3d-${textItem.panel.userData.index - 100}`);
+                            if (draw3dBtn) {
+                                draw3dBtn.textContent = 'Exit 3D Draw';
+                            }
+                        } else {
+                            alert('No drawing panel assigned to this board. Please add a hand-drawn panel first.');
+                            isWritingMode = false;
+                        }
+                    } else {
+                        alert('Invalid panel selection.');
+                        isWritingMode = false;
+                    }
+                } else {
+                    drawing3DPanel = null;
+                    document.querySelectorAll('[id^="draw3d-"]').forEach(btn => {
+                        btn.textContent = 'Draw on 3D';
+                    });
                 }
                 updateModeIndicator();
             } else if (key === 'p') {
@@ -718,6 +828,11 @@
                     selectedMesh = intersects[0].object;
                     controls.enabled = false;
                     isAutoSliding = false;
+                    isWritingMode = false;
+                    drawing3DPanel = null;
+                    document.querySelectorAll('[id^="draw3d-"]').forEach(btn => {
+                        btn.textContent = 'Draw on 3D';
+                    });
                     updateModeIndicator();
                     const planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial());
                     const intersectPoint = raycaster.intersectObject(planeMesh)[0]?.point;
@@ -1070,19 +1185,22 @@
 
                     const draw3dBtn = document.getElementById(`draw3d-${index}`);
                     draw3dBtn.addEventListener('click', () => {
-                        drawing3DPanel = textItem;
-                        draw3dBtn.textContent = 'Exit 3D Draw';
-                        controls.enabled = false;
-                        isAutoSliding = false;
-                        isAutorotating = false;
-                        draw3dBtn.onclick = () => {
+                        if (drawing3DPanel === textItem) {
                             drawing3DPanel = null;
                             draw3dBtn.textContent = 'Draw on 3D';
-                            controls.enabled = true;
+                            isWritingMode = false;
                             updateModeIndicator();
                             const controlCtx = drawCanvas.getContext('2d');
                             controlCtx.drawImage(textItem.panel.userData.textureData.canvas, 0, 0, drawCanvas.width, drawCanvas.height);
-                        };
+                        } else {
+                            drawing3DPanel = textItem;
+                            draw3dBtn.textContent = 'Exit 3D Draw';
+                            controls.enabled = false;
+                            isAutoSliding = false;
+                            isAutorotating = false;
+                            isWritingMode = true;
+                            updateModeIndicator();
+                        }
                     });
 
                     textItem.controlCanvas = drawCanvas;
@@ -1241,7 +1359,7 @@
                 rotation: item.panelObj.rotationOffset ? {
                     x: item.panelObj.rotationOffset.x,
                     y: item.panelObj.rotationOffset.y,
-                    z: item.panelObj.rotationOffset.z
+                    z: item.z
                 } : null,
                 assignedPanel: item.assignedPanel,
                 text: item.type === 'text' ? (item.text ?? undefined) : undefined,
