@@ -601,6 +601,45 @@
                             console.log('Text panel controls initialized.');
                             console.log('Click "Text Controls" button in top right for UI controls.');
                             console.log('Use "Add New Panel" to create text or drawing panels.');
+                            // Initialize hand-drawn panels for panels 0, 1, and 2
+                            [0, 1, 2].forEach(panelIndex => {
+                                const newIndex = window.allTextPanels.length;
+                                const newName = `HandDrawn ${newIndex + 1}`;
+                                const newFont = availableFonts[0];
+                                const newSize = 131;
+                                const newOffset = new THREE.Vector3(-11.4, 152, -624);
+                                const newRotation = new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI);
+                                const newPanelSize = {width: 173, height: 86.5};
+                                const newMessageFunc = () => '';
+                                const newPanel = createTextPanel(newMessageFunc, newIndex + 100, newFont, newPanelSize, 'draw');
+                                newPanel.rotation.x = movableMeshes[panelIndex].rotation.x;
+                                scene.add(newPanel);
+                                const newPanelObj = {
+                                    stlMesh: movableMeshes[panelIndex],
+                                    textPanel: newPanel,
+                                    offset: newOffset,
+                                    rotationOffset: newRotation
+                                };
+                                panelTexts.push(newPanelObj);
+                                textPanels.push(newPanel);
+                                window.allTextPanels.push({
+                                    name: newName,
+                                    panelObj: newPanelObj,
+                                    panel: newPanel,
+                                    font: newFont,
+                                    size: newSize,
+                                    isMain: false,
+                                    assignedPanel: panelIndex,
+                                    stlMesh: movableMeshes[panelIndex],
+                                    text: null,
+                                    drawingData: null,
+                                    isDynamic: false,
+                                    type: 'draw',
+                                    baseSize: newPanelSize
+                                });
+                            });
+                            initializeTextControls();
+                            saveState();
                         }, 1000);
                         setTimeout(() => {
                             meshes.forEach((mesh, index) => {
