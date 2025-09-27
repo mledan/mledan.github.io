@@ -1,0 +1,306 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: #f4f4f4;
+}
+
+section {
+    margin-bottom: 20px;
+}
+
+#status {
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+#position-controls { body { margin: 0; font-family: Arial; }
+        canvas { display: block; }
+        #info { 
+            position: absolute; 
+            top: 10px; 
+            left: 10px; 
+            color: white; 
+            background: rgba(0, 0, 0, 0.7); 
+            padding: 10px; 
+            max-width: 400px; 
+            font-size: 14px;
+            display: none; /* Hide the info menu */
+        }
+        #controls { 
+            position: absolute; 
+            top: 50px; 
+            left: 10px; 
+            color: white; 
+            background: rgba(0, 0, 0, 0.7); 
+            padding: 10px; 
+            display: none; /* Hide the controls menu */
+        }
+        
+        #text-controls {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            width: 350px;
+            max-height: 80vh;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            display: none;
+        }
+        
+        #text-controls.active {
+            display: block;
+        }
+        
+        #text-controls h3 {
+            margin: 0 0 10px 0;
+            color: #fff;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+        }
+        
+        .text-panel-control {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .text-panel-control h4 {
+            margin: 0 0 8px 0;
+            color: #ffd700;
+            font-size: 13px;
+        }
+        
+        .control-row {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            gap: 10px;
+        }
+        
+        .control-row label {
+            width: 60px;
+            font-size: 11px;
+        }
+        
+        .control-row input[type="range"] {
+            flex: 1;
+            height: 20px;
+        }
+        
+        .control-row input[type="number"] {
+            width: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        .control-row select {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 3px;
+            border-radius: 3px;
+        }
+        
+        .control-row select option {
+            background: #333;
+        }
+        
+        #toggle-text-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: 1px solid white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        #toggle-text-controls:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
+        
+        .text-preview {
+            font-size: 10px;
+            color: #aaa;
+            margin-top: 5px;
+            padding: 5px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+            max-height: 40px;
+            overflow: hidden;
+        }
+        #controls label { margin-right: 5px; }
+        #controls input[type="number"] { width: 60px; margin: 2px; }
+        #controls input[type="checkbox"] { margin: 2px; }
+        #controls button { margin: 5px 0; padding: 5px; }
+        #mobile-controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+        #mobile-controls button {
+            padding: 10px 15px;
+            font-size: 16px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid white;
+            border-radius: 5px;
+            cursor: pointer;
+            touch-action: manipulation; /* Prevent default touch behaviors */
+        }
+        #mobile-controls button:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
+        @media (max-width: 600px) {
+            #mobile-controls button {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+        }
+        /* Handwritten text styles */
+        .panel-text {
+            position: absolute;
+            width: 200px;
+            height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            font-family: 'Kalam', cursive;
+            color: #2c3e50;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 5px;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .handwritten {
+            font-family: 'Kalam', cursive;
+            font-weight: 700;
+            font-size: 18px;
+            line-height: 1.4;
+            letter-spacing: 0.5px;
+            text-shadow: 0.5px 0.5px 0px rgba(0,0,0,0.1);
+        }
+        
+        .handwritten-large {
+            font-size: 22px;
+            font-weight: 700;
+        }
+        
+        .handwritten-small {
+            font-size: 16px;
+        }
+        
+        /* Add slight variations to make it look more natural */
+        .char-1 { transform: rotate(-1deg); display: inline-block; }
+        .char-2 { transform: rotate(0.5deg); display: inline-block; }
+        .char-3 { transform: rotate(-0.5deg); display: inline-block; }
+        .char-4 { transform: rotate(1deg); display: inline-block; }
+        .char-5 { transform: rotate(-0.3deg); display: inline-block; }
+        
+        .countdown-text {
+            color: #e74c3c;
+            margin-bottom: 5px;
+        }
+        
+        .camping-text {
+            color: #27ae60;
+        }
+        
+        .love-text {
+            color: #e91e63;
+        }
+        
+        .heart-icon {
+            color: #e74c3c;
+            font-size: 24px;
+            animation: heartbeat 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .campfire-icon {
+            width: 30px;
+            height: 30px;
+            margin: 5px;
+        }
+        /* Custom local fonts */
+        @font-face {
+            font-family: 'DfThin';
+            src: url('df-thin-font/DfThin-W8Z4.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'MarkerFont';
+            src: url('marker-font/MarkerFont-AyOm.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'Pwscritch';
+            src: url('pwscritch-font/Pwscritch-7yBE.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'SmoothMarker';
+            src: url('smooth-marker-font/SmoothMarker-45d6.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'WhiteboardRegular';
+            src: url('whiteboard-font/WhiteboardRegular-O7gp.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: center;
+}
+
+button {
+    padding: 8px 16px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+#text-panel {
+    width: 100%;
+    resize: vertical;
+}
+
+#canvas {
+    width: 100%;
+    height: 400px;
+    border: 1px solid #ccc;
+}

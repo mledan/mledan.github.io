@@ -107,6 +107,16 @@
             background: #333;
         }
         
+        .control-row textarea {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 5px;
+            border-radius: 3px;
+            resize: vertical;
+        }
+        
         #toggle-text-controls {
             position: absolute;
             top: 10px;
@@ -299,6 +309,9 @@
             <button id="load-state" style="margin-right: 10px; padding: 5px 10px; background: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer;">Load State</button>
             <button id="export-state" style="margin-right: 10px; padding: 5px 10px; background: #FF9800; color: white; border: none; border-radius: 3px; cursor: pointer;">Export as Code</button>
             <button id="reset-state" style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">Reset to Default</button>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <button id="add-new-text" style="padding: 5px 10px; background: #673AB7; color: white; border: none; border-radius: 3px; cursor: pointer;">Add New Text Panel</button>
         </div>
         <div id="text-panel-list"></div>
     </div>
@@ -622,23 +635,23 @@
         
         // Main messages for each panel
         const mainMessages = [
-            { getText: () => getCountdownText(), id: 'countdown' },
-            { getText: () => "", id: 'camping' },
-            { getText: () => "♥ I love you!!", id: 'love' }
+            { getText: getCountdownText, id: 'countdown', font: 'WhiteboardRegular', isDynamic: true },
+            { getText: () => "Can't wait for\nCAMPING!!", id: 'camping', font: 'MarkerFont', isDynamic: false },
+            { getText: () => "♥ I love you!!", id: 'love', font: 'SmoothMarker', isDynamic: false }
         ];
         
         // Additional cute messages - deterministic assignment (using custom fonts)
         const additionalMessages = [
-            // Panel 1 (Pink) messages
-            { getText: () => getCountdownText2(), font: "WhiteboardRegular", panelIndex: 0 },
-            { getText: () => "", font: "SmoothMarker", panelIndex: 0 },
+            // Panel 0 (Pink) messages
+            { getText: () => "Have a\nsafe journey!", font: "WhiteboardRegular", panelIndex: 0, isDynamic: false },
+            { getText: () => "You're still\nEnough!", font: "SmoothMarker", panelIndex: 0, isDynamic: false },
             
-            // Panel 2 (Green) messages
-            { getText: () => "Camping Checklist:\n□ Tent\n□ Sleeping bag\n□ Marshmallows\n□ Stories", font: "MarkerFont", panelIndex: 1 },
+            // Panel 1 (Green) messages
+            { getText: () => "Camping Checklist:\n□ Tent\n□ Sleeping bag\n□ Marshmallows\n□ Stories", font: "MarkerFont", panelIndex: 1, isDynamic: false },
             
-            // Panel 3 (Blue) messages
-            { getText: () => "TODO List:\n Rest!", font: "DfThin", panelIndex: 2 },
-            { getText: () => "♥", font: "Pwscritch", panelIndex: 2 }
+            // Panel 2 (Blue) messages
+            { getText: () => "TODO List:\n• Drink water\n• Charge your phone\n• Be good!", font: "DfThin", panelIndex: 2, isDynamic: false },
+            { getText: () => "Miles apart\nbut close\nat heart\n♥", font: "Pwscritch", panelIndex: 2, isDynamic: false }
         ];
         
         // Countdown timer function
@@ -860,10 +873,8 @@ function getCountdownText2() {
                         // Create transparent text panel for each movable STL panel
                         if (movableMeshes.length <= 3) {
                             const messageIndex = movableMeshes.length - 1;
-                            
-                            // Different fonts for main messages (using custom fonts)
-                            const mainFonts = ['WhiteboardRegular', 'MarkerFont', 'SmoothMarker'];
-                            const textPanel = createTextPanel(mainMessages[messageIndex].getText, messageIndex, mainFonts[messageIndex]);
+                            const msg = mainMessages[messageIndex];
+                            const textPanel = createTextPanel(msg.getText, messageIndex, msg.font);
                             
                             // Match STL panel rotation (they're rotated -90 degrees on X)
                             textPanel.rotation.x = mesh.rotation.x;
@@ -896,11 +907,13 @@ function getCountdownText2() {
                                 name: ['Countdown', 'Camping', 'Love'][messageIndex],
                                 panelObj: panelTextObj,
                                 panel: textPanel,
-                                font: mainFonts[messageIndex],
+                                font: msg.font,
                                 size: 76,
                                 isMain: true,
                                 assignedPanel: messageIndex,
-                                stlMesh: mesh
+                                stlMesh: mesh,
+                                isDynamic: msg.isDynamic,
+                                text: msg.isDynamic ? null : msg.getText()
                             });
                             
                             // Add to global controls with friendly names
@@ -919,9 +932,10 @@ function getCountdownText2() {
                             panelTextObj.rotationOffset = rotationOffset;
                             
                             // Create additional message panels for this STL panel - deterministic
-                            const panelMessages = additionalMessages.filter(msg => msg.panelIndex === messageIndex);
+                            const panelMessages = additionalMessages.filter(m => m.panelIndex === messageIndex);
                             panelMessages.forEach((msg, i) => {
-                                const additionalPanel = createTextPanel(msg.getText, messageIndex + 100 + i, msg.font);
+                                const messageText = msg.getText();
+                                const textPanel = createTextPanel(() => messageText, messageIndex + 100 + i, msg.font);
                                 
                                 // Deterministic position offsets based on message index
                                 const xPositions = [-50, -11.4, 30]; // Fixed X positions (center one at -11.4)
@@ -930,11 +944,11 @@ function getCountdownText2() {
                                 const addY = yBase + (i * 10); // Slight variation
                                 const addZ = -600 + (i * 10); // Slight Z variation
                                 
-                                additionalPanel.rotation.x = mesh.rotation.x;
-                                additionalPanel.position.copy(mesh.position);
+                                textPanel.rotation.x = mesh.rotation.x;
+                                textPanel.position.copy(mesh.position);
                                 
-                                textPanels.push(additionalPanel);
-                                scene.add(additionalPanel);
+                                textPanels.push(textPanel);
+                                scene.add(textPanel);
                                 
                                 // Deterministic rotation based on index
                                 const rotations = [175, 180, 185]; // Fixed rotation values
@@ -946,25 +960,25 @@ function getCountdownText2() {
                                 
                                 const additionalTextObj = {
                                     stlMesh: mesh,
-                                    textPanel: additionalPanel,
+                                    textPanel: textPanel,
                                     offset: new THREE.Vector3(addX, addY, addZ),
                                     rotationOffset: addRotation
                                 };
                                 panelTexts.push(additionalTextObj);
                                 
                                 // Store for UI control
-                                const messageText = msg.getText();
                                 const shortText = messageText.split('\n')[0].substring(0, 20) + '...';
                                 window.allTextPanels.push({
                                     name: `${stlFiles[messageIndex + 1].name} - ${shortText}`,
                                     panelObj: additionalTextObj,
-                                    panel: additionalPanel,
+                                    panel: textPanel,
                                     font: msg.font,
                                     size: 75, // Fixed size for consistency
                                     isMain: false,
-                                    fullText: messageText,
                                     assignedPanel: messageIndex,
-                                    stlMesh: mesh
+                                    stlMesh: mesh,
+                                    isDynamic: msg.isDynamic,
+                                    text: messageText
                                 });
                             });
                             
@@ -1017,11 +1031,8 @@ function getCountdownText2() {
                         setTimeout(() => {
                             initializeTextControls();
                             
-                            // Auto-load default state if it exists
-                            if (DEFAULT_TEXT_STATE) {
-                                console.log('Loading default production state...');
-                                loadState(DEFAULT_TEXT_STATE);
-                            }
+                            // Auto-load from localStorage if exists, else default
+                            loadState();
                             
                             console.log('Text panel controls initialized.');
                             console.log('Click "Text Controls" button in top right for UI controls.');
@@ -1209,9 +1220,26 @@ function getCountdownText2() {
                 const offset = textItem.panelObj.offset;
                 const rotation = textItem.panelObj.rotationOffset;
                 
+                let textEditHtml = '';
+                if (!textItem.isDynamic) {
+                    textEditHtml = `
+                        <div class="control-row">
+                            <label>Message:</label>
+                            <textarea id="text-${index}" rows="4" style="width: 100%;">${textItem.text}</textarea>
+                        </div>
+                    `;
+                } else {
+                    textEditHtml = `
+                        <div class="control-row">
+                            <label>Message (dynamic):</label>
+                            <p>${textItem.panel.userData.messageFunc()}</p>
+                        </div>
+                    `;
+                }
+                
                 controlDiv.innerHTML = `
                     <h4>${textItem.name}</h4>
-                    
+                    ${textEditHtml}
                     <div class="control-row">
                         <label>Follow:</label>
                         <select id="panel-${index}" data-index="${index}">
@@ -1261,8 +1289,6 @@ function getCountdownText2() {
                         <input type="number" id="rot-num-${index}" 
                                min="150" max="210" value="${(rotation.z * 180 / Math.PI).toFixed(1)}" />
                     </div>
-                    
-                    ${textItem.fullText ? `<div class="text-preview">${textItem.fullText.replace(/\n/g, ' ')}</div>` : ''}
                 `;
                 
                 controlsContainer.appendChild(controlDiv);
@@ -1274,6 +1300,7 @@ function getCountdownText2() {
                     textItem.assignedPanel = newPanelIndex;
                     textItem.stlMesh = movableMeshes[newPanelIndex];
                     textItem.panelObj.stlMesh = movableMeshes[newPanelIndex];
+                    saveState();
                 });
                 
                 const fontSelect = document.getElementById(`font-${index}`);
@@ -1281,6 +1308,7 @@ function getCountdownText2() {
                     const newFont = e.target.value;
                     textItem.font = newFont;
                     updateTextPanel(textItem);
+                    saveState();
                 });
                 
                 // Size controls
@@ -1291,12 +1319,14 @@ function getCountdownText2() {
                     sizeNum.value = val;
                     textItem.size = val;
                     updateTextPanel(textItem);
+                    saveState();
                 });
                 sizeNum.addEventListener('change', (e) => {
                     const val = parseFloat(e.target.value);
                     sizeRange.value = val;
                     textItem.size = val;
                     updateTextPanel(textItem);
+                    saveState();
                 });
                 
                 // Position controls (only Y and Z, X is fixed at -11.4)
@@ -1308,12 +1338,14 @@ function getCountdownText2() {
                         const val = parseFloat(e.target.value);
                         num.value = val.toFixed(1);
                         offset[axis] = val;
+                        saveState();
                     });
                     
                     num.addEventListener('change', (e) => {
                         const val = parseFloat(e.target.value);
                         range.value = val;
                         offset[axis] = val;
+                        saveState();
                     });
                 });
                 
@@ -1327,20 +1359,33 @@ function getCountdownText2() {
                     const val = parseFloat(e.target.value);
                     rotNum.value = val.toFixed(1);
                     rotation.z = val * Math.PI / 180;
+                    saveState();
                 });
                 rotNum.addEventListener('change', (e) => {
                     const val = parseFloat(e.target.value);
                     rotRange.value = val;
                     rotation.z = val * Math.PI / 180;
+                    saveState();
                 });
+                
+                // Text edit if not dynamic
+                const textArea = document.getElementById(`text-${index}`);
+                if (textArea) {
+                    textArea.addEventListener('input', (e) => {
+                        textItem.text = e.target.value;
+                        textItem.panel.userData.messageFunc = () => textItem.text;
+                        updateTextPanel(textItem);
+                        saveState();
+                    });
+                }
             });
         }
         
         // Update text panel with new font/size
         function updateTextPanel(textItem) {
-            const getMessage = textItem.panel.userData.messageFunc;
+            const message = textItem.panel.userData.messageFunc();
             const newTexture = createHandwritingTexture(
-                getMessage ? getMessage() : textItem.fullText,
+                message,
                 '#000000',
                 textItem.font,
                 textItem.size
@@ -1365,23 +1410,26 @@ function getCountdownText2() {
                     y: item.panelObj.rotationOffset.y,
                     z: item.panelObj.rotationOffset.z
                 } : null,
-                assignedPanel: item.assignedPanel
+                assignedPanel: item.assignedPanel,
+                text: item.text ?? undefined
             }));
             
             localStorage.setItem('textPanelState', JSON.stringify(state));
-            console.log('State saved to localStorage');
-            alert('State saved! You can now reload the page and click "Load State" to restore.');
+            console.log('State auto-saved to localStorage');
         }
         
         // Load state from localStorage or default
         function loadState(stateData = null) {
             const stateStr = stateData || localStorage.getItem('textPanelState');
-            if (!stateStr && !DEFAULT_TEXT_STATE) {
-                alert('No saved state found!');
+            let state;
+            if (stateStr) {
+                state = JSON.parse(stateStr);
+            } else if (DEFAULT_TEXT_STATE) {
+                state = DEFAULT_TEXT_STATE;
+            } else {
+                console.info('No saved state found!');
                 return;
             }
-            
-            const state = stateData ? stateData : (stateStr ? JSON.parse(stateStr) : DEFAULT_TEXT_STATE);
             
             state.forEach((savedItem, index) => {
                 if (index < window.allTextPanels.length) {
@@ -1410,8 +1458,52 @@ function getCountdownText2() {
                     textItem.stlMesh = movableMeshes[savedItem.assignedPanel];
                     textItem.panelObj.stlMesh = movableMeshes[savedItem.assignedPanel];
                     
+                    // Update text if present
+                    if (savedItem.text !== undefined) {
+                        textItem.text = savedItem.text;
+                        textItem.isDynamic = false;
+                        textItem.panel.userData.messageFunc = () => textItem.text;
+                    }
+                    
                     // Update the visual panel
                     updateTextPanel(textItem);
+                } else {
+                    // Create new panel from saved state
+                    const newName = savedItem.name || `Custom ${index + 1}`;
+                    const newText = savedItem.text || "New message\nEdit me";
+                    const newFont = savedItem.font || availableFonts[0];
+                    const newSize = savedItem.size || 76;
+                    const newOffset = new THREE.Vector3(savedItem.offset.x, savedItem.offset.y, savedItem.offset.z);
+                    const newRotation = new THREE.Euler(
+                        savedItem.rotation ? savedItem.rotation.x : -Math.PI / 2,
+                        savedItem.rotation ? savedItem.rotation.y : Math.PI / 2,
+                        savedItem.rotation ? savedItem.rotation.z : Math.PI
+                    );
+                    const newAssigned = savedItem.assignedPanel || 0;
+                    const newMessageFunc = () => newText;
+                    const newPanel = createTextPanel(newMessageFunc, index + 100, newFont);
+                    newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
+                    scene.add(newPanel);
+                    const newPanelObj = {
+                        stlMesh: movableMeshes[newAssigned],
+                        textPanel: newPanel,
+                        offset: newOffset,
+                        rotationOffset: newRotation
+                    };
+                    panelTexts.push(newPanelObj);
+                    textPanels.push(newPanel);
+                    window.allTextPanels.push({
+                        name: newName,
+                        panelObj: newPanelObj,
+                        panel: newPanel,
+                        font: newFont,
+                        size: newSize,
+                        isMain: false,
+                        assignedPanel: newAssigned,
+                        stlMesh: movableMeshes[newAssigned],
+                        text: newText,
+                        isDynamic: false
+                    });
                 }
             });
             
@@ -1419,7 +1511,7 @@ function getCountdownText2() {
             initializeTextControls();
             console.log('State loaded successfully');
             if (!stateData) {
-                alert('State loaded successfully!');
+                console.info('State loaded successfully!');
             }
         }
         
@@ -1439,7 +1531,8 @@ function getCountdownText2() {
                     y: item.panelObj.rotationOffset.y,
                     z: item.panelObj.rotationOffset.z
                 } : null,
-                assignedPanel: item.assignedPanel
+                assignedPanel: item.assignedPanel,
+                text: item.text ?? undefined
             }));
             
             const stateCode = `// Replace DEFAULT_TEXT_STATE with this value for production:\nconst DEFAULT_TEXT_STATE = ${JSON.stringify(state, null, 2)};`;
@@ -1483,7 +1576,7 @@ function getCountdownText2() {
                 document.execCommand('copy');
                 document.body.removeChild(textarea);
                 document.body.removeChild(closeBtn);
-                alert('Code copied to clipboard! Paste this in place of DEFAULT_TEXT_STATE for production.');
+                console.info('Code copied to clipboard! Paste this in place of DEFAULT_TEXT_STATE for production.');
             };
             
             document.body.appendChild(textarea);
@@ -1503,6 +1596,48 @@ function getCountdownText2() {
             location.reload();
         }
         
+        // Add new text panel
+        function addNewTextPanel() {
+            const initialText = prompt("Enter the message text (use \\n for line breaks):", "New message\nEdit me");
+            if (!initialText) return;
+            
+            const panelStr = prompt("Assign to panel (0=Pink, 1=Green, 2=Blue):", "0");
+            const newAssigned = parseInt(panelStr) || 0;
+            
+            const newIndex = window.allTextPanels.length;
+            const newName = `Custom ${newIndex + 1}`;
+            const newFont = availableFonts[0];
+            const newSize = 76;
+            const newOffset = new THREE.Vector3(-11.4, 100, -600);
+            const newRotation = new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI);
+            const newMessageFunc = () => initialText;
+            const newPanel = createTextPanel(newMessageFunc, newIndex + 100, newFont);
+            newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
+            scene.add(newPanel);
+            textPanels.push(newPanel);
+            const newPanelObj = {
+                stlMesh: movableMeshes[newAssigned],
+                textPanel: newPanel,
+                offset: newOffset,
+                rotationOffset: newRotation
+            };
+            panelTexts.push(newPanelObj);
+            window.allTextPanels.push({
+                name: newName,
+                panelObj: newPanelObj,
+                panel: newPanel,
+                font: newFont,
+                size: newSize,
+                isMain: false,
+                assignedPanel: newAssigned,
+                stlMesh: movableMeshes[newAssigned],
+                text: initialText,
+                isDynamic: false
+            });
+            initializeTextControls();
+            saveState();
+        }
+        
         // Toggle text controls panel
         document.getElementById('toggle-text-controls').addEventListener('click', () => {
             const panel = document.getElementById('text-controls');
@@ -1515,6 +1650,7 @@ function getCountdownText2() {
             document.getElementById('load-state')?.addEventListener('click', () => loadState());
             document.getElementById('export-state')?.addEventListener('click', exportState);
             document.getElementById('reset-state')?.addEventListener('click', resetState);
+            document.getElementById('add-new-text')?.addEventListener('click', addNewTextPanel);
         }, 100);
         
         // Handle window resize
