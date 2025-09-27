@@ -271,12 +271,104 @@
         @font-face {
             font-family: 'WhiteboardRegular';
             src: url('whiteboard-font/WhiteboardRegular-O7gp.ttf') format('truetype');
-            font-weight: normal;
-            font-style: normal;
+        font-weight: normal;
+        font-style: normal;
+    }
+
+    /* Text input UI styles */
+    #text-input-container {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 15px;
+        border-radius: 8px;
+        z-index: 1000;
+    }
+
+    #newMessageInput {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        width: 300px;
+        font-size: 14px;
+    }
+
+    #addMessageBtn {
+        padding: 8px 15px;
+        background: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    #addMessageBtn:hover {
+        background: #45a049;
+    }
+
+        .draggable-text {
+            cursor: move;
+            user-select: none;
+        }
+
+        /* Text edit dialog */
+        #text-edit-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 2000;
+            display: none;
+        }
+
+        #text-edit-dialog textarea {
+            width: 300px;
+            height: 150px;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            resize: none;
+        }
+
+        #text-edit-dialog button {
+            padding: 8px 15px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #text-edit-dialog .save-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        #text-edit-dialog .cancel-btn {
+            background: #f44336;
+            color: white;
         }
     </style>
 </head>
 <body>
+    <div id="text-input-container">
+        <select id="boardSelect" style="padding: 8px; margin-right: 10px; border-radius: 4px; border: 1px solid #ccc;">
+            <option value="0">Pink Board</option>
+            <option value="1">Green Board</option>
+            <option value="2">Blue Board</option>
+        </select>
+        <input type="text" id="newMessageInput" placeholder="Type your message...">
+        <button id="addMessageBtn">Add Message</button>
+    </div>
     <div id="info">Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate, 'a' to toggle autoslide. Orbit: OFF, AutoRotate: OFF, AutoSlide: OFF</div>
     <div id="controls">
         <h3>Position Controls</h3>
@@ -300,8 +392,16 @@
             <button id="export-state" style="margin-right: 10px; padding: 5px 10px; background: #FF9800; color: white; border: none; border-radius: 3px; cursor: pointer;">Export as Code</button>
             <button id="reset-state" style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">Reset to Default</button>
         </div>
-        <div id="text-panel-list"></div>
+    <div id="text-panel-list"></div>
+</div>
+
+<div id="text-edit-dialog">
+    <textarea id="text-edit-input"></textarea>
+    <div style="text-align: right;">
+        <button class="cancel-btn">Cancel</button>
+        <button class="save-btn">Save</button>
     </div>
+</div>
     <script type="importmap">
         {
             "imports": {
@@ -311,8 +411,109 @@
         }
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Caveat:wght@700&family=Kalam:wght@700&family=Shadows+Into+Light&family=Patrick+Hand&family=Coming+Soon&family=Architects+Daughter&family=Indie+Flower&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
     <script type="module">
         import * as THREE from 'three';
+        
+        // Initialize Socket.IO
+        const socket = window.io();
+
+        // Socket.IO event handlers
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+
+        socket.on('initMessages', (messages) => {
+            messages.forEach(message => {
+                createOrUpdateTextPanel(message);
+            });
+        });
+
+        socket.on('messageUpdated', (message) => {
+            createOrUpdateTextPanel(message);
+        });
+
+        socket.on('messageDeleted', (messageId) => {
+            deleteTextPanel(messageId);
+        });
+
+        // Function to create or update text panel
+        function createOrUpdateTextPanel(message) {
+            let existingPanel = textPanels.find(panel => panel.userData.messageId === message.id);
+            
+            if (existingPanel) {
+                // Update existing panel
+                const textureData = createHandwritingTexture(message.text, '#000000', message.font, message.size);
+                existingPanel.material.map = textureData.texture;
+                existingPanel.material.needsUpdate = true;
+                existingPanel.position.copy(message.position);
+                existingPanel.rotation.copy(message.rotation);
+            } else {
+                // Create new panel
+                const geometry = new THREE.PlaneGeometry(message.width || 240, message.height || 150);
+                const textureData = createHandwritingTexture(message.text, '#000000', message.font, message.size);
+                const material = new THREE.MeshBasicMaterial({
+                    map: textureData.texture,
+                    transparent: true,
+                    opacity: 0.95,
+                    side: THREE.DoubleSide
+                });
+                
+                const panel = new THREE.Mesh(geometry, material);
+                panel.userData.messageId = message.id;
+                panel.userData.text = message.text;
+                panel.position.copy(message.position);
+                panel.rotation.copy(message.rotation);
+                
+                textPanels.push(panel);
+                scene.add(panel);
+            }
+        }
+
+        // Function to delete text panel
+        function deleteTextPanel(messageId) {
+            const panelIndex = textPanels.findIndex(panel => panel.userData.messageId === messageId);
+            if (panelIndex !== -1) {
+                const panel = textPanels[panelIndex];
+                scene.remove(panel);
+                textPanels.splice(panelIndex, 1);
+            }
+        }
+
+        // Handle new message input
+        document.getElementById('addMessageBtn').addEventListener('click', () => {
+            const input = document.getElementById('newMessageInput');
+            const text = input.value.trim();
+            
+            if (text) {
+                const selectedBoard = parseInt(document.getElementById('boardSelect').value);
+                const selectedMesh = movableMeshes[selectedBoard];
+                
+                // Get the board's current position and add offset
+                const boardPos = selectedMesh.position.clone();
+                const message = {
+                    id: Date.now().toString(),
+                    text: text,
+                    font: 'Kalam',
+                    size: 76,
+                    position: new THREE.Vector3(-11.4, boardPos.y + 150, boardPos.z - 100),
+                    rotation: new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI),
+                    width: 240,
+                    height: 150,
+                    assignedPanel: selectedBoard
+                };
+                
+                socket.emit('updateMessage', message);
+                input.value = '';
+            }
+        });
+        
+        // Handle enter key in input
+        document.getElementById('newMessageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('addMessageBtn').click();
+            }
+        });
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 
@@ -337,118 +538,6 @@
               "z": 3.0543261909900763
             },
             "assignedPanel": 0
-          },
-          {
-            "name": "Pink Panel - Have a...",
-            "font": "Kalam",
-            "size": 95,
-            "offset": {
-              "x": -11.4,
-              "y": 73,
-              "z": -652
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.3510321638291125
-            },
-            "assignedPanel": 0
-          },
-          {
-            "name": "Pink Panel - You're still...",
-            "font": "Shadows Into Light",
-            "size": 77,
-            "offset": {
-              "x": -11.4,
-              "y": 167,
-              "z": -585
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.141592653589793
-            },
-            "assignedPanel": 1
-          },
-          {
-            "name": "Camping",
-            "font": "Patrick Hand",
-            "size": 85,
-            "offset": {
-              "x": -11.4,
-              "y": 91,
-              "z": -650
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 2.9146998508305306
-            },
-            "assignedPanel": 2
-          },
-          {
-            "name": "Green Panel - Camping Checklist:...",
-            "font": "MarkerFont",
-            "size": 75,
-            "offset": {
-              "x": -11.4,
-              "y": 217,
-              "z": -589
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.141592653589793
-            },
-            "assignedPanel": 2
-          },
-          {
-            "name": "Love",
-            "font": "Indie Flower",
-            "size": 96,
-            "offset": {
-              "x": -11.4,
-              "y": 45,
-              "z": -621
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.4033920413889422
-            },
-            "assignedPanel": 1
-          },
-          {
-            "name": "Blue Panel - TODO List:...",
-            "font": "DfThin",
-            "size": 61,
-            "offset": {
-              "x": -11.4,
-              "y": 150,
-              "z": -568
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.1764992386296798
-            },
-            "assignedPanel": 0
-          },
-          {
-            "name": "Blue Panel - Miles apart...",
-            "font": "Shadows Into Light",
-            "size": 52,
-            "offset": {
-              "x": -11.4,
-              "y": 222,
-              "z": -675
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.141592653589793
-            },
-            "assignedPanel": 1
           }
         ]
 
@@ -1055,19 +1144,144 @@
             }
         });
 
-        // Mouse interaction for sliding
+        // Text editing and dragging variables
+        let editingPanel = null;
+        let draggingPanel = null;
+        let dragOffset = new THREE.Vector3();
+        let placementMode = false;
+        let pendingMessage = null;
+        
+        // Handle text placement mode
+        document.getElementById('addMessageBtn').addEventListener('click', () => {
+            const input = document.getElementById('newMessageInput');
+            const text = input.value.trim();
+            
+            if (text) {
+                pendingMessage = {
+                    id: Date.now().toString(),
+                    text: text,
+                    font: 'Kalam',
+                    size: 76,
+                    width: 240,
+                    height: 150
+                };
+                placementMode = true;
+                input.value = '';
+                isAutoSliding = false; // Pause auto-sliding during placement
+                updateModeIndicator();
+                alert('Click on a panel to place the text');
+            }
+        });
+        
+        // Mouse interaction for sliding and text placement
         renderer.domElement.addEventListener('mousedown', onMouseDown);
         renderer.domElement.addEventListener('mousemove', onMouseMove);
         renderer.domElement.addEventListener('mouseup', onMouseUp);
+
+        // Initialize text edit dialog
+        const textEditDialog = document.getElementById('text-edit-dialog');
+        const textEditInput = document.getElementById('text-edit-input');
+        
+        // Handle text edit dialog buttons
+        textEditDialog.querySelector('.save-btn').addEventListener('click', () => {
+            if (editingPanel) {
+                const newText = textEditInput.value.trim();
+                if (newText) {
+                    const message = {
+                        id: editingPanel.userData.messageId,
+                        text: newText,
+                        font: editingPanel.userData.font,
+                        size: editingPanel.userData.size,
+                        position: editingPanel.position.clone(),
+                        rotation: editingPanel.rotation.clone(),
+                        width: editingPanel.geometry.parameters.width,
+                        height: editingPanel.geometry.parameters.height
+                    };
+                    socket.emit('updateMessage', message);
+                }
+                textEditDialog.style.display = 'none';
+                editingPanel = null;
+            }
+        });
+        
+        textEditDialog.querySelector('.cancel-btn').addEventListener('click', () => {
+            textEditDialog.style.display = 'none';
+            editingPanel = null;
+        });
 
         function onMouseDown(event) {
             event.preventDefault();
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(movableMeshes);
-            if (intersects.length > 0) {
-                selectedMesh = intersects[0].object;
+            
+            // First check for text panel intersections
+            const textIntersects = raycaster.intersectObjects(textPanels);
+            if (textIntersects.length > 0) {
+                const panel = textIntersects[0].object;
+                
+                // Handle double click for editing
+                if (event.detail === 2) { // Double click
+                    editingPanel = panel;
+                    textEditInput.value = panel.userData.text || '';
+                    textEditDialog.style.display = 'block';
+                    return;
+                }
+                
+                // Handle dragging
+                draggingPanel = panel;
+                const intersectionPoint = textIntersects[0].point;
+                dragOffset.copy(panel.position).sub(intersectionPoint);
+                return;
+            }
+            
+            // If no text panel hit, check for board intersections
+            const boardIntersects = raycaster.intersectObjects(movableMeshes);
+            if (boardIntersects.length > 0) {
+                const clickedMesh = boardIntersects[0].object;
+                const intersection = boardIntersects[0];
+                
+                if (placementMode && pendingMessage) {
+                    // Handle text placement
+                    const worldPoint = intersection.point.clone();
+                    const localPoint = clickedMesh.worldToLocal(intersection.point.clone());
+                    
+                    // Create message with position and rotation based on panel
+                    pendingMessage.position = new THREE.Vector3(
+                        localPoint.x,
+                        localPoint.y,
+                        localPoint.z
+                    );
+                    
+                    pendingMessage.rotation = new THREE.Euler(
+                        -Math.PI / 2, // Align with panel
+                        Math.PI / 2,
+                        Math.PI
+                    );
+                    
+                    // Emit the message to server
+                    socket.emit('updateMessage', pendingMessage);
+                    
+                    // Reset placement mode
+                    placementMode = false;
+                    pendingMessage = null;
+                    return;
+                }
+
+                // Get the intersection point in world coordinates
+                const worldPoint = intersection.point.clone();
+                
+                // Convert to local coordinates relative to the panel
+                const localPoint = clickedMesh.worldToLocal(intersection.point.clone());
+                
+                console.log(`Panel Click: ${clickedMesh.userData.name}`);
+                console.log(` World coordinates:`);
+                console.log(`   x: ${worldPoint.x.toFixed(2)}, y: ${worldPoint.y.toFixed(2)}, z: ${worldPoint.z.toFixed(2)}`);
+                console.log(` Local coordinates (relative to panel):`);
+                console.log(`   x: ${localPoint.x.toFixed(2)}, y: ${localPoint.y.toFixed(2)}, z: ${localPoint.z.toFixed(2)}`);
+                
+                // Only enable sliding behavior if in slide mode
+                selectedMesh = clickedMesh;
                 controls.enabled = false;
                 isAutoSliding = false;
                 updateModeIndicator();
@@ -1080,6 +1294,37 @@
         }
 
         function onMouseMove(event) {
+            // Handle text panel dragging
+            if (draggingPanel) {
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                
+                // Project mouse position to panel plane
+                const planeNormal = new THREE.Vector3(0, 0, 1);
+                const plane = new THREE.Plane(planeNormal);
+                const intersectionPoint = new THREE.Vector3();
+                raycaster.ray.intersectPlane(plane, intersectionPoint);
+                
+                // Update panel position
+                draggingPanel.position.copy(intersectionPoint).add(dragOffset);
+                
+                // Emit position update
+                const message = {
+                    id: draggingPanel.userData.messageId,
+                    text: draggingPanel.userData.text,
+                    font: draggingPanel.userData.font,
+                    size: draggingPanel.userData.size,
+                    position: draggingPanel.position.clone(),
+                    rotation: draggingPanel.rotation.clone(),
+                    width: draggingPanel.geometry.parameters.width,
+                    height: draggingPanel.geometry.parameters.height
+                };
+                socket.emit('updateMessage', message);
+                return;
+            }
+            
+            // Handle board sliding
             if (selectedMesh && frameBounds) {
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -1104,6 +1349,7 @@
         function onMouseUp() {
             selectedMesh = null;
             startPoint = null;
+            draggingPanel = null;
             updateModeIndicator();
         }
 
