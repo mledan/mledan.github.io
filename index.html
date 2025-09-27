@@ -913,7 +913,8 @@ function getCountdownText2() {
                                 assignedPanel: messageIndex,
                                 stlMesh: mesh,
                                 isDynamic: msg.isDynamic,
-                                text: msg.isDynamic ? null : msg.getText()
+                                text: msg.isDynamic ? null : msg.getText(),
+                                type: 'text'
                             });
                             
                             // Add to global controls with friendly names
@@ -978,7 +979,8 @@ function getCountdownText2() {
                                     assignedPanel: messageIndex,
                                     stlMesh: mesh,
                                     isDynamic: msg.isDynamic,
-                                    text: messageText
+                                    text: messageText,
+                                    type: 'text'
                                 });
                             });
                             
@@ -1220,22 +1222,56 @@ function getCountdownText2() {
                 const offset = textItem.panelObj.offset;
                 const rotation = textItem.panelObj.rotationOffset;
                 
+                const type = textItem.type || 'text';
                 let textEditHtml = '';
-                if (!textItem.isDynamic) {
-                    textEditHtml = `
+                let fontHtml = '';
+                if (type === 'text') {
+                    if (!textItem.isDynamic) {
+                        textEditHtml = `
+                            <div class="control-row">
+                                <label>Message:</label>
+                                <textarea id="text-${index}" rows="4" style="width: 100%;">${textItem.text}</textarea>
+                            </div>
+                        `;
+                    } else {
+                        textEditHtml = `
+                            <div class="control-row">
+                                <label>Message (dynamic):</label>
+                                <p>${textItem.panel.userData.messageFunc()}</p>
+                            </div>
+                        `;
+                    }
+                    fontHtml = `
                         <div class="control-row">
-                            <label>Message:</label>
-                            <textarea id="text-${index}" rows="4" style="width: 100%;">${textItem.text}</textarea>
+                            <label>Font:</label>
+                            <select id="font-${index}" data-index="${index}">
+                                ${availableFonts.map(f => 
+                                    `<option value="${f}" ${f === textItem.font ? 'selected' : ''}>${f}</option>`
+                                ).join('')}
+                            </select>
                         </div>
                     `;
                 } else {
                     textEditHtml = `
                         <div class="control-row">
-                            <label>Message (dynamic):</label>
-                            <p>${textItem.panel.userData.messageFunc()}</p>
+                            <label>Drawing:</label>
+                            <canvas id="draw-${index}" width="300" height="150" style="border:1px solid #555; background: white; cursor: crosshair;"></canvas>
+                        </div>
+                        <div class="control-row">
+                            <label>Line:</label>
+                            <input type="number" id="line-width-${index}" min="1" max="20" value="2" style="width:50px;">
+                            <label>Color:</label>
+                            <input type="color" id="color-${index}" value="#000000" style="width:50px;">
+                            <button id="clear-${index}" style="margin-left:10px;">Clear</button>
+                            <button id="update-${index}" style="margin-left:10px;">Update</button>
                         </div>
                     `;
                 }
+                
+                const sizeLabel = type === 'text' ? 'Size:' : 'Scale (%):';
+                const sizeMin = type === 'text' ? 40 : 50;
+                const sizeMax = type === 'text' ? 100 : 200;
+                const sizeValue = type === 'text' ? (textItem.size || 76) : (textItem.size || 100);
                 
                 controlDiv.innerHTML = `
                     <h4>${textItem.name}</h4>
@@ -1248,22 +1284,13 @@ function getCountdownText2() {
                             ).join('')}
                         </select>
                     </div>
-                    
+                    ${fontHtml}
                     <div class="control-row">
-                        <label>Font:</label>
-                        <select id="font-${index}" data-index="${index}">
-                            ${availableFonts.map(f => 
-                                `<option value="${f}" ${f === textItem.font ? 'selected' : ''}>${f}</option>`
-                            ).join('')}
-                        </select>
-                    </div>
-                    
-                    <div class="control-row">
-                        <label>Size:</label>
+                        <label>${sizeLabel}</label>
                         <input type="range" id="size-${index}" data-index="${index}" 
-                               min="40" max="100" value="${textItem.size || 76}" />
+                               min="${sizeMin}" max="${sizeMax}" value="${sizeValue}" />
                         <input type="number" id="size-num-${index}" 
-                               min="40" max="100" value="${textItem.size || 76}" />
+                               min="${sizeMin}" max="${sizeMax}" value="${sizeValue}" />
                     </div>
                     
                     <div class="control-row">
@@ -1303,13 +1330,101 @@ function getCountdownText2() {
                     saveState();
                 });
                 
-                const fontSelect = document.getElementById(`font-${index}`);
-                fontSelect.addEventListener('change', (e) => {
-                    const newFont = e.target.value;
-                    textItem.font = newFont;
-                    updateTextPanel(textItem);
-                    saveState();
-                });
+                if (type === 'text') {
+                    const fontSelect = document.getElementById(`font-${index}`);
+                    if (fontSelect) {
+                        fontSelect.addEventListener('change', (e) => {
+                            const newFont = e.target.value;
+                            textItem.font = newFont;
+                            updateTextPanel(textItem);
+                            saveState();
+                        });
+                    }
+                    
+                    const textArea = document.getElementById(`text-${index}`);
+                    if (textArea) {
+                        textArea.addEventListener('input', (e) => {
+                            textItem.text = e.target.value;
+                            textItem.panel.userData.messageFunc = () => textItem.text;
+                            updateTextPanel(textItem);
+                            saveState();
+                        });
+                    }
+                } else {
+                    // Drawing setup
+                    const drawCanvas = document.getElementById(`draw-${index}`);
+                    const ctx = drawCanvas.getContext('2d');
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    let drawing = false;
+                    let lastX = 0;
+                    let lastY = 0;
+                    const colorInput = document.getElementById(`color-${index}`);
+                    const widthInput = document.getElementById(`line-width-${index}`);
+                    
+                    function getMousePos(e) {
+                        const rect = drawCanvas.getBoundingClientRect();
+                        return [
+                            (e.clientX - rect.left) / rect.width * drawCanvas.width,
+                            (e.clientY - rect.top) / rect.height * drawCanvas.height
+                        ];
+                    }
+                    
+                    function startDraw(e) {
+                        drawing = true;
+                        [lastX, lastY] = getMousePos(e);
+                    }
+                    
+                    function draw(e) {
+                        if (!drawing) return;
+                        const [x, y] = getMousePos(e);
+                        ctx.strokeStyle = colorInput.value;
+                        ctx.lineWidth = widthInput.value;
+                        ctx.beginPath();
+                        ctx.moveTo(lastX, lastY);
+                        ctx.lineTo(x, y);
+                        ctx.stroke();
+                        [lastX, lastY] = [x, y];
+                    }
+                    
+                    function endDraw() {
+                        drawing = false;
+                    }
+                    
+                    drawCanvas.addEventListener('mousedown', startDraw);
+                    drawCanvas.addEventListener('mousemove', draw);
+                    drawCanvas.addEventListener('mouseup', endDraw);
+                    drawCanvas.addEventListener('mouseout', endDraw);
+                    
+                    drawCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e.touches[0]); });
+                    drawCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
+                    drawCanvas.addEventListener('touchend', endDraw);
+                    
+                    document.getElementById(`clear-${index}`).addEventListener('click', () => {
+                        ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+                        updateTextureFromDraw(textItem, drawCanvas);
+                        saveState();
+                    });
+                    
+                    document.getElementById(`update-${index}`).addEventListener('click', () => {
+                        updateTextureFromDraw(textItem, drawCanvas);
+                        saveState();
+                    });
+                    
+                    textItem.controlCanvas = drawCanvas;
+                    
+                    // Load drawing if exists
+                    if (textItem.drawingData) {
+                        const img = new Image();
+                        img.src = textItem.drawingData;
+                        img.onload = () => {
+                            ctx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
+                            updateTextureFromDraw(textItem, drawCanvas);
+                        };
+                    } else {
+                        updateTextureFromDraw(textItem, drawCanvas);
+                    }
+                }
                 
                 // Size controls
                 const sizeRange = document.getElementById(`size-${index}`);
@@ -1318,14 +1433,30 @@ function getCountdownText2() {
                     const val = parseFloat(e.target.value);
                     sizeNum.value = val;
                     textItem.size = val;
-                    updateTextPanel(textItem);
+                    if (type === 'text') {
+                        updateTextPanel(textItem);
+                    } else {
+                        const s = val / 100;
+                        const baseW = textItem.baseSize?.width || 250;
+                        const baseH = textItem.baseSize?.height || 175;
+                        textItem.panel.geometry.dispose();
+                        textItem.panel.geometry = new THREE.PlaneGeometry(baseW * s, baseH * s);
+                    }
                     saveState();
                 });
                 sizeNum.addEventListener('change', (e) => {
                     const val = parseFloat(e.target.value);
                     sizeRange.value = val;
                     textItem.size = val;
-                    updateTextPanel(textItem);
+                    if (type === 'text') {
+                        updateTextPanel(textItem);
+                    } else {
+                        const s = val / 100;
+                        const baseW = textItem.baseSize?.width || 250;
+                        const baseH = textItem.baseSize?.height || 175;
+                        textItem.panel.geometry.dispose();
+                        textItem.panel.geometry = new THREE.PlaneGeometry(baseW * s, baseH * s);
+                    }
                     saveState();
                 });
                 
@@ -1367,17 +1498,6 @@ function getCountdownText2() {
                     rotation.z = val * Math.PI / 180;
                     saveState();
                 });
-                
-                // Text edit if not dynamic
-                const textArea = document.getElementById(`text-${index}`);
-                if (textArea) {
-                    textArea.addEventListener('input', (e) => {
-                        textItem.text = e.target.value;
-                        textItem.panel.userData.messageFunc = () => textItem.text;
-                        updateTextPanel(textItem);
-                        saveState();
-                    });
-                }
             });
         }
         
@@ -1394,10 +1514,24 @@ function getCountdownText2() {
             textItem.panel.material.needsUpdate = true;
         }
         
+        // Update texture from drawing canvas
+        function updateTextureFromDraw(textItem, drawCanvas) {
+            const textureCanvas = document.createElement('canvas');
+            textureCanvas.width = 1024;
+            textureCanvas.height = 512;
+            const tCtx = textureCanvas.getContext('2d');
+            tCtx.drawImage(drawCanvas, 0, 0, 1024, 512);
+            const texture = new THREE.CanvasTexture(textureCanvas);
+            texture.needsUpdate = true;
+            textItem.panel.material.map = texture;
+            textItem.panel.material.needsUpdate = true;
+        }
+        
         // Save current state to localStorage
         function saveState() {
             const state = window.allTextPanels.map(item => ({
                 name: item.name,
+                type: item.type,
                 font: item.font,
                 size: item.size,
                 offset: {
@@ -1411,7 +1545,8 @@ function getCountdownText2() {
                     z: item.panelObj.rotationOffset.z
                 } : null,
                 assignedPanel: item.assignedPanel,
-                text: item.text ?? undefined
+                text: item.type === 'text' ? (item.text ?? undefined) : undefined,
+                drawingData: item.type === 'draw' && item.controlCanvas ? item.controlCanvas.toDataURL('image/png') : undefined
             }));
             
             localStorage.setItem('textPanelState', JSON.stringify(state));
@@ -1434,6 +1569,8 @@ function getCountdownText2() {
             state.forEach((savedItem, index) => {
                 if (index < window.allTextPanels.length) {
                     const textItem = window.allTextPanels[index];
+                    
+                    textItem.type = savedItem.type || 'text';
                     
                     // Update font
                     textItem.font = savedItem.font;
@@ -1458,21 +1595,25 @@ function getCountdownText2() {
                     textItem.stlMesh = movableMeshes[savedItem.assignedPanel];
                     textItem.panelObj.stlMesh = movableMeshes[savedItem.assignedPanel];
                     
-                    // Update text if present
-                    if (savedItem.text !== undefined) {
+                    // Update text or drawing
+                    if (textItem.type === 'text' && savedItem.text !== undefined) {
                         textItem.text = savedItem.text;
                         textItem.isDynamic = false;
                         textItem.panel.userData.messageFunc = () => textItem.text;
+                    } else if (textItem.type === 'draw' && savedItem.drawingData) {
+                        textItem.drawingData = savedItem.drawingData;
                     }
                     
                     // Update the visual panel
-                    updateTextPanel(textItem);
+                    if (textItem.type === 'text') {
+                        updateTextPanel(textItem);
+                    } // Drawing will be loaded in UI init
                 } else {
                     // Create new panel from saved state
+                    const newType = savedItem.type || 'text';
                     const newName = savedItem.name || `Custom ${index + 1}`;
-                    const newText = savedItem.text || "New message\nEdit me";
                     const newFont = savedItem.font || availableFonts[0];
-                    const newSize = savedItem.size || 76;
+                    const newSize = savedItem.size || (newType === 'text' ? 76 : 100);
                     const newOffset = new THREE.Vector3(savedItem.offset.x, savedItem.offset.y, savedItem.offset.z);
                     const newRotation = new THREE.Euler(
                         savedItem.rotation ? savedItem.rotation.x : -Math.PI / 2,
@@ -1480,8 +1621,9 @@ function getCountdownText2() {
                         savedItem.rotation ? savedItem.rotation.z : Math.PI
                     );
                     const newAssigned = savedItem.assignedPanel || 0;
-                    const newMessageFunc = () => newText;
-                    const newPanel = createTextPanel(newMessageFunc, index + 100, newFont);
+                    const newMessageFunc = newType === 'text' ? () => (savedItem.text || "New message\nEdit me") : () => '';
+                    const newPanelSize = {width: 250, height: 175};
+                    const newPanel = createTextPanel(newMessageFunc, index + 100, newFont, newPanelSize);
                     newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
                     scene.add(newPanel);
                     const newPanelObj = {
@@ -1501,8 +1643,11 @@ function getCountdownText2() {
                         isMain: false,
                         assignedPanel: newAssigned,
                         stlMesh: movableMeshes[newAssigned],
-                        text: newText,
-                        isDynamic: false
+                        text: newType === 'text' ? (savedItem.text || "New message\nEdit me") : null,
+                        drawingData: newType === 'draw' ? savedItem.drawingData : null,
+                        isDynamic: false,
+                        type: newType,
+                        baseSize: newPanelSize
                     });
                 }
             });
@@ -1519,6 +1664,7 @@ function getCountdownText2() {
         function exportState() {
             const state = window.allTextPanels.map(item => ({
                 name: item.name,
+                type: item.type,
                 font: item.font,
                 size: item.size,
                 offset: {
@@ -1532,7 +1678,8 @@ function getCountdownText2() {
                     z: item.panelObj.rotationOffset.z
                 } : null,
                 assignedPanel: item.assignedPanel,
-                text: item.text ?? undefined
+                text: item.type === 'text' ? (item.text ?? undefined) : undefined,
+                drawingData: item.type === 'draw' && item.controlCanvas ? item.controlCanvas.toDataURL('image/png') : undefined
             }));
             
             const stateCode = `// Replace DEFAULT_TEXT_STATE with this value for production:\nconst DEFAULT_TEXT_STATE = ${JSON.stringify(state, null, 2)};`;
@@ -1598,23 +1745,27 @@ function getCountdownText2() {
         
         // Add new text panel
         function addNewTextPanel() {
-            const initialText = prompt("Enter the message text (use \\n for line breaks):", "New message\nEdit me");
-            if (!initialText) return;
-            
+            const typeChoice = prompt("Enter type (1 for typed text, 2 for hand drawn):", "1");
+            const isTyped = typeChoice === "1";
+            let initialText = null;
+            if (isTyped) {
+                initialText = prompt("Enter the message text (use \\n for line breaks):", "New message\nEdit me");
+                if (!initialText) return;
+            }
             const panelStr = prompt("Assign to panel (0=Pink, 1=Green, 2=Blue):", "0");
             const newAssigned = parseInt(panelStr) || 0;
             
             const newIndex = window.allTextPanels.length;
             const newName = `Custom ${newIndex + 1}`;
             const newFont = availableFonts[0];
-            const newSize = 76;
+            const newSize = isTyped ? 76 : 100;
             const newOffset = new THREE.Vector3(-11.4, 100, -600);
             const newRotation = new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI);
-            const newMessageFunc = () => initialText;
-            const newPanel = createTextPanel(newMessageFunc, newIndex + 100, newFont);
+            const newPanelSize = {width: 250, height: 175};
+            const newMessageFunc = isTyped ? () => initialText : () => '';
+            const newPanel = createTextPanel(newMessageFunc, newIndex + 100, newFont, newPanelSize);
             newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
             scene.add(newPanel);
-            textPanels.push(newPanel);
             const newPanelObj = {
                 stlMesh: movableMeshes[newAssigned],
                 textPanel: newPanel,
@@ -1622,6 +1773,7 @@ function getCountdownText2() {
                 rotationOffset: newRotation
             };
             panelTexts.push(newPanelObj);
+            textPanels.push(newPanel);
             window.allTextPanels.push({
                 name: newName,
                 panelObj: newPanelObj,
@@ -1632,7 +1784,9 @@ function getCountdownText2() {
                 assignedPanel: newAssigned,
                 stlMesh: movableMeshes[newAssigned],
                 text: initialText,
-                isDynamic: false
+                isDynamic: false,
+                type: isTyped ? 'text' : 'draw',
+                baseSize: newPanelSize
             });
             initializeTextControls();
             saveState();
