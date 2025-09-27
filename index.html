@@ -437,8 +437,8 @@
         function createHandwritingTexture(text, markerColor = '#000000', fontFamily = 'Kalam', fontSize = null) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = 512; // Adjusted to be narrower
-            canvas.height = 1024; // Adjusted to be taller
+            canvas.width = 256; // Adjusted to maintain 1:2 aspect ratio
+            canvas.height = 512; // Taller than wide
          
             // Clear canvas with transparent background
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -493,8 +493,8 @@
         // Create empty texture for drawing
         function createEmptyTexture() {
             const canvas = document.createElement('canvas');
-            canvas.width = 512; // Adjusted to be narrower
-            canvas.height = 1024; // Adjusted to be taller
+            canvas.width = 256; // Adjusted to maintain 1:2 aspect ratio
+            canvas.height = 512; // Taller than wide
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const texture = new THREE.CanvasTexture(canvas);
@@ -1136,8 +1136,8 @@
                         updateTextPanel(textItem);
                     } else {
                         const s = val / 100;
-                        const baseW = textItem.baseSize?.width || 250;
-                        const baseH = textItem.baseSize?.height || 175;
+                        const baseW = textItem.baseSize?.width || 175;
+                        const baseH = textItem.baseSize?.height || 350;
                         textItem.panel.geometry.dispose();
                         textItem.panel.geometry = new THREE.PlaneGeometry(baseW * s, baseH * s);
                     }
@@ -1151,8 +1151,8 @@
                         updateTextPanel(textItem);
                     } else {
                         const s = val / 100;
-                        const baseW = textItem.baseSize?.width || 250;
-                        const baseH = textItem.baseSize?.height || 175;
+                        const baseW = textItem.baseSize?.width || 175;
+                        const baseH = textItem.baseSize?.height || 350;
                         textItem.panel.geometry.dispose();
                         textItem.panel.geometry = new THREE.PlaneGeometry(baseW * s, baseH * s);
                     }
@@ -1283,7 +1283,7 @@
                 );
                 const newAssigned = savedItem.assignedPanel || 0;
                 const newMessageFunc = newType === 'text' ? () => (savedItem.text || "New message\nEdit me") : () => '';
-                const newPanelSize = {width: 250, height: 175};
+                const newPanelSize = newType === 'text' ? {width: 250, height: 175} : {width: 175, height: 350};
                 const newPanel = createTextPanel(newMessageFunc, index + 100, newFont, newPanelSize, newType);
                 newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
                 scene.add(newPanel);
@@ -1417,8 +1417,8 @@
         // Create transparent text panels
         function createTextPanel(messageFunc, index, fontFamily = 'Kalam', panelSize = null, type = 'text') {
             // Random panel sizes if not specified
-            const width = panelSize?.width || (240 + Math.random() * 60); // 240-300
-            const height = panelSize?.height || (150 + Math.random() * 50); // 150-200
+            const width = panelSize?.width || (type === 'text' ? (240 + Math.random() * 60) : 175); // 240-300 for text, 175 for draw
+            const height = panelSize?.height || (type === 'text' ? (150 + Math.random() * 50) : 350); // 150-200 for text, 350 for draw
             const geometry = new THREE.PlaneGeometry(width, height);
             let textureData;
             if (type === 'text') {
@@ -1459,7 +1459,7 @@
             const newSize = isTyped ? 76 : 100;
             const newOffset = new THREE.Vector3(-11.4, 100, -600);
             const newRotation = new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI);
-            const newPanelSize = {width: 250, height: 175};
+            const newPanelSize = isTyped ? {width: 250, height: 175} : {width: 175, height: 350};
             const newMessageFunc = isTyped ? () => initialText : () => '';
             const newPanel = createTextPanel(newMessageFunc, newIndex + 100, newFont, newPanelSize, isTyped ? 'text' : 'draw');
             newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
