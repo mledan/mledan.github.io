@@ -7,27 +7,27 @@
     <style>
         body { margin: 0; font-family: Arial; }
         canvas { display: block; }
-        #info { 
-            position: absolute; 
-            top: 10px; 
-            left: 10px; 
-            color: white; 
-            background: rgba(0, 0, 0, 0.7); 
-            padding: 10px; 
-            max-width: 400px; 
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            max-width: 400px;
             font-size: 14px;
             display: none; /* Hide the info menu */
         }
-        #controls { 
-            position: absolute; 
-            top: 50px; 
-            left: 10px; 
-            color: white; 
-            background: rgba(0, 0, 0, 0.7); 
-            padding: 10px; 
+        #controls {
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
             display: none; /* Hide the controls menu */
         }
-        
+       
         #text-controls {
             position: absolute;
             top: 60px;
@@ -42,18 +42,18 @@
             font-size: 12px;
             display: none;
         }
-        
+       
         #text-controls.active {
             display: block;
         }
-        
+       
         #text-controls h3 {
             margin: 0 0 10px 0;
             color: #fff;
             border-bottom: 1px solid #555;
             padding-bottom: 5px;
         }
-        
+       
         .text-panel-control {
             background: rgba(255, 255, 255, 0.1);
             padding: 10px;
@@ -61,30 +61,30 @@
             border-radius: 5px;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
+       
         .text-panel-control h4 {
             margin: 0 0 8px 0;
             color: #ffd700;
             font-size: 13px;
         }
-        
+       
         .control-row {
             display: flex;
             align-items: center;
             margin: 5px 0;
             gap: 10px;
         }
-        
+       
         .control-row label {
             width: 60px;
             font-size: 11px;
         }
-        
+       
         .control-row input[type="range"] {
             flex: 1;
             height: 20px;
         }
-        
+       
         .control-row input[type="number"] {
             width: 60px;
             background: rgba(255, 255, 255, 0.1);
@@ -93,7 +93,7 @@
             padding: 2px 5px;
             border-radius: 3px;
         }
-        
+       
         .control-row select {
             flex: 1;
             background: rgba(255, 255, 255, 0.1);
@@ -102,11 +102,11 @@
             padding: 3px;
             border-radius: 3px;
         }
-        
+       
         .control-row select option {
             background: #333;
         }
-        
+       
         .control-row textarea {
             flex: 1;
             background: rgba(255, 255, 255, 0.1);
@@ -116,7 +116,7 @@
             border-radius: 3px;
             resize: vertical;
         }
-        
+       
         #toggle-text-controls {
             position: absolute;
             top: 10px;
@@ -129,11 +129,11 @@
             cursor: pointer;
             font-size: 14px;
         }
-        
+       
         #toggle-text-controls:hover {
             background: rgba(0, 0, 0, 0.7);
         }
-        
+       
         .text-preview {
             font-size: 10px;
             color: #aaa;
@@ -193,7 +193,7 @@
             padding: 10px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        
+       
         .handwritten {
             font-family: 'Kalam', cursive;
             font-weight: 700;
@@ -202,48 +202,48 @@
             letter-spacing: 0.5px;
             text-shadow: 0.5px 0.5px 0px rgba(0,0,0,0.1);
         }
-        
+       
         .handwritten-large {
             font-size: 22px;
             font-weight: 700;
         }
-        
+       
         .handwritten-small {
             font-size: 16px;
         }
-        
+       
         /* Add slight variations to make it look more natural */
         .char-1 { transform: rotate(-1deg); display: inline-block; }
         .char-2 { transform: rotate(0.5deg); display: inline-block; }
         .char-3 { transform: rotate(-0.5deg); display: inline-block; }
         .char-4 { transform: rotate(1deg); display: inline-block; }
         .char-5 { transform: rotate(-0.3deg); display: inline-block; }
-        
+       
         .countdown-text {
             color: #e74c3c;
             margin-bottom: 5px;
         }
-        
+       
         .camping-text {
             color: #27ae60;
         }
-        
+       
         .love-text {
             color: #e91e63;
         }
-        
+       
         .heart-icon {
             color: #e74c3c;
             font-size: 24px;
             animation: heartbeat 1.5s ease-in-out infinite;
         }
-        
+       
         @keyframes heartbeat {
             0% { transform: scale(1); }
             50% { transform: scale(1.1); }
             100% { transform: scale(1); }
         }
-        
+       
         .campfire-icon {
             width: 30px;
             height: 30px;
@@ -256,28 +256,28 @@
             font-weight: normal;
             font-style: normal;
         }
-        
+       
         @font-face {
             font-family: 'MarkerFont';
             src: url('marker-font/MarkerFont-AyOm.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
-        
+       
         @font-face {
             font-family: 'Pwscritch';
             src: url('pwscritch-font/Pwscritch-7yBE.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
-        
+       
         @font-face {
             font-family: 'SmoothMarker';
             src: url('smooth-marker-font/SmoothMarker-45d6.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
-        
+       
         @font-face {
             font-family: 'WhiteboardRegular';
             src: url('whiteboard-font/WhiteboardRegular-O7gp.ttf') format('truetype');
@@ -300,7 +300,7 @@
         <button id="mobile-toggle-autorotate">Toggle AutoRotate</button>
         <button id="mobile-toggle-autoslide">Toggle AutoSlide</button>
     </div>
-    
+   
     <button id="toggle-text-controls">Text Controls</button>
     <div id="text-controls">
         <h3>Text Panel Controls</h3>
@@ -328,143 +328,10 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { STLLoader } from 'three/addons/loaders/STLLoader.js';
-
         // Make text panels globally accessible for console control
         window.textControls = {};
-        window.allTextPanels = [];  // Store all text panels for UI control
-        
-        // Default saved state - will be populated with exported values for production
-        const DEFAULT_TEXT_STATE = [
-          {
-            "name": "Countdown",
-            "font": "MarkerFont",
-            "size": 91,
-            "offset": {
-              "x": -11.4,
-              "y": 246,
-              "z": -627
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.0543261909900763
-            },
-            "assignedPanel": 0
-          },
-          {
-            "name": "Pink Panel - Have a...",
-            "font": "Kalam",
-            "size": 95,
-            "offset": {
-              "x": -11.4,
-              "y": 73,
-              "z": -652
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.3510321638291125
-            },
-            "assignedPanel": 0
-          },
-          {
-            "name": "Pink Panel - You're still...",
-            "font": "Shadows Into Light",
-            "size": 77,
-            "offset": {
-              "x": -11.4,
-              "y": 167,
-              "z": -585
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.141592653589793
-            },
-            "assignedPanel": 1
-          },
-          {
-            "name": "Camping",
-            "font": "Patrick Hand",
-            "size": 85,
-            "offset": {
-              "x": -11.4,
-              "y": 91,
-              "z": -650
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 2.9146998508305306
-            },
-            "assignedPanel": 2
-          },
-          {
-            "name": "Green Panel - Camping Checklist:...",
-            "font": "MarkerFont",
-            "size": 75,
-            "offset": {
-              "x": -11.4,
-              "y": 217,
-              "z": -589
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.141592653589793
-            },
-            "assignedPanel": 2
-          },
-          {
-            "name": "Love",
-            "font": "Indie Flower",
-            "size": 96,
-            "offset": {
-              "x": -11.4,
-              "y": 45,
-              "z": -621
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.4033920413889422
-            },
-            "assignedPanel": 1
-          },
-          {
-            "name": "Blue Panel - TODO List:...",
-            "font": "DfThin",
-            "size": 61,
-            "offset": {
-              "x": -11.4,
-              "y": 150,
-              "z": -568
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.1764992386296798
-            },
-            "assignedPanel": 0
-          },
-          {
-            "name": "Blue Panel - Miles apart...",
-            "font": "Shadows Into Light",
-            "size": 52,
-            "offset": {
-              "x": -11.4,
-              "y": 222,
-              "z": -675
-            },
-            "rotation": {
-              "x": -1.5707963267948966,
-              "y": 1.5707963267948966,
-              "z": 3.141592653589793
-            },
-            "assignedPanel": 1
-          }
-        ]
-
+        window.allTextPanels = []; // Store all text panels for UI control
+       
         // Set up scene, camera, and renderer
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xdddddd);
@@ -472,14 +339,12 @@
         const renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
-
         // Add orbit controls (disabled by default)
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
         controls.enabled = false;
-
         // Default camera settings with user-specified values - perfect view distance
         const defaultCameraSettings = {
             zoom: 75, // FOV in degrees - reduced from 100 to reduce fisheye
@@ -488,7 +353,6 @@
             rotation: new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI / 2, 'XYZ'), // -90°, 90°, 90°
             distance: 280 // Distance from target - perfect overview distance
         };
-
         // Update orbit, autorotate, and autoslide mode indicator with camera info
         const infoDiv = document.getElementById('info');
         let isAutorotating = false;
@@ -505,20 +369,17 @@
             }
             infoDiv.innerHTML = infoText;
         }
-
         // Add OrbitControls change listener for event-based updates
         controls.addEventListener('change', () => {
             if (controls.enabled) {
                 updateModeIndicator();
             }
         });
-
         // Add mobile button event listeners
         document.getElementById('mobile-toggle-orbit').addEventListener('click', () => {
             controls.enabled = !controls.enabled;
             updateModeIndicator();
         });
-
         document.getElementById('mobile-toggle-autorotate').addEventListener('click', () => {
             isAutorotating = !isAutorotating;
             if (isAutorotating) {
@@ -526,7 +387,6 @@
             }
             updateModeIndicator();
         });
-
         document.getElementById('mobile-toggle-autoslide').addEventListener('click', () => {
             isAutoSliding = !isAutoSliding;
             if (isAutoSliding) {
@@ -534,14 +394,12 @@
             }
             updateModeIndicator();
         });
-
         // Add lighting
         const ambientLight = new THREE.AmbientLight(0x404040);
         scene.add(ambientLight);
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
         directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
-
         // STL file configurations with provided position values
         const stlFiles = [
             { path: './completeframe-nosliders.stl', color: 0x5c5c5c, movable: false, scale: 1, initialPos: [0, 0, 500] },
@@ -549,7 +407,6 @@
             { path: './slidingboard.stl', color: 0xf4f9f4, movable: true, scale: 1, initialPos: [7.5, 0, 520], phase: 2 * Math.PI / 3, name: 'Green Panel' },
             { path: './slidingboard.stl', color: 0xEDF3FA, movable: true, scale: 1, initialPos: [0, 0, 700], phase: 4 * Math.PI / 3, name: 'Blue Panel' }
         ];
-
         // Load STL files
         const loader = new STLLoader();
         let maxDim = 0;
@@ -566,7 +423,7 @@
         const slidePeriod = 10;
         const panelTexts = [];
         const textPanels = [];
-        
+       
         // Available fonts for selection (includes local fonts)
         const availableFonts = [
             // Custom local fonts
@@ -575,40 +432,40 @@
             'Kalam', 'Permanent Marker', 'Caveat', 'Shadows Into Light',
             'Patrick Hand', 'Coming Soon', 'Architects Daughter', 'Indie Flower'
         ];
-        
+       
         // Create handwriting texture for transparent panels
         function createHandwritingTexture(text, markerColor = '#000000', fontFamily = 'Kalam', fontSize = null) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = 1024;
             canvas.height = 512;
-            
+           
             // Clear canvas with transparent background
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+           
             // Transparent background - no fill needed
-            
+           
             // Marker settings
             ctx.strokeStyle = markerColor;
             ctx.fillStyle = markerColor;
             ctx.lineWidth = 6;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            
+           
             // Randomize font size if not specified
             const size = fontSize || (65 + Math.random() * 20); // Random between 65-85px
             ctx.font = `bold ${size}px "${fontFamily}", "Permanent Marker", cursive`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            
+           
             // Add some texture/roughness to simulate marker
             ctx.globalAlpha = 0.95;
-            
+           
             // Split text into lines and draw with marker effect
             const lines = text.split('\n');
             const lineHeight = 100;
             const startY = canvas.height / 2 - (lines.length - 1) * lineHeight / 2;
-            
+           
             lines.forEach((line, i) => {
                 // Add slight rotation and jitter for handwritten effect
                 ctx.save();
@@ -616,104 +473,23 @@
                 const y = startY + i * lineHeight;
                 ctx.translate(x, y);
                 ctx.rotate((Math.random() - 0.5) * 0.02);
-                
+               
                 // Draw with marker-like strokes - multiple passes for thickness
                 ctx.globalAlpha = 0.9;
                 ctx.fillText(line, 0, 0);
                 ctx.globalAlpha = 0.4;
                 ctx.fillText(line, 1, 0.5); // Slight offset for thickness
                 ctx.fillText(line, -0.5, 1); // Another offset
-                
+               
                 ctx.restore();
                 ctx.globalAlpha = 0.95;
             });
-            
+           
             const texture = new THREE.CanvasTexture(canvas);
             texture.needsUpdate = true;
             return { texture, canvas, ctx };
         }
-        
-        // Main messages for each panel
-        const mainMessages = [
-            { getText: getCountdownText, id: 'countdown', font: 'WhiteboardRegular', isDynamic: true },
-            { getText: () => "Can't wait for\nCAMPING!!", id: 'camping', font: 'MarkerFont', isDynamic: false },
-            { getText: () => "♥ I love you!!", id: 'love', font: 'SmoothMarker', isDynamic: false }
-        ];
-        
-        // Additional cute messages - deterministic assignment (using custom fonts)
-        const additionalMessages = [
-            // Panel 0 (Pink) messages
-            { getText: () => "Have a\nsafe journey!", font: "WhiteboardRegular", panelIndex: 0, isDynamic: false },
-            { getText: () => "You're still\nEnough!", font: "SmoothMarker", panelIndex: 0, isDynamic: false },
-            
-            // Panel 1 (Green) messages
-            { getText: () => "Camping Checklist:\n□ Tent\n□ Sleeping bag\n□ Marshmallows\n□ Stories", font: "MarkerFont", panelIndex: 1, isDynamic: false },
-            
-            // Panel 2 (Blue) messages
-            { getText: () => "TODO List:\n• Drink water\n• Charge your phone\n• Be good!", font: "DfThin", panelIndex: 2, isDynamic: false },
-            { getText: () => "Miles apart\nbut close\nat heart\n♥", font: "Pwscritch", panelIndex: 2, isDynamic: false }
-        ];
-        
-        // Countdown timer function
-        function getCountdownText() {
-            const targetDate = new Date('2025-08-31T13:30:00-05:00'); // August 31st, 1:30 PM CST
-            const now = new Date();
-            const difference = targetDate - now;
-            
-            if (difference > 0) {
-                const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-                
-                return `${days}d ${hours}h ${minutes}m\nuntil you're back\nin Chicago!`;
-            } else {
-                return 'Welcome home!';
-            }
-        }
-function getCountdownText2() {
-            const targetDate = new Date('2025-08-31T23:59:00-05:00'); // August 31st, 1:30 PM CST
-            const now = new Date();
-            const difference = targetDate - now;
-            
-            if (difference > 0) {
-                const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-                
-                return `${days}d ${hours}h ${minutes}m\nuntil I see\nbae :*!`;
-            } else {
-                return 'i love you!';
-            }
-        }
-
-        
-        // Create transparent text panels
-        function createTextPanel(messageFunc, index, fontFamily = 'Kalam', panelSize = null, type = 'text') {
-            // Random panel sizes if not specified
-            const width = panelSize?.width || (240 + Math.random() * 60); // 240-300
-            const height = panelSize?.height || (150 + Math.random() * 50); // 150-200
-            const geometry = new THREE.PlaneGeometry(width, height);
-            let textureData;
-            if (type === 'text') {
-                textureData = createHandwritingTexture(messageFunc(), '#000000', fontFamily);
-            } else {
-                textureData = createEmptyTexture();
-            }
-            
-            const material = new THREE.MeshBasicMaterial({
-                map: textureData.texture,
-                transparent: true,
-                opacity: 0.95,
-                side: THREE.DoubleSide,
-                depthTest: true,
-                depthWrite: false
-            });
-            
-            const panel = new THREE.Mesh(geometry, material);
-            panel.userData = { textureData, messageFunc, index, type };
-            return panel;
-        }
-        
+       
         // Create empty texture for drawing
         function createEmptyTexture() {
             const canvas = document.createElement('canvas');
@@ -725,22 +501,7 @@ function getCountdownText2() {
             texture.needsUpdate = true;
             return { texture, canvas, ctx };
         }
-        
-        // Update countdown panel every second
-        function updateCountdownPanel() {
-            if (textPanels[0]) {
-                const panel = textPanels[0];
-                const newText = panel.userData.messageFunc();
-                const textureData = createHandwritingTexture(newText);
-                panel.material.map = textureData.texture;
-                panel.material.needsUpdate = true;
-                panel.userData.textureData = textureData;
-            }
-        }
-        
-        // Start countdown updates
-        setInterval(updateCountdownPanel, 1000);
-
+       
         // Create position controls
         const controlsDiv = document.getElementById('controls');
         stlFiles.forEach((stl, index) => {
@@ -754,7 +515,6 @@ function getCountdownText2() {
             `;
             controlsDiv.appendChild(div);
         });
-
         // Add Apply Values button functionality
         const applyButton = document.getElementById('apply-values');
         applyButton.addEventListener('click', () => {
@@ -769,11 +529,9 @@ function getCountdownText2() {
                 const newY = parseFloat(inputs.y.value) || pos.y;
                 let newZ = parseFloat(inputs.z.value) || pos.z;
                 newZ = Math.max(slideBounds.minZ, Math.min(slideBounds.maxZ, newZ));
-
                 if (isNaN(newX) || isNaN(newY) || isNaN(newZ)) {
                     console.warn(`Invalid input for ${stlFiles[index].path}: x=${inputs.x.value}, y=${inputs.y.value}, z=${inputs.z.value}. Using current position as fallback.`);
                 }
-
                 pos.x = newX;
                 pos.y = newY;
                 pos.z = newZ;
@@ -781,7 +539,6 @@ function getCountdownText2() {
                 mesh.updateMatrixWorld(true);
             });
         });
-
         // Add Toggle Autorotate button functionality
         const toggleAutorotateButton = document.getElementById('toggle-autorotate');
         toggleAutorotateButton.addEventListener('click', () => {
@@ -791,7 +548,6 @@ function getCountdownText2() {
             }
             updateModeIndicator();
         });
-
         // Add Toggle AutoSlide button functionality
         const toggleAutoSlideButton = document.getElementById('toggle-autoslide');
         toggleAutoSlideButton.addEventListener('click', () => {
@@ -801,7 +557,6 @@ function getCountdownText2() {
             }
             updateModeIndicator();
         });
-
         // Reset to camera defaults
         const resetCameraButton = document.getElementById('reset-camera-defaults');
         resetCameraButton.addEventListener('click', () => {
@@ -815,7 +570,6 @@ function getCountdownText2() {
             controls.update();
             updateModeIndicator();
         });
-
         // Axis flip controls
         function applyAxisTransform(mesh, geometry) {
             const position = geometry.attributes.position;
@@ -828,7 +582,6 @@ function getCountdownText2() {
             position.needsUpdate = true;
             geometry.computeBoundingBox();
         }
-
         stlFiles.forEach((stl, index) => {
             loader.load(
                 stl.path,
@@ -836,33 +589,26 @@ function getCountdownText2() {
                     const material = new THREE.MeshPhongMaterial({ color: stl.color });
                     const mesh = new THREE.Mesh(geometry, material);
                     mesh.userData = { movable: stl.movable, name: stl.path, index: index, phase: stl.phase || 0 };
-
                     applyAxisTransform(mesh, geometry);
-
                     const center = geometry.boundingBox.getCenter(new THREE.Vector3());
                     const size = geometry.boundingBox.getSize(new THREE.Vector3());
                     const modelMaxDim = Math.max(size.x, size.y, size.z);
-
                     const scale = stl.scale;
                     if (!stl.movable) {
                         frameBounds = geometry.boundingBox.clone();
                         frameBounds.min.multiplyScalar(scale);
                         frameBounds.max.multiplyScalar(scale);
                     }
-
                     mesh.position.copy(new THREE.Vector3(0, 0, 0));
                     mesh.position.sub(center.multiplyScalar(scale));
                     const initialPosition = new THREE.Vector3(...stl.initialPos);
                     mesh.position.add(initialPosition);
-
                     mesh.updateMatrix();
                     mesh.updateMatrixWorld(true);
-
                     mesh.rotation.x = -Math.PI / 2;
                     mesh.scale.set(scale, scale, scale);
                     scene.add(mesh);
                     meshes.push(mesh);
-
                     const inputs = {
                         x: document.getElementById(`x-${index}`),
                         y: document.getElementById(`y-${index}`),
@@ -871,7 +617,6 @@ function getCountdownText2() {
                     inputs.x.value = stl.initialPos[0].toFixed(2);
                     inputs.y.value = stl.initialPos[1].toFixed(2);
                     inputs.z.value = stl.initialPos[2].toFixed(2);
-
                     Object.keys(inputs).forEach(axis => {
                         inputs[axis].addEventListener('input', () => {
                             const pos = mesh.position;
@@ -883,155 +628,9 @@ function getCountdownText2() {
                             mesh.updateMatrixWorld(true);
                         });
                     });
-
                     if (stl.movable) {
                         movableMeshes.push(mesh);
-                        
-                        // Create transparent text panel for each movable STL panel
-                        if (movableMeshes.length <= 3) {
-                            const messageIndex = movableMeshes.length - 1;
-                            const msg = mainMessages[messageIndex];
-                            const textPanel = createTextPanel(msg.getText, messageIndex, msg.font);
-                            
-                            // Match STL panel rotation (they're rotated -90 degrees on X)
-                            textPanel.rotation.x = mesh.rotation.x;
-                            
-                            // Initial position will be set in animation loop
-                            textPanel.position.copy(mesh.position);
-                            
-                            textPanels.push(textPanel);
-                            scene.add(textPanel);
-                            
-                            // Deterministic positions for main panels (X fixed at -11.4)
-                            const mainPositions = [
-                                { x: -11.4, y: 150, z: -600 },  // Countdown
-                                { x: -11.4, y: 140, z: -600 },  // Camping
-                                { x: -11.4, y: 160, z: -600 }   // Love
-                            ];
-                            
-                            const position = mainPositions[messageIndex];
-                            
-                            // Store reference for position tracking with specified offsets
-                            const panelTextObj = {
-                                stlMesh: mesh,
-                                textPanel: textPanel,
-                                offset: new THREE.Vector3(position.x, position.y, position.z)
-                            };
-                            panelTexts.push(panelTextObj);
-                            
-                            // Store for UI control
-                            window.allTextPanels.push({
-                                name: ['Countdown', 'Camping', 'Love'][messageIndex],
-                                panelObj: panelTextObj,
-                                panel: textPanel,
-                                font: msg.font,
-                                size: 76,
-                                isMain: true,
-                                assignedPanel: messageIndex,
-                                stlMesh: mesh,
-                                isDynamic: msg.isDynamic,
-                                text: msg.isDynamic ? null : msg.getText(),
-                                type: 'text'
-                            });
-                            
-                            // Add to global controls with friendly names
-                            const panelName = ['countdown', 'camping', 'love'][messageIndex];
-                            
-                            // Deterministic rotation for main panels
-                            const mainRotations = [178, 180, 182]; // Slight variation but consistent
-                            const zRotation = mainRotations[messageIndex];
-                            
-                            // Store additional rotation offset for text panel
-                            const rotationOffset = new THREE.Euler(
-                                -90 * Math.PI / 180,  // -90 degrees on X
-                                90 * Math.PI / 180,   // 90 degrees on Y  
-                                zRotation * Math.PI / 180   // Deterministic Z rotation
-                            );
-                            panelTextObj.rotationOffset = rotationOffset;
-                            
-                            // Create additional message panels for this STL panel - deterministic
-                            const panelMessages = additionalMessages.filter(m => m.panelIndex === messageIndex);
-                            panelMessages.forEach((msg, i) => {
-                                const messageText = msg.getText();
-                                const textPanel = createTextPanel(() => messageText, messageIndex + 100 + i, msg.font);
-                                
-                                // Deterministic position offsets based on message index
-                                const xPositions = [-50, -11.4, 30]; // Fixed X positions (center one at -11.4)
-                                const yBase = 80 + (i * 60); // Stack vertically with spacing
-                                const addX = xPositions[i % 3];
-                                const addY = yBase + (i * 10); // Slight variation
-                                const addZ = -600 + (i * 10); // Slight Z variation
-                                
-                                textPanel.rotation.x = mesh.rotation.x;
-                                textPanel.position.copy(mesh.position);
-                                
-                                textPanels.push(textPanel);
-                                scene.add(textPanel);
-                                
-                                // Deterministic rotation based on index
-                                const rotations = [175, 180, 185]; // Fixed rotation values
-                                const addRotation = new THREE.Euler(
-                                    -90 * Math.PI / 180,
-                                    90 * Math.PI / 180,
-                                    rotations[i % 3] * Math.PI / 180
-                                );
-                                
-                                const additionalTextObj = {
-                                    stlMesh: mesh,
-                                    textPanel: textPanel,
-                                    offset: new THREE.Vector3(addX, addY, addZ),
-                                    rotationOffset: addRotation
-                                };
-                                panelTexts.push(additionalTextObj);
-                                
-                                // Store for UI control
-                                const shortText = messageText.split('\n')[0].substring(0, 20) + '...';
-                                window.allTextPanels.push({
-                                    name: `${stlFiles[messageIndex + 1].name} - ${shortText}`,
-                                    panelObj: additionalTextObj,
-                                    panel: textPanel,
-                                    font: msg.font,
-                                    size: 75, // Fixed size for consistency
-                                    isMain: false,
-                                    assignedPanel: messageIndex,
-                                    stlMesh: mesh,
-                                    isDynamic: msg.isDynamic,
-                                    text: messageText,
-                                    type: 'text'
-                                });
-                            });
-                            
-                            window.textControls[panelName] = {
-                                panel: textPanel,
-                                offset: panelTextObj.offset,
-                                rotationOffset: rotationOffset,
-                                setPosition: (x, y, z) => {
-                                    if (x !== undefined) panelTextObj.offset.x = x;
-                                    if (y !== undefined) panelTextObj.offset.y = y;
-                                    if (z !== undefined) panelTextObj.offset.z = z;
-                                },
-                                setRotation: (x, y, z) => {
-                                    if (x !== undefined) rotationOffset.x = x * Math.PI / 180;
-                                    if (y !== undefined) rotationOffset.y = y * Math.PI / 180;
-                                    if (z !== undefined) rotationOffset.z = z * Math.PI / 180;
-                                },
-                                getInfo: () => ({
-                                    offset: panelTextObj.offset.toArray(),
-                                    rotationOffset: [
-                                        rotationOffset.x * 180 / Math.PI,
-                                        rotationOffset.y * 180 / Math.PI,
-                                        rotationOffset.z * 180 / Math.PI
-                                    ],
-                                    actualRotation: [
-                                        textPanel.rotation.x * 180 / Math.PI,
-                                        textPanel.rotation.y * 180 / Math.PI,
-                                        textPanel.rotation.z * 180 / Math.PI
-                                    ]
-                                })
-                            };
-                        }
                     }
-
                     maxDim = Math.max(maxDim, modelMaxDim * scale);
                     loadedModels++;
                     if (loadedModels === stlFiles.length) {
@@ -1045,21 +644,19 @@ function getCountdownText2() {
                         camera.updateProjectionMatrix();
                         defaultCameraSettings.position.copy(camera.position);
                         updateModeIndicator(); // Initial update after loading
-                        
+                       
                         // Initialize UI controls
                         setTimeout(() => {
                             initializeTextControls();
-                            
-                            // Auto-load from localStorage if exists, else default
+                           
+                            // Auto-load from localStorage if exists
                             loadState();
-                            
+                           
                             console.log('Text panel controls initialized.');
                             console.log('Click "Text Controls" button in top right for UI controls.');
-                            console.log('Or use console: textControls.countdown.setPosition(x, y, z)');
+                            console.log('Use "Add New Panel" to create text or drawing panels.');
                         }, 1000);
-
                         // Ensure all meshes are positioned correctly after loading
-                        // Add a small delay to ensure all geometry calculations are complete
                         setTimeout(() => {
                             meshes.forEach((mesh, index) => {
                                 const initialPos = stlFiles[index].initialPos;
@@ -1077,7 +674,6 @@ function getCountdownText2() {
                 (error) => console.error(`Error loading ${stl.path}:`, error)
             );
         });
-
         // Toggle controls with keys
         document.addEventListener('keydown', (event) => {
             const key = event.key.toLowerCase();
@@ -1100,16 +696,13 @@ function getCountdownText2() {
                 reportPositions();
             }
         });
-
         // Mouse interaction for sliding
         renderer.domElement.addEventListener('mousedown', onMouseDown);
         renderer.domElement.addEventListener('mousemove', onMouseMove);
         renderer.domElement.addEventListener('mouseup', onMouseUp);
-
         let drawing3DPanel = null; // Track which panel is in 3D draw mode
         let drawing3D = false;
         let last3DPoint = null;
-
         function onMouseDown(event) {
             if (drawing3DPanel) {
                 // Handle 3D drawing
@@ -1151,7 +744,6 @@ function getCountdownText2() {
                 }
             }
         }
-
         function onMouseMove(event) {
             if (drawing3D && drawing3DPanel) {
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -1192,7 +784,6 @@ function getCountdownText2() {
                 }
             }
         }
-
         function onMouseUp() {
             if (drawing3D && drawing3DPanel) {
                 drawing3D = false;
@@ -1204,7 +795,6 @@ function getCountdownText2() {
             }
             updateModeIndicator();
         }
-
         // Debug function to report positions (call once)
         function reportPositions() {
             console.log('=== POSITION REPORT ===');
@@ -1212,25 +802,25 @@ function getCountdownText2() {
             movableMeshes.forEach((mesh, i) => {
                 const worldPos = new THREE.Vector3();
                 mesh.getWorldPosition(worldPos);
-                console.log(`  Panel ${i + 1} (${mesh.userData.name})`);
-                console.log(`    Local: x=${mesh.position.x.toFixed(2)}, y=${mesh.position.y.toFixed(2)}, z=${mesh.position.z.toFixed(2)}`);
-                console.log(`    World: x=${worldPos.x.toFixed(2)}, y=${worldPos.y.toFixed(2)}, z=${worldPos.z.toFixed(2)}`);
-                console.log(`    Rotation: x=${(mesh.rotation.x * 180/Math.PI).toFixed(0)}°, y=${(mesh.rotation.y * 180/Math.PI).toFixed(0)}°, z=${(mesh.rotation.z * 180/Math.PI).toFixed(0)}°`);
+                console.log(` Panel ${i + 1} (${mesh.userData.name})`);
+                console.log(` Local: x=${mesh.position.x.toFixed(2)}, y=${mesh.position.y.toFixed(2)}, z=${mesh.position.z.toFixed(2)}`);
+                console.log(` World: x=${worldPos.x.toFixed(2)}, y=${worldPos.y.toFixed(2)}, z=${worldPos.z.toFixed(2)}`);
+                console.log(` Rotation: x=${(mesh.rotation.x * 180/Math.PI).toFixed(0)}°, y=${(mesh.rotation.y * 180/Math.PI).toFixed(0)}°, z=${(mesh.rotation.z * 180/Math.PI).toFixed(0)}°`);
             });
-            
+           
             console.log('\nText Panels:');
             textPanels.forEach((panel, i) => {
-                console.log(`  Text ${i + 1}:`);
-                console.log(`    Position: x=${panel.position.x.toFixed(2)}, y=${panel.position.y.toFixed(2)}, z=${panel.position.z.toFixed(2)}`);
-                console.log(`    Rotation: x=${(panel.rotation.x * 180/Math.PI).toFixed(0)}°, y=${(panel.rotation.y * 180/Math.PI).toFixed(0)}°, z=${(panel.rotation.z * 180/Math.PI).toFixed(0)}°`);
+                console.log(` Text ${i + 1}:`);
+                console.log(` Position: x=${panel.position.x.toFixed(2)}, y=${panel.position.y.toFixed(2)}, z=${panel.position.z.toFixed(2)}`);
+                console.log(` Rotation: x=${(panel.rotation.x * 180/Math.PI).toFixed(0)}°, y=${(panel.rotation.y * 180/Math.PI).toFixed(0)}°, z=${(panel.rotation.z * 180/Math.PI).toFixed(0)}°`);
             });
-            
+           
             console.log('\nCamera:');
-            console.log(`  Position: x=${camera.position.x.toFixed(2)}, y=${camera.position.y.toFixed(2)}, z=${camera.position.z.toFixed(2)}`);
-            console.log(`  Target: x=${controls.target.x.toFixed(2)}, y=${controls.target.y.toFixed(2)}, z=${controls.target.z.toFixed(2)}`);
+            console.log(` Position: x=${camera.position.x.toFixed(2)}, y=${camera.position.y.toFixed(2)}, z=${camera.position.z.toFixed(2)}`);
+            console.log(` Target: x=${controls.target.x.toFixed(2)}, y=${controls.target.y.toFixed(2)}, z=${controls.target.z.toFixed(2)}`);
             console.log('======================');
         }
-        
+       
         // Animation loop with autorotation and autosliding
         function animate() {
             requestAnimationFrame(animate);
@@ -1247,24 +837,23 @@ function getCountdownText2() {
                     mesh.position.z = zPos;
                     document.getElementById(`z-${mesh.userData.index}`).value = zPos.toFixed(2);
                     mesh.updateMatrixWorld(true);
-                    // Removed excessive logging
                 });
             }
-            
+           
             // Update text panel positions to follow STL panels
             panelTexts.forEach(panelText => {
                 if (panelText.stlMesh && panelText.textPanel) {
                     // Get STL mesh world position
                     const worldPos = new THREE.Vector3();
                     panelText.stlMesh.getWorldPosition(worldPos);
-                    
+                   
                     // Position text panel at STL position with full offset
                     panelText.textPanel.position.copy(worldPos);
                     panelText.textPanel.position.add(panelText.offset);
-                    
+                   
                     // Start with STL panel rotation
                     panelText.textPanel.rotation.copy(panelText.stlMesh.rotation);
-                    
+                   
                     // Apply additional rotation offset if it exists
                     if (panelText.rotationOffset) {
                         panelText.textPanel.rotation.x += panelText.rotationOffset.x;
@@ -1273,24 +862,23 @@ function getCountdownText2() {
                     }
                 }
             });
-            
+           
             controls.update();
             renderer.render(scene, camera);
         }
         animate();
-
         // Initialize text control UI
         function initializeTextControls() {
             const controlsContainer = document.getElementById('text-panel-list');
             controlsContainer.innerHTML = '';
-            
+           
             window.allTextPanels.forEach((textItem, index) => {
                 const controlDiv = document.createElement('div');
                 controlDiv.className = 'text-panel-control';
-                
+               
                 const offset = textItem.panelObj.offset;
                 const rotation = textItem.panelObj.rotationOffset;
-                
+               
                 const type = textItem.type || 'text';
                 let textEditHtml = '';
                 let fontHtml = '';
@@ -1314,7 +902,7 @@ function getCountdownText2() {
                         <div class="control-row">
                             <label>Font:</label>
                             <select id="font-${index}" data-index="${index}">
-                                ${availableFonts.map(f => 
+                                ${availableFonts.map(f =>
                                     `<option value="${f}" ${f === textItem.font ? 'selected' : ''}>${f}</option>`
                                 ).join('')}
                             </select>
@@ -1337,19 +925,19 @@ function getCountdownText2() {
                         </div>
                     `;
                 }
-                
+               
                 const sizeLabel = type === 'text' ? 'Size:' : 'Scale (%):';
                 const sizeMin = type === 'text' ? 40 : 50;
                 const sizeMax = type === 'text' ? 100 : 200;
                 const sizeValue = type === 'text' ? (textItem.size || 76) : (textItem.size || 100);
-                
+               
                 controlDiv.innerHTML = `
                     <h4>${textItem.name}</h4>
                     ${textEditHtml}
                     <div class="control-row">
                         <label>Follow:</label>
                         <select id="panel-${index}" data-index="${index}">
-                            ${movableMeshes.map((mesh, i) => 
+                            ${movableMeshes.map((mesh, i) =>
                                 `<option value="${i}" ${i === textItem.assignedPanel ? 'selected' : ''}>${stlFiles[i + 1].name}</option>`
                             ).join('')}
                         </select>
@@ -1357,39 +945,39 @@ function getCountdownText2() {
                     ${fontHtml}
                     <div class="control-row">
                         <label>${sizeLabel}</label>
-                        <input type="range" id="size-${index}" data-index="${index}" 
+                        <input type="range" id="size-${index}" data-index="${index}"
                                min="${sizeMin}" max="${sizeMax}" value="${sizeValue}" />
-                        <input type="number" id="size-num-${index}" 
+                        <input type="number" id="size-num-${index}"
                                min="${sizeMin}" max="${sizeMax}" value="${sizeValue}" />
                     </div>
-                    
+                   
                     <div class="control-row">
                         <label>Y Pos:</label>
-                        <input type="range" id="text-y-${index}" data-index="${index}" 
+                        <input type="range" id="text-y-${index}" data-index="${index}"
                                min="0" max="300" value="${offset.y}" />
-                        <input type="number" id="text-y-num-${index}" 
+                        <input type="number" id="text-y-num-${index}"
                                min="0" max="300" value="${offset.y.toFixed(1)}" />
                     </div>
-                    
+                   
                     <div class="control-row">
                         <label>Z Pos:</label>
-                        <input type="range" id="text-z-${index}" data-index="${index}" 
+                        <input type="range" id="text-z-${index}" data-index="${index}"
                                min="-700" max="-500" value="${offset.z}" />
-                        <input type="number" id="text-z-num-${index}" 
+                        <input type="number" id="text-z-num-${index}"
                                min="-700" max="-500" value="${offset.z.toFixed(1)}" />
                     </div>
-                    
+                   
                     <div class="control-row">
                         <label>Rotation:</label>
-                        <input type="range" id="rot-${index}" data-index="${index}" 
+                        <input type="range" id="rot-${index}" data-index="${index}"
                                min="150" max="210" value="${rotation.z * 180 / Math.PI}" />
-                        <input type="number" id="rot-num-${index}" 
+                        <input type="number" id="rot-num-${index}"
                                min="150" max="210" value="${(rotation.z * 180 / Math.PI).toFixed(1)}" />
                     </div>
                 `;
-                
+               
                 controlsContainer.appendChild(controlDiv);
-                
+               
                 // Add event listeners
                 const panelSelect = document.getElementById(`panel-${index}`);
                 panelSelect.addEventListener('change', (e) => {
@@ -1399,7 +987,7 @@ function getCountdownText2() {
                     textItem.panelObj.stlMesh = movableMeshes[newPanelIndex];
                     saveState();
                 });
-                
+               
                 if (type === 'text') {
                     const fontSelect = document.getElementById(`font-${index}`);
                     if (fontSelect) {
@@ -1410,7 +998,7 @@ function getCountdownText2() {
                             saveState();
                         });
                     }
-                    
+                   
                     const textArea = document.getElementById(`text-${index}`);
                     if (textArea) {
                         textArea.addEventListener('input', (e) => {
@@ -1439,7 +1027,7 @@ function getCountdownText2() {
                     widthInput.addEventListener('change', (e) => textItem.lineWidth = e.target.value);
                     textItem.color = colorInput.value;
                     textItem.lineWidth = widthInput.value;
-                    
+                   
                     function getMousePos(e, canvas) {
                         const rect = canvas.getBoundingClientRect();
                         return [
@@ -1447,14 +1035,14 @@ function getCountdownText2() {
                             (e.clientY - rect.top) / rect.height * canvas.height
                         ];
                     }
-                    
+                   
                     function startDraw(e) {
                         drawing = true;
                         [lastX, lastY] = getMousePos(e, drawCanvas);
                         ctx.beginPath();
                         ctx.moveTo(lastX, lastY);
                     }
-                    
+                   
                     function draw(e) {
                         if (!drawing) return;
                         const [x, y] = getMousePos(e, drawCanvas);
@@ -1471,7 +1059,7 @@ function getCountdownText2() {
                         ctx.stroke();
                         [lastX, lastY] = [x, y];
                     }
-                    
+                   
                     function endDraw() {
                         if (drawing) {
                             drawing = false;
@@ -1480,29 +1068,29 @@ function getCountdownText2() {
                             saveState();
                         }
                     }
-                    
+                   
                     drawCanvas.addEventListener('mousedown', startDraw);
                     drawCanvas.addEventListener('mousemove', draw);
                     drawCanvas.addEventListener('mouseup', endDraw);
                     drawCanvas.addEventListener('mouseout', endDraw);
-                    
+                   
                     drawCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e.touches[0]); });
                     drawCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
                     drawCanvas.addEventListener('touchend', endDraw);
-                    
+                   
                     document.getElementById(`clear-${index}`).addEventListener('click', () => {
                         ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
                         updateTextureFromDraw(textItem, drawCanvas);
                         saveState();
                     });
-                    
+                   
                     const eraserBtn = document.getElementById(`eraser-${index}`);
                     eraserBtn.addEventListener('click', () => {
                         isErasing = !isErasing;
                         eraserBtn.textContent = isErasing ? 'Eraser On' : 'Eraser Off';
                         drawCanvas.style.cursor = isErasing ? 'cell' : 'crosshair';
                     });
-                    
+                   
                     const draw3dBtn = document.getElementById(`draw3d-${index}`);
                     draw3dBtn.addEventListener('click', () => {
                         drawing3DPanel = textItem;
@@ -1520,10 +1108,10 @@ function getCountdownText2() {
                             controlCtx.drawImage(textItem.panel.userData.textureData.canvas, 0, 0, drawCanvas.width, drawCanvas.height);
                         };
                     });
-                    
+                   
                     textItem.controlCanvas = drawCanvas;
                     textItem.isErasing = isErasing;
-                    
+                   
                     // Load drawing if exists
                     if (textItem.drawingData) {
                         const img = new Image();
@@ -1536,7 +1124,7 @@ function getCountdownText2() {
                         updateTextureFromDraw(textItem, drawCanvas);
                     }
                 }
-                
+               
                 // Size controls
                 const sizeRange = document.getElementById(`size-${index}`);
                 const sizeNum = document.getElementById(`size-num-${index}`);
@@ -1570,19 +1158,19 @@ function getCountdownText2() {
                     }
                     saveState();
                 });
-                
+               
                 // Position controls (only Y and Z, X is fixed at -11.4)
                 ['y', 'z'].forEach(axis => {
                     const range = document.getElementById(`text-${axis}-${index}`);
                     const num = document.getElementById(`text-${axis}-num-${index}`);
-                    
+                   
                     range.addEventListener('input', (e) => {
                         const val = parseFloat(e.target.value);
                         num.value = val.toFixed(1);
                         offset[axis] = val;
                         saveState();
                     });
-                    
+                   
                     num.addEventListener('change', (e) => {
                         const val = parseFloat(e.target.value);
                         range.value = val;
@@ -1590,10 +1178,10 @@ function getCountdownText2() {
                         saveState();
                     });
                 });
-                
+               
                 // X is always fixed at -11.4
                 offset.x = -11.4;
-                
+               
                 // Rotation control
                 const rotRange = document.getElementById(`rot-${index}`);
                 const rotNum = document.getElementById(`rot-num-${index}`);
@@ -1611,7 +1199,7 @@ function getCountdownText2() {
                 });
             });
         }
-        
+       
         // Update text panel with new font/size
         function updateTextPanel(textItem) {
             const message = textItem.panel.userData.messageFunc();
@@ -1624,7 +1212,7 @@ function getCountdownText2() {
             textItem.panel.material.map = newTexture.texture;
             textItem.panel.material.needsUpdate = true;
         }
-        
+       
         // Update texture from drawing canvas
         function updateTextureFromDraw(textItem, drawCanvas) {
             const textureCanvas = textItem.panel.userData.textureData.canvas;
@@ -1633,7 +1221,7 @@ function getCountdownText2() {
             tCtx.drawImage(drawCanvas, 0, 0, textureCanvas.width, textureCanvas.height);
             textItem.panel.material.map.needsUpdate = true;
         }
-        
+       
         // Save current state to localStorage
         function saveState() {
             const state = window.allTextPanels.map(item => ({
@@ -1655,110 +1243,75 @@ function getCountdownText2() {
                 text: item.type === 'text' ? (item.text ?? undefined) : undefined,
                 drawingData: item.type === 'draw' && item.controlCanvas ? item.controlCanvas.toDataURL('image/png') : undefined
             }));
-            
+           
             localStorage.setItem('textPanelState', JSON.stringify(state));
             console.log('State auto-saved to localStorage');
         }
-        
-        // Load state from localStorage or default
+       
+        // Load state from localStorage
         function loadState(stateData = null) {
             const stateStr = stateData || localStorage.getItem('textPanelState');
             let state;
             if (stateStr) {
                 state = JSON.parse(stateStr);
-            } else if (DEFAULT_TEXT_STATE) {
-                state = DEFAULT_TEXT_STATE;
             } else {
-                console.info('No saved state found!');
+                console.info('No saved state found! Start by adding new panels.');
                 return;
             }
-            
-            state.forEach((savedItem, index) => {
-                if (index < window.allTextPanels.length) {
-                    const textItem = window.allTextPanels[index];
-                    
-                    textItem.type = savedItem.type || 'text';
-                    
-                    // Update font
-                    textItem.font = savedItem.font;
-                    
-                    // Update size
-                    textItem.size = savedItem.size;
-                    
-                    // Update offset
-                    textItem.panelObj.offset.x = savedItem.offset.x;
-                    textItem.panelObj.offset.y = savedItem.offset.y;
-                    textItem.panelObj.offset.z = savedItem.offset.z;
-                    
-                    // Update rotation
-                    if (savedItem.rotation && textItem.panelObj.rotationOffset) {
-                        textItem.panelObj.rotationOffset.x = savedItem.rotation.x;
-                        textItem.panelObj.rotationOffset.y = savedItem.rotation.y;
-                        textItem.panelObj.rotationOffset.z = savedItem.rotation.z;
-                    }
-                    
-                    // Update assigned panel
-                    textItem.assignedPanel = savedItem.assignedPanel;
-                    textItem.stlMesh = movableMeshes[savedItem.assignedPanel];
-                    textItem.panelObj.stlMesh = movableMeshes[savedItem.assignedPanel];
-                    
-                    // Update text or drawing
-                    if (textItem.type === 'text' && savedItem.text !== undefined) {
-                        textItem.text = savedItem.text;
-                        textItem.isDynamic = false;
-                        textItem.panel.userData.messageFunc = () => textItem.text;
-                    } else if (textItem.type === 'draw' && savedItem.drawingData) {
-                        textItem.drawingData = savedItem.drawingData;
-                    }
-                    
-                    // Update the visual panel
-                    if (textItem.type === 'text') {
-                        updateTextPanel(textItem);
-                    } // Drawing will be loaded in UI init
-                } else {
-                    // Create new panel from saved state
-                    const newType = savedItem.type || 'text';
-                    const newName = savedItem.name || `Custom ${index + 1}`;
-                    const newFont = savedItem.font || availableFonts[0];
-                    const newSize = savedItem.size || (newType === 'text' ? 76 : 100);
-                    const newOffset = new THREE.Vector3(savedItem.offset.x, savedItem.offset.y, savedItem.offset.z);
-                    const newRotation = new THREE.Euler(
-                        savedItem.rotation ? savedItem.rotation.x : -Math.PI / 2,
-                        savedItem.rotation ? savedItem.rotation.y : Math.PI / 2,
-                        savedItem.rotation ? savedItem.rotation.z : Math.PI
-                    );
-                    const newAssigned = savedItem.assignedPanel || 0;
-                    const newMessageFunc = newType === 'text' ? () => (savedItem.text || "New message\nEdit me") : () => '';
-                    const newPanelSize = {width: 250, height: 175};
-                    const newPanel = createTextPanel(newMessageFunc, index + 100, newFont, newPanelSize, newType);
-                    newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
-                    scene.add(newPanel);
-                    const newPanelObj = {
-                        stlMesh: movableMeshes[newAssigned],
-                        textPanel: newPanel,
-                        offset: newOffset,
-                        rotationOffset: newRotation
-                    };
-                    panelTexts.push(newPanelObj);
-                    textPanels.push(newPanel);
-                    window.allTextPanels.push({
-                        name: newName,
-                        panelObj: newPanelObj,
-                        panel: newPanel,
-                        font: newFont,
-                        size: newSize,
-                        isMain: false,
-                        assignedPanel: newAssigned,
-                        stlMesh: movableMeshes[newAssigned],
-                        text: newType === 'text' ? (savedItem.text || "New message\nEdit me") : null,
-                        drawingData: newType === 'draw' ? savedItem.drawingData : null,
-                        isDynamic: false,
-                        type: newType,
-                        baseSize: newPanelSize
-                    });
-                }
+           
+            // Clear existing panels
+            window.allTextPanels.forEach(item => {
+                scene.remove(item.panel);
+                item.panel.geometry.dispose();
+                item.panel.material.dispose();
             });
-            
+            window.allTextPanels = [];
+            panelTexts.length = 0;
+            textPanels.length = 0;
+            window.textControls = {};
+           
+            state.forEach((savedItem, index) => {
+                const newType = savedItem.type || 'text';
+                const newName = savedItem.name || `Custom ${index + 1}`;
+                const newFont = savedItem.font || availableFonts[0];
+                const newSize = savedItem.size || (newType === 'text' ? 76 : 100);
+                const newOffset = new THREE.Vector3(savedItem.offset.x, savedItem.offset.y, savedItem.offset.z);
+                const newRotation = new THREE.Euler(
+                    savedItem.rotation ? savedItem.rotation.x : -Math.PI / 2,
+                    savedItem.rotation ? savedItem.rotation.y : Math.PI / 2,
+                    savedItem.rotation ? savedItem.rotation.z : Math.PI
+                );
+                const newAssigned = savedItem.assignedPanel || 0;
+                const newMessageFunc = newType === 'text' ? () => (savedItem.text || "New message\nEdit me") : () => '';
+                const newPanelSize = {width: 250, height: 175};
+                const newPanel = createTextPanel(newMessageFunc, index + 100, newFont, newPanelSize, newType);
+                newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
+                scene.add(newPanel);
+                const newPanelObj = {
+                    stlMesh: movableMeshes[newAssigned],
+                    textPanel: newPanel,
+                    offset: newOffset,
+                    rotationOffset: newRotation
+                };
+                panelTexts.push(newPanelObj);
+                textPanels.push(newPanel);
+                window.allTextPanels.push({
+                    name: newName,
+                    panelObj: newPanelObj,
+                    panel: newPanel,
+                    font: newFont,
+                    size: newSize,
+                    isMain: false,
+                    assignedPanel: newAssigned,
+                    stlMesh: movableMeshes[newAssigned],
+                    text: newType === 'text' ? (savedItem.text || "New message\nEdit me") : null,
+                    drawingData: newType === 'draw' ? savedItem.drawingData : null,
+                    isDynamic: false,
+                    type: newType,
+                    baseSize: newPanelSize
+                });
+            });
+           
             // Refresh UI controls
             initializeTextControls();
             console.log('State loaded successfully');
@@ -1766,7 +1319,7 @@ function getCountdownText2() {
                 console.info('State loaded successfully!');
             }
         }
-        
+       
         // Export current state as code
         function exportState() {
             const state = window.allTextPanels.map(item => ({
@@ -1788,9 +1341,9 @@ function getCountdownText2() {
                 text: item.type === 'text' ? (item.text ?? undefined) : undefined,
                 drawingData: item.type === 'draw' && item.controlCanvas ? item.controlCanvas.toDataURL('image/png') : undefined
             }));
-            
-            const stateCode = `// Replace DEFAULT_TEXT_STATE with this value for production:\nconst DEFAULT_TEXT_STATE = ${JSON.stringify(state, null, 2)};`;
-            
+           
+            const stateCode = `// Add this to your script to set initial text panels:\nconst INITIAL_TEXT_STATE = ${JSON.stringify(state, null, 2)};`;
+           
             // Create a textarea to show the code
             const textarea = document.createElement('textarea');
             textarea.value = stateCode;
@@ -1808,7 +1361,7 @@ function getCountdownText2() {
             textarea.style.border = '2px solid #333';
             textarea.style.fontFamily = 'monospace';
             textarea.style.fontSize = '12px';
-            
+           
             // Add close button
             const closeBtn = document.createElement('button');
             closeBtn.textContent = 'Copy & Close';
@@ -1824,32 +1377,70 @@ function getCountdownText2() {
             closeBtn.style.borderRadius = '5px';
             closeBtn.style.cursor = 'pointer';
             closeBtn.style.fontSize = '14px';
-            
+           
             closeBtn.onclick = () => {
                 textarea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textarea);
                 document.body.removeChild(closeBtn);
-                console.info('Code copied to clipboard! Paste this in place of DEFAULT_TEXT_STATE for production.');
+                console.info('Code copied to clipboard! Paste this in your script to set initial text panels.');
             };
-            
+           
             document.body.appendChild(textarea);
             document.body.appendChild(closeBtn);
-            
+           
             // Also log to console
             console.log(stateCode);
         }
-        
-        // Reset to original default state
+       
+        // Reset to empty state
         function resetState() {
-            if (!confirm('Are you sure you want to reset all text panels to their default positions?')) {
+            if (!confirm('Are you sure you want to reset all text panels? This will remove all panels.')) {
                 return;
             }
-            
-            // Reload the page to get fresh defaults
-            location.reload();
+           
+            // Clear existing panels
+            window.allTextPanels.forEach(item => {
+                scene.remove(item.panel);
+                item.panel.geometry.dispose();
+                item.panel.material.dispose();
+            });
+            window.allTextPanels = [];
+            panelTexts.length = 0;
+            textPanels.length = 0;
+            window.textControls = {};
+            localStorage.removeItem('textPanelState');
+            initializeTextControls();
+            console.info('State reset to empty.');
         }
-        
+       
+        // Create transparent text panels
+        function createTextPanel(messageFunc, index, fontFamily = 'Kalam', panelSize = null, type = 'text') {
+            // Random panel sizes if not specified
+            const width = panelSize?.width || (240 + Math.random() * 60); // 240-300
+            const height = panelSize?.height || (150 + Math.random() * 50); // 150-200
+            const geometry = new THREE.PlaneGeometry(width, height);
+            let textureData;
+            if (type === 'text') {
+                textureData = createHandwritingTexture(messageFunc(), '#000000', fontFamily);
+            } else {
+                textureData = createEmptyTexture();
+            }
+           
+            const material = new THREE.MeshBasicMaterial({
+                map: textureData.texture,
+                transparent: true,
+                opacity: 0.95,
+                side: THREE.DoubleSide,
+                depthTest: true,
+                depthWrite: false
+            });
+           
+            const panel = new THREE.Mesh(geometry, material);
+            panel.userData = { textureData, messageFunc, index, type };
+            return panel;
+        }
+       
         // Add new text panel
         function addNewTextPanel() {
             const typeChoice = prompt("Enter type (1 for typed text, 2 for hand drawn):", "1");
@@ -1861,7 +1452,7 @@ function getCountdownText2() {
             }
             const panelStr = prompt("Assign to panel (0=Pink, 1=Green, 2=Blue):", "0");
             const newAssigned = parseInt(panelStr) || 0;
-            
+           
             const newIndex = window.allTextPanels.length;
             const newName = `Custom ${newIndex + 1}`;
             const newFont = availableFonts[0];
@@ -1898,13 +1489,13 @@ function getCountdownText2() {
             initializeTextControls();
             saveState();
         }
-        
+       
         // Toggle text controls panel
         document.getElementById('toggle-text-controls').addEventListener('click', () => {
             const panel = document.getElementById('text-controls');
             panel.classList.toggle('active');
         });
-        
+       
         // Add save/load/export button listeners
         setTimeout(() => {
             document.getElementById('save-state')?.addEventListener('click', saveState);
@@ -1913,7 +1504,7 @@ function getCountdownText2() {
             document.getElementById('reset-state')?.addEventListener('click', resetState);
             document.getElementById('add-new-text')?.addEventListener('click', addNewTextPanel);
         }, 100);
-        
+       
         // Handle window resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
