@@ -311,7 +311,7 @@
             <button id="reset-state" style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">Reset to Default</button>
         </div>
         <div style="margin-bottom: 15px;">
-            <button id="add-new-text" style="padding: 5px 10px; background: #673AB7; color: white; border: none; border-radius: 3px; cursor: pointer;">Add New Text Panel</button>
+            <button id="add-new-text" style="padding: 5px 10px; background: #673AB7; color: white; border: none; border-radius: 3px; cursor: pointer;">Add New Panel</button>
         </div>
         <div id="text-panel-list"></div>
     </div>
@@ -688,12 +688,17 @@ function getCountdownText2() {
 
         
         // Create transparent text panels
-        function createTextPanel(messageFunc, index, fontFamily = 'Kalam', panelSize = null) {
+        function createTextPanel(messageFunc, index, fontFamily = 'Kalam', panelSize = null, type = 'text') {
             // Random panel sizes if not specified
             const width = panelSize?.width || (240 + Math.random() * 60); // 240-300
             const height = panelSize?.height || (150 + Math.random() * 50); // 150-200
             const geometry = new THREE.PlaneGeometry(width, height);
-            const textureData = createHandwritingTexture(messageFunc(), '#000000', fontFamily);
+            let textureData;
+            if (type === 'text') {
+                textureData = createHandwritingTexture(messageFunc(), '#000000', fontFamily);
+            } else {
+                textureData = createEmptyTexture();
+            }
             
             const material = new THREE.MeshBasicMaterial({
                 map: textureData.texture,
@@ -705,8 +710,20 @@ function getCountdownText2() {
             });
             
             const panel = new THREE.Mesh(geometry, material);
-            panel.userData = { textureData, messageFunc, index };
+            panel.userData = { textureData, messageFunc, index, type };
             return panel;
+        }
+        
+        // Create empty texture for drawing
+        function createEmptyTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+            return { texture, canvas, ctx };
         }
         
         // Update countdown panel every second
@@ -1089,27 +1106,73 @@ function getCountdownText2() {
         renderer.domElement.addEventListener('mousemove', onMouseMove);
         renderer.domElement.addEventListener('mouseup', onMouseUp);
 
+        let drawing3DPanel = null; // Track which panel is in 3D draw mode
+        let drawing3D = false;
+        let last3DPoint = null;
+
         function onMouseDown(event) {
-            event.preventDefault();
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(movableMeshes);
-            if (intersects.length > 0) {
-                selectedMesh = intersects[0].object;
-                controls.enabled = false;
-                isAutoSliding = false;
-                updateModeIndicator();
-                const planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial());
-                const intersectPoint = raycaster.intersectObject(planeMesh)[0]?.point;
-                if (intersectPoint) {
-                    startPoint = intersectPoint.clone();
+            if (drawing3DPanel) {
+                // Handle 3D drawing
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(drawing3DPanel.panel);
+                if (intersects.length > 0) {
+                    const uv = intersects[0].uv;
+                    const textureCanvas = drawing3DPanel.panel.userData.textureData.canvas;
+                    const ctx = drawing3DPanel.panel.userData.textureData.ctx;
+                    ctx.strokeStyle = drawing3DPanel.color || '#000000';
+                    ctx.lineWidth = drawing3DPanel.lineWidth || 2;
+                    const x = uv.x * textureCanvas.width;
+                    const y = (1 - uv.y) * textureCanvas.height; // Flip Y
+                    last3DPoint = { x, y };
+                    drawing3D = true;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    return; // Prevent other interactions
+                }
+            } else {
+                // Normal sliding
+                event.preventDefault();
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(movableMeshes);
+                if (intersects.length > 0) {
+                    selectedMesh = intersects[0].object;
+                    controls.enabled = false;
+                    isAutoSliding = false;
+                    updateModeIndicator();
+                    const planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial());
+                    const intersectPoint = raycaster.intersectObject(planeMesh)[0]?.point;
+                    if (intersectPoint) {
+                        startPoint = intersectPoint.clone();
+                    }
                 }
             }
         }
 
         function onMouseMove(event) {
-            if (selectedMesh && frameBounds) {
+            if (drawing3D && drawing3DPanel) {
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(drawing3DPanel.panel);
+                if (intersects.length > 0) {
+                    const uv = intersects[0].uv;
+                    const textureCanvas = drawing3DPanel.panel.userData.textureData.canvas;
+                    const ctx = drawing3DPanel.panel.userData.textureData.ctx;
+                    const x = uv.x * textureCanvas.width;
+                    const y = (1 - uv.y) * textureCanvas.height;
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                    last3DPoint = { x, y };
+                    drawing3DPanel.panel.material.map.needsUpdate = true;
+                    // Sync to control canvas
+                    const controlCtx = drawing3DPanel.controlCanvas.getContext('2d');
+                    controlCtx.drawImage(textureCanvas, 0, 0, drawing3DPanel.controlCanvas.width, drawing3DPanel.controlCanvas.height);
+                }
+            } else if (selectedMesh && frameBounds) {
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
                 raycaster.setFromCamera(mouse, camera);
@@ -1131,8 +1194,14 @@ function getCountdownText2() {
         }
 
         function onMouseUp() {
-            selectedMesh = null;
-            startPoint = null;
+            if (drawing3D && drawing3DPanel) {
+                drawing3D = false;
+                last3DPoint = null;
+                saveState(); // Save after draw
+            } else {
+                selectedMesh = null;
+                startPoint = null;
+            }
             updateModeIndicator();
         }
 
@@ -1263,7 +1332,8 @@ function getCountdownText2() {
                             <label>Color:</label>
                             <input type="color" id="color-${index}" value="#000000" style="width:50px;">
                             <button id="clear-${index}" style="margin-left:10px;">Clear</button>
-                            <button id="update-${index}" style="margin-left:10px;">Update</button>
+                            <button id="eraser-${index}" style="margin-left:10px;">Eraser Off</button>
+                            <button id="draw3d-${index}" style="margin-left:10px;">Draw on 3D</button>
                         </div>
                     `;
                 }
@@ -1356,39 +1426,59 @@ function getCountdownText2() {
                     const ctx = drawCanvas.getContext('2d');
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
+                    ctx.shadowBlur = 2; // For creamy look
+                    ctx.shadowColor = 'rgba(0,0,0,0.3)'; // Soft shadow
+                    ctx.globalAlpha = 0.8; // Semi-transparent for smooth blending
                     let drawing = false;
                     let lastX = 0;
                     let lastY = 0;
+                    let isErasing = false;
                     const colorInput = document.getElementById(`color-${index}`);
                     const widthInput = document.getElementById(`line-width-${index}`);
+                    colorInput.addEventListener('change', (e) => textItem.color = e.target.value);
+                    widthInput.addEventListener('change', (e) => textItem.lineWidth = e.target.value);
+                    textItem.color = colorInput.value;
+                    textItem.lineWidth = widthInput.value;
                     
-                    function getMousePos(e) {
-                        const rect = drawCanvas.getBoundingClientRect();
+                    function getMousePos(e, canvas) {
+                        const rect = canvas.getBoundingClientRect();
                         return [
-                            (e.clientX - rect.left) / rect.width * drawCanvas.width,
-                            (e.clientY - rect.top) / rect.height * drawCanvas.height
+                            (e.clientX - rect.left) / rect.width * canvas.width,
+                            (e.clientY - rect.top) / rect.height * canvas.height
                         ];
                     }
                     
                     function startDraw(e) {
                         drawing = true;
-                        [lastX, lastY] = getMousePos(e);
+                        [lastX, lastY] = getMousePos(e, drawCanvas);
+                        ctx.beginPath();
+                        ctx.moveTo(lastX, lastY);
                     }
                     
                     function draw(e) {
                         if (!drawing) return;
-                        const [x, y] = getMousePos(e);
-                        ctx.strokeStyle = colorInput.value;
-                        ctx.lineWidth = widthInput.value;
-                        ctx.beginPath();
-                        ctx.moveTo(lastX, lastY);
+                        const [x, y] = getMousePos(e, drawCanvas);
+                        if (isErasing) {
+                            ctx.globalCompositeOperation = 'destination-out';
+                            ctx.strokeStyle = 'rgba(0,0,0,1)'; // Erase fully
+                        } else {
+                            ctx.globalCompositeOperation = 'source-over';
+                            ctx.strokeStyle = textItem.color;
+                            ctx.shadowColor = textItem.color;
+                        }
+                        ctx.lineWidth = textItem.lineWidth;
                         ctx.lineTo(x, y);
                         ctx.stroke();
                         [lastX, lastY] = [x, y];
                     }
                     
                     function endDraw() {
-                        drawing = false;
+                        if (drawing) {
+                            drawing = false;
+                            ctx.globalCompositeOperation = 'source-over'; // Reset
+                            updateTextureFromDraw(textItem, drawCanvas);
+                            saveState();
+                        }
                     }
                     
                     drawCanvas.addEventListener('mousedown', startDraw);
@@ -1406,12 +1496,33 @@ function getCountdownText2() {
                         saveState();
                     });
                     
-                    document.getElementById(`update-${index}`).addEventListener('click', () => {
-                        updateTextureFromDraw(textItem, drawCanvas);
-                        saveState();
+                    const eraserBtn = document.getElementById(`eraser-${index}`);
+                    eraserBtn.addEventListener('click', () => {
+                        isErasing = !isErasing;
+                        eraserBtn.textContent = isErasing ? 'Eraser On' : 'Eraser Off';
+                        drawCanvas.style.cursor = isErasing ? 'cell' : 'crosshair';
+                    });
+                    
+                    const draw3dBtn = document.getElementById(`draw3d-${index}`);
+                    draw3dBtn.addEventListener('click', () => {
+                        drawing3DPanel = textItem;
+                        draw3dBtn.textContent = 'Exit 3D Draw';
+                        controls.enabled = false;
+                        isAutoSliding = false;
+                        isAutorotating = false;
+                        draw3dBtn.onclick = () => {
+                            drawing3DPanel = null;
+                            draw3dBtn.textContent = 'Draw on 3D';
+                            controls.enabled = true; // Re-enable if was on
+                            updateModeIndicator();
+                            // Sync back to control canvas
+                            const controlCtx = drawCanvas.getContext('2d');
+                            controlCtx.drawImage(textItem.panel.userData.textureData.canvas, 0, 0, drawCanvas.width, drawCanvas.height);
+                        };
                     });
                     
                     textItem.controlCanvas = drawCanvas;
+                    textItem.isErasing = isErasing;
                     
                     // Load drawing if exists
                     if (textItem.drawingData) {
@@ -1516,15 +1627,11 @@ function getCountdownText2() {
         
         // Update texture from drawing canvas
         function updateTextureFromDraw(textItem, drawCanvas) {
-            const textureCanvas = document.createElement('canvas');
-            textureCanvas.width = 1024;
-            textureCanvas.height = 512;
-            const tCtx = textureCanvas.getContext('2d');
-            tCtx.drawImage(drawCanvas, 0, 0, 1024, 512);
-            const texture = new THREE.CanvasTexture(textureCanvas);
-            texture.needsUpdate = true;
-            textItem.panel.material.map = texture;
-            textItem.panel.material.needsUpdate = true;
+            const textureCanvas = textItem.panel.userData.textureData.canvas;
+            const tCtx = textItem.panel.userData.textureData.ctx;
+            tCtx.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
+            tCtx.drawImage(drawCanvas, 0, 0, textureCanvas.width, textureCanvas.height);
+            textItem.panel.material.map.needsUpdate = true;
         }
         
         // Save current state to localStorage
@@ -1623,7 +1730,7 @@ function getCountdownText2() {
                     const newAssigned = savedItem.assignedPanel || 0;
                     const newMessageFunc = newType === 'text' ? () => (savedItem.text || "New message\nEdit me") : () => '';
                     const newPanelSize = {width: 250, height: 175};
-                    const newPanel = createTextPanel(newMessageFunc, index + 100, newFont, newPanelSize);
+                    const newPanel = createTextPanel(newMessageFunc, index + 100, newFont, newPanelSize, newType);
                     newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
                     scene.add(newPanel);
                     const newPanelObj = {
@@ -1763,7 +1870,7 @@ function getCountdownText2() {
             const newRotation = new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI);
             const newPanelSize = {width: 250, height: 175};
             const newMessageFunc = isTyped ? () => initialText : () => '';
-            const newPanel = createTextPanel(newMessageFunc, newIndex + 100, newFont, newPanelSize);
+            const newPanel = createTextPanel(newMessageFunc, newIndex + 100, newFont, newPanelSize, isTyped ? 'text' : 'draw');
             newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
             scene.add(newPanel);
             const newPanelObj = {
