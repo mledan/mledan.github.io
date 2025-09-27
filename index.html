@@ -16,7 +16,7 @@
             padding: 10px;
             max-width: 400px;
             font-size: 14px;
-            display: none; /* Hide the info menu */
+            display: none;
         }
         #controls {
             position: absolute;
@@ -25,9 +25,8 @@
             color: white;
             background: rgba(0, 0, 0, 0.7);
             padding: 10px;
-            display: none; /* Hide the controls menu */
+            display: none;
         }
-     
         #text-controls {
             position: absolute;
             top: 60px;
@@ -42,18 +41,15 @@
             font-size: 12px;
             display: none;
         }
-     
         #text-controls.active {
             display: block;
         }
-     
         #text-controls h3 {
             margin: 0 0 10px 0;
             color: #fff;
             border-bottom: 1px solid #555;
             padding-bottom: 5px;
         }
-     
         .text-panel-control {
             background: rgba(255, 255, 255, 0.1);
             padding: 10px;
@@ -61,30 +57,25 @@
             border-radius: 5px;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-     
         .text-panel-control h4 {
             margin: 0 0 8px 0;
             color: #ffd700;
             font-size: 13px;
         }
-     
         .control-row {
             display: flex;
             align-items: center;
             margin: 5px 0;
             gap: 10px;
         }
-     
         .control-row label {
             width: 60px;
             font-size: 11px;
         }
-     
         .control-row input[type="range"] {
             flex: 1;
             height: 20px;
         }
-     
         .control-row input[type="number"] {
             width: 60px;
             background: rgba(255, 255, 255, 0.1);
@@ -93,7 +84,6 @@
             padding: 2px 5px;
             border-radius: 3px;
         }
-     
         .control-row select {
             flex: 1;
             background: rgba(255, 255, 255, 0.1);
@@ -102,11 +92,9 @@
             padding: 3px;
             border-radius: 3px;
         }
-     
         .control-row select option {
             background: #333;
         }
-     
         .control-row textarea {
             flex: 1;
             background: rgba(255, 255, 255, 0.1);
@@ -116,7 +104,6 @@
             border-radius: 3px;
             resize: vertical;
         }
-     
         #toggle-text-controls {
             position: absolute;
             top: 10px;
@@ -129,11 +116,9 @@
             cursor: pointer;
             font-size: 14px;
         }
-     
         #toggle-text-controls:hover {
             background: rgba(0, 0, 0, 0.7);
         }
-     
         .text-preview {
             font-size: 10px;
             color: #aaa;
@@ -164,7 +149,7 @@
             border: 1px solid white;
             border-radius: 5px;
             cursor: pointer;
-            touch-action: manipulation; /* Prevent default touch behaviors */
+            touch-action: manipulation;
         }
         #mobile-controls button:hover {
             background: rgba(0, 0, 0, 0.7);
@@ -175,7 +160,6 @@
                 font-size: 14px;
             }
         }
-        /* Handwritten text styles */
         .panel-text {
             position: absolute;
             width: 200px;
@@ -193,7 +177,6 @@
             padding: 10px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-     
         .handwritten {
             font-family: 'Kalam', cursive;
             font-weight: 700;
@@ -202,82 +185,67 @@
             letter-spacing: 0.5px;
             text-shadow: 0.5px 0.5px 0px rgba(0,0,0,0.1);
         }
-     
         .handwritten-large {
             font-size: 22px;
             font-weight: 700;
         }
-     
         .handwritten-small {
             font-size: 16px;
         }
-     
-        /* Add slight variations to make it look more natural */
         .char-1 { transform: rotate(-1deg); display: inline-block; }
         .char-2 { transform: rotate(0.5deg); display: inline-block; }
         .char-3 { transform: rotate(-0.5deg); display: inline-block; }
         .char-4 { transform: rotate(1deg); display: inline-block; }
         .char-5 { transform: rotate(-0.3deg); display: inline-block; }
-     
         .countdown-text {
             color: #e74c3c;
             margin-bottom: 5px;
         }
-     
         .camping-text {
             color: #27ae60;
         }
-     
         .love-text {
             color: #e91e63;
         }
-     
         .heart-icon {
             color: #e74c3c;
             font-size: 24px;
             animation: heartbeat 1.5s ease-in-out infinite;
         }
-     
         @keyframes heartbeat {
             0% { transform: scale(1); }
             50% { transform: scale(1.1); }
             100% { transform: scale(1); }
         }
-     
         .campfire-icon {
             width: 30px;
             height: 30px;
             margin: 5px;
         }
-        /* Custom local fonts */
         @font-face {
             font-family: 'DfThin';
             src: url('df-thin-font/DfThin-W8Z4.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
-     
         @font-face {
             font-family: 'MarkerFont';
             src: url('marker-font/MarkerFont-AyOm.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
-     
         @font-face {
             font-family: 'Pwscritch';
             src: url('pwscritch-font/Pwscritch-7yBE.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
-     
         @font-face {
             font-family: 'SmoothMarker';
             src: url('smooth-marker-font/SmoothMarker-45d6.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
-     
         @font-face {
             font-family: 'WhiteboardRegular';
             src: url('whiteboard-font/WhiteboardRegular-O7gp.ttf') format('truetype');
@@ -300,7 +268,6 @@
         <button id="mobile-toggle-autorotate">Toggle AutoRotate</button>
         <button id="mobile-toggle-autoslide">Toggle AutoSlide</button>
     </div>
- 
     <button id="toggle-text-controls">Text Controls</button>
     <div id="text-controls">
         <h3>Text Panel Controls</h3>
@@ -328,36 +295,36 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { STLLoader } from 'three/addons/loaders/STLLoader.js';
-        // Make text panels globally accessible for console control
+
         window.textControls = {};
-        window.allTextPanels = []; // Store all text panels for UI control
-     
-        // Set up scene, camera, and renderer
+        window.allTextPanels = [];
+
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xdddddd);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
         const renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
-        // Add orbit controls (disabled by default)
+
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
         controls.enabled = false;
-        // Default camera settings with user-specified values - perfect view distance
+
         const defaultCameraSettings = {
-            zoom: 75, // FOV in degrees - reduced from 100 to reduce fisheye
-            position: new THREE.Vector3(), // Computed below
-            target: new THREE.Vector3(-14, 162, -8), // Pan
-            rotation: new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI / 2, 'XYZ'), // -90°, 90°, 90°
-            distance: 280 // Distance from target - perfect overview distance
+            zoom: 75,
+            position: new THREE.Vector3(),
+            target: new THREE.Vector3(-14, 162, -8),
+            rotation: new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI / 2, 'XYZ'),
+            distance: 280
         };
-        // Update orbit, autorotate, and autoslide mode indicator with camera info
+
         const infoDiv = document.getElementById('info');
         let isAutorotating = false;
-        let isAutoSliding = true; // AutoSlide ON by default
+        let isAutoSliding = true;
         let startTime = performance.now() / 1000;
+
         function updateModeIndicator() {
             let infoText = `Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate, 'a' to toggle autoslide. Orbit: ${controls.enabled ? 'ON' : 'OFF'}, AutoRotate: ${isAutorotating ? 'ON' : 'OFF'}, AutoSlide: ${isAutoSliding ? 'ON' : 'OFF'}`;
             if (controls.enabled) {
@@ -369,17 +336,18 @@
             }
             infoDiv.innerHTML = infoText;
         }
-        // Add OrbitControls change listener for event-based updates
+
         controls.addEventListener('change', () => {
             if (controls.enabled) {
                 updateModeIndicator();
             }
         });
-        // Add mobile button event listeners
+
         document.getElementById('mobile-toggle-orbit').addEventListener('click', () => {
             controls.enabled = !controls.enabled;
             updateModeIndicator();
         });
+
         document.getElementById('mobile-toggle-autorotate').addEventListener('click', () => {
             isAutorotating = !isAutorotating;
             if (isAutorotating) {
@@ -387,6 +355,7 @@
             }
             updateModeIndicator();
         });
+
         document.getElementById('mobile-toggle-autoslide').addEventListener('click', () => {
             isAutoSliding = !isAutoSliding;
             if (isAutoSliding) {
@@ -394,20 +363,20 @@
             }
             updateModeIndicator();
         });
-        // Add lighting
+
         const ambientLight = new THREE.AmbientLight(0x404040);
         scene.add(ambientLight);
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
         directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
-        // STL file configurations with provided position values
+
         const stlFiles = [
             { path: './completeframe-nosliders.stl', color: 0x5c5c5c, movable: false, scale: 1, initialPos: [0, 0, 500] },
             { path: './slidingboard.stl', color: 0xFEECEC, movable: true, scale: 1, initialPos: [12.5, 0, 600], phase: 0, name: 'Pink Panel' },
             { path: './slidingboard.stl', color: 0xf4f9f4, movable: true, scale: 1, initialPos: [7.5, 0, 520], phase: 2 * Math.PI / 3, name: 'Green Panel' },
             { path: './slidingboard.stl', color: 0xEDF3FA, movable: true, scale: 1, initialPos: [0, 0, 700], phase: 4 * Math.PI / 3, name: 'Blue Panel' }
         ];
-        // Load STL files
+
         const loader = new STLLoader();
         let maxDim = 0;
         let loadedModels = 0;
@@ -423,86 +392,71 @@
         const slidePeriod = 10;
         const panelTexts = [];
         const textPanels = [];
-     
-        // Available fonts for selection (includes local fonts)
+
         const availableFonts = [
-            // Custom local fonts
             'DfThin', 'MarkerFont', 'Pwscritch', 'SmoothMarker', 'WhiteboardRegular',
-            // Google Fonts
             'Kalam', 'Permanent Marker', 'Caveat', 'Shadows Into Light',
             'Patrick Hand', 'Coming Soon', 'Architects Daughter', 'Indie Flower'
         ];
-     
-        // Create handwriting texture for transparent panels
-        function createHandwritingTexture(text, markerColor = '#000000', fontFamily = 'Kalam', fontSize = null) {
+
+        function createHandwritingTexture(text, markerColor = '#000000', fontFamily = 'Kalam', fontSize = null, panelWidth = 512, panelHeight = 256) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = 333; // 30% wider than 256
-            canvas.height = 666; // Maintain 1:2 aspect ratio
-         
-            // Clear canvas with transparent background
+            canvas.width = panelWidth;
+            canvas.height = panelHeight;
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-         
-            // Transparent background - no fill needed
-         
-            // Marker settings
+
             ctx.strokeStyle = markerColor;
             ctx.fillStyle = markerColor;
             ctx.lineWidth = 6;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-         
-            // Randomize font size if not specified
-            const size = fontSize || (65 + Math.random() * 20); // Random between 65-85px
+
+            const size = fontSize || (65 + Math.random() * 20);
             ctx.font = `bold ${size}px "${fontFamily}", "Permanent Marker", cursive`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-         
-            // Add some texture/roughness to simulate marker
+
             ctx.globalAlpha = 0.95;
-         
-            // Split text into lines and draw with marker effect
+
             const lines = text.split('\n');
-            const lineHeight = 100;
+            const lineHeight = 80; // Adjusted for shorter height
             const startY = canvas.height / 2 - (lines.length - 1) * lineHeight / 2;
-         
+
             lines.forEach((line, i) => {
-                // Add slight rotation and jitter for handwritten effect
                 ctx.save();
                 const x = canvas.width / 2 + (Math.random() - 0.5) * 4;
                 const y = startY + i * lineHeight;
                 ctx.translate(x, y);
                 ctx.rotate((Math.random() - 0.5) * 0.02);
-             
-                // Draw with marker-like strokes - multiple passes for thickness
+
                 ctx.globalAlpha = 0.9;
                 ctx.fillText(line, 0, 0);
                 ctx.globalAlpha = 0.4;
-                ctx.fillText(line, 1, 0.5); // Slight offset for thickness
-                ctx.fillText(line, -0.5, 1); // Another offset
-             
+                ctx.fillText(line, 1, 0.5);
+                ctx.fillText(line, -0.5, 1);
+
                 ctx.restore();
                 ctx.globalAlpha = 0.95;
             });
-         
+
             const texture = new THREE.CanvasTexture(canvas);
             texture.needsUpdate = true;
             return { texture, canvas, ctx };
         }
-     
-        // Create empty texture for drawing
-        function createEmptyTexture() {
+
+        function createEmptyTexture(panelWidth = 512, panelHeight = 256) {
             const canvas = document.createElement('canvas');
-            canvas.width = 333; // 30% wider than 256
-            canvas.height = 666; // Maintain 1:2 aspect ratio
+            canvas.width = panelWidth;
+            canvas.height = panelHeight;
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const texture = new THREE.CanvasTexture(canvas);
             texture.needsUpdate = true;
             return { texture, canvas, ctx };
         }
-     
-        // Create position controls
+
         const controlsDiv = document.getElementById('controls');
         stlFiles.forEach((stl, index) => {
             const name = stl.path.split('/').pop();
@@ -515,7 +469,7 @@
             `;
             controlsDiv.appendChild(div);
         });
-        // Add Apply Values button functionality
+
         const applyButton = document.getElementById('apply-values');
         applyButton.addEventListener('click', () => {
             meshes.forEach((mesh, index) => {
@@ -529,9 +483,6 @@
                 const newY = parseFloat(inputs.y.value) || pos.y;
                 let newZ = parseFloat(inputs.z.value) || pos.z;
                 newZ = Math.max(slideBounds.minZ, Math.min(slideBounds.maxZ, newZ));
-                if (isNaN(newX) || isNaN(newY) || isNaN(newZ)) {
-                    console.warn(`Invalid input for ${stlFiles[index].path}: x=${inputs.x.value}, y=${inputs.y.value}, z=${inputs.z.value}. Using current position as fallback.`);
-                }
                 pos.x = newX;
                 pos.y = newY;
                 pos.z = newZ;
@@ -539,7 +490,7 @@
                 mesh.updateMatrixWorld(true);
             });
         });
-        // Add Toggle Autorotate button functionality
+
         const toggleAutorotateButton = document.getElementById('toggle-autorotate');
         toggleAutorotateButton.addEventListener('click', () => {
             isAutorotating = !isAutorotating;
@@ -548,7 +499,7 @@
             }
             updateModeIndicator();
         });
-        // Add Toggle AutoSlide button functionality
+
         const toggleAutoSlideButton = document.getElementById('toggle-autoslide');
         toggleAutoSlideButton.addEventListener('click', () => {
             isAutoSliding = !isAutoSliding;
@@ -557,7 +508,7 @@
             }
             updateModeIndicator();
         });
-        // Reset to camera defaults
+
         const resetCameraButton = document.getElementById('reset-camera-defaults');
         resetCameraButton.addEventListener('click', () => {
             camera.fov = defaultCameraSettings.zoom;
@@ -570,7 +521,7 @@
             controls.update();
             updateModeIndicator();
         });
-        // Axis flip controls
+
         function applyAxisTransform(mesh, geometry) {
             const position = geometry.attributes.position;
             for (let i = 0; i < position.count; i++) {
@@ -582,6 +533,7 @@
             position.needsUpdate = true;
             geometry.computeBoundingBox();
         }
+
         stlFiles.forEach((stl, index) => {
             loader.load(
                 stl.path,
@@ -634,7 +586,6 @@
                     maxDim = Math.max(maxDim, modelMaxDim * scale);
                     loadedModels++;
                     if (loadedModels === stlFiles.length) {
-                        // Set camera to default settings
                         camera.fov = defaultCameraSettings.zoom;
                         controls.target.copy(defaultCameraSettings.target);
                         camera.position.copy(defaultCameraSettings.target).add(
@@ -643,20 +594,14 @@
                         camera.rotation.copy(defaultCameraSettings.rotation);
                         camera.updateProjectionMatrix();
                         defaultCameraSettings.position.copy(camera.position);
-                        updateModeIndicator(); // Initial update after loading
-                     
-                        // Initialize UI controls
+                        updateModeIndicator();
                         setTimeout(() => {
                             initializeTextControls();
-                         
-                            // Auto-load from localStorage if exists
                             loadState();
-                         
                             console.log('Text panel controls initialized.');
                             console.log('Click "Text Controls" button in top right for UI controls.');
                             console.log('Use "Add New Panel" to create text or drawing panels.');
                         }, 1000);
-                        // Ensure all meshes are positioned correctly after loading
                         setTimeout(() => {
                             meshes.forEach((mesh, index) => {
                                 const initialPos = stlFiles[index].initialPos;
@@ -674,7 +619,7 @@
                 (error) => console.error(`Error loading ${stl.path}:`, error)
             );
         });
-        // Toggle controls with keys
+
         document.addEventListener('keydown', (event) => {
             const key = event.key.toLowerCase();
             if (key === 'o') {
@@ -696,16 +641,16 @@
                 reportPositions();
             }
         });
-        // Mouse interaction for sliding
+
         renderer.domElement.addEventListener('mousedown', onMouseDown);
         renderer.domElement.addEventListener('mousemove', onMouseMove);
         renderer.domElement.addEventListener('mouseup', onMouseUp);
-        let drawing3DPanel = null; // Track which panel is in 3D draw mode
+        let drawing3DPanel = null;
         let drawing3D = false;
         let last3DPoint = null;
+
         function onMouseDown(event) {
             if (drawing3DPanel) {
-                // Handle 3D drawing
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
                 raycaster.setFromCamera(mouse, camera);
@@ -717,15 +662,14 @@
                     ctx.strokeStyle = drawing3DPanel.color || '#000000';
                     ctx.lineWidth = drawing3DPanel.lineWidth || 2;
                     const x = uv.x * textureCanvas.width;
-                    const y = (1 - uv.y) * textureCanvas.height; // Flip Y
+                    const y = (1 - uv.y) * textureCanvas.height;
                     last3DPoint = { x, y };
                     drawing3D = true;
                     ctx.beginPath();
                     ctx.moveTo(x, y);
-                    return; // Prevent other interactions
+                    return;
                 }
             } else {
-                // Normal sliding
                 event.preventDefault();
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -744,6 +688,7 @@
                 }
             }
         }
+
         function onMouseMove(event) {
             if (drawing3D && drawing3DPanel) {
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -760,7 +705,6 @@
                     ctx.stroke();
                     last3DPoint = { x, y };
                     drawing3DPanel.panel.material.map.needsUpdate = true;
-                    // Sync to control canvas
                     const controlCtx = drawing3DPanel.controlCanvas.getContext('2d');
                     controlCtx.drawImage(textureCanvas, 0, 0, drawing3DPanel.controlCanvas.width, drawing3DPanel.controlCanvas.height);
                 }
@@ -784,18 +728,19 @@
                 }
             }
         }
+
         function onMouseUp() {
             if (drawing3D && drawing3DPanel) {
                 drawing3D = false;
                 last3DPoint = null;
-                saveState(); // Save after draw
+                saveState();
             } else {
                 selectedMesh = null;
                 startPoint = null;
             }
             updateModeIndicator();
         }
-        // Debug function to report positions (call once)
+
         function reportPositions() {
             console.log('=== POSITION REPORT ===');
             console.log('STL Panels:');
@@ -807,21 +752,20 @@
                 console.log(` World: x=${worldPos.x.toFixed(2)}, y=${worldPos.y.toFixed(2)}, z=${worldPos.z.toFixed(2)}`);
                 console.log(` Rotation: x=${(mesh.rotation.x * 180/Math.PI).toFixed(0)}°, y=${(mesh.rotation.y * 180/Math.PI).toFixed(0)}°, z=${(mesh.rotation.z * 180/Math.PI).toFixed(0)}°`);
             });
-         
+
             console.log('\nText Panels:');
             textPanels.forEach((panel, i) => {
                 console.log(` Text ${i + 1}:`);
                 console.log(` Position: x=${panel.position.x.toFixed(2)}, y=${panel.position.y.toFixed(2)}, z=${panel.position.z.toFixed(2)}`);
                 console.log(` Rotation: x=${(panel.rotation.x * 180/Math.PI).toFixed(0)}°, y=${(panel.rotation.y * 180/Math.PI).toFixed(0)}°, z=${(panel.rotation.z * 180/Math.PI).toFixed(0)}°`);
             });
-         
+
             console.log('\nCamera:');
             console.log(` Position: x=${camera.position.x.toFixed(2)}, y=${camera.position.y.toFixed(2)}, z=${camera.position.z.toFixed(2)}`);
             console.log(` Target: x=${controls.target.x.toFixed(2)}, y=${controls.target.y.toFixed(2)}, z=${controls.target.z.toFixed(2)}`);
             console.log('======================');
         }
-     
-        // Animation loop with autorotation and autosliding
+
         function animate() {
             requestAnimationFrame(animate);
             if (isAutorotating) {
@@ -839,22 +783,14 @@
                     mesh.updateMatrixWorld(true);
                 });
             }
-         
-            // Update text panel positions to follow STL panels
+
             panelTexts.forEach(panelText => {
                 if (panelText.stlMesh && panelText.textPanel) {
-                    // Get STL mesh world position
                     const worldPos = new THREE.Vector3();
                     panelText.stlMesh.getWorldPosition(worldPos);
-                 
-                    // Position text panel at STL position with full offset
                     panelText.textPanel.position.copy(worldPos);
                     panelText.textPanel.position.add(panelText.offset);
-                 
-                    // Start with STL panel rotation
                     panelText.textPanel.rotation.copy(panelText.stlMesh.rotation);
-                 
-                    // Apply additional rotation offset if it exists
                     if (panelText.rotationOffset) {
                         panelText.textPanel.rotation.x += panelText.rotationOffset.x;
                         panelText.textPanel.rotation.y += panelText.rotationOffset.y;
@@ -862,23 +798,22 @@
                     }
                 }
             });
-         
+
             controls.update();
             renderer.render(scene, camera);
         }
         animate();
-        // Initialize text control UI
+
         function initializeTextControls() {
             const controlsContainer = document.getElementById('text-panel-list');
             controlsContainer.innerHTML = '';
-         
+
             window.allTextPanels.forEach((textItem, index) => {
                 const controlDiv = document.createElement('div');
                 controlDiv.className = 'text-panel-control';
-             
+
                 const offset = textItem.panelObj.offset;
                 const rotation = textItem.panelObj.rotationOffset;
-             
                 const type = textItem.type || 'text';
                 let textEditHtml = '';
                 let fontHtml = '';
@@ -912,7 +847,7 @@
                     textEditHtml = `
                         <div class="control-row">
                             <label>Drawing:</label>
-                            <canvas id="draw-${index}" width="195" height="390" style="border:1px solid #555; background: white; cursor: crosshair;"></canvas>
+                            <canvas id="draw-${index}" width="260" height="130" style="border:1px solid #555; background: white; cursor: crosshair;"></canvas>
                         </div>
                         <div class="control-row">
                             <label>Line:</label>
@@ -925,12 +860,13 @@
                         </div>
                     `;
                 }
-             
+
                 const sizeLabel = type === 'text' ? 'Size:' : 'Scale (%):';
                 const sizeMin = type === 'text' ? 40 : 50;
                 const sizeMax = type === 'text' ? 100 : 200;
                 const sizeValue = type === 'text' ? (textItem.size || 76) : (textItem.size || 100);
-             
+                const widthValue = textItem.baseSize?.width || (type === 'text' ? 400 : 455);
+
                 controlDiv.innerHTML = `
                     <h4>${textItem.name}</h4>
                     ${textEditHtml}
@@ -944,13 +880,19 @@
                     </div>
                     ${fontHtml}
                     <div class="control-row">
+                        <label>Width:</label>
+                        <input type="range" id="width-${index}" data-index="${index}"
+                               min="200" max="600" value="${widthValue}" />
+                        <input type="number" id="width-num-${index}"
+                               min="200" max="600" value="${widthValue}" />
+                    </div>
+                    <div class="control-row">
                         <label>${sizeLabel}</label>
                         <input type="range" id="size-${index}" data-index="${index}"
                                min="${sizeMin}" max="${sizeMax}" value="${sizeValue}" />
                         <input type="number" id="size-num-${index}"
                                min="${sizeMin}" max="${sizeMax}" value="${sizeValue}" />
                     </div>
-                 
                     <div class="control-row">
                         <label>Y Pos:</label>
                         <input type="range" id="text-y-${index}" data-index="${index}"
@@ -958,7 +900,6 @@
                         <input type="number" id="text-y-num-${index}"
                                min="0" max="300" value="${offset.y.toFixed(1)}" />
                     </div>
-                 
                     <div class="control-row">
                         <label>Z Pos:</label>
                         <input type="range" id="text-z-${index}" data-index="${index}"
@@ -966,7 +907,6 @@
                         <input type="number" id="text-z-num-${index}"
                                min="-700" max="-500" value="${offset.z.toFixed(1)}" />
                     </div>
-                 
                     <div class="control-row">
                         <label>Rotation:</label>
                         <input type="range" id="rot-${index}" data-index="${index}"
@@ -975,10 +915,9 @@
                                min="150" max="210" value="${(rotation.z * 180 / Math.PI).toFixed(1)}" />
                     </div>
                 `;
-             
+
                 controlsContainer.appendChild(controlDiv);
-             
-                // Add event listeners
+
                 const panelSelect = document.getElementById(`panel-${index}`);
                 panelSelect.addEventListener('change', (e) => {
                     const newPanelIndex = parseInt(e.target.value);
@@ -987,7 +926,7 @@
                     textItem.panelObj.stlMesh = movableMeshes[newPanelIndex];
                     saveState();
                 });
-             
+
                 if (type === 'text') {
                     const fontSelect = document.getElementById(`font-${index}`);
                     if (fontSelect) {
@@ -998,7 +937,7 @@
                             saveState();
                         });
                     }
-                 
+
                     const textArea = document.getElementById(`text-${index}`);
                     if (textArea) {
                         textArea.addEventListener('input', (e) => {
@@ -1009,14 +948,13 @@
                         });
                     }
                 } else {
-                    // Drawing setup
                     const drawCanvas = document.getElementById(`draw-${index}`);
                     const ctx = drawCanvas.getContext('2d');
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
-                    ctx.shadowBlur = 2; // For creamy look
-                    ctx.shadowColor = 'rgba(0,0,0,0.3)'; // Soft shadow
-                    ctx.globalAlpha = 0.8; // Semi-transparent for smooth blending
+                    ctx.shadowBlur = 2;
+                    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+                    ctx.globalAlpha = 0.8;
                     let drawing = false;
                     let lastX = 0;
                     let lastY = 0;
@@ -1027,7 +965,7 @@
                     widthInput.addEventListener('change', (e) => textItem.lineWidth = e.target.value);
                     textItem.color = colorInput.value;
                     textItem.lineWidth = widthInput.value;
-                 
+
                     function getMousePos(e, canvas) {
                         const rect = canvas.getBoundingClientRect();
                         return [
@@ -1035,20 +973,20 @@
                             (e.clientY - rect.top) / rect.height * canvas.height
                         ];
                     }
-                 
+
                     function startDraw(e) {
                         drawing = true;
                         [lastX, lastY] = getMousePos(e, drawCanvas);
                         ctx.beginPath();
                         ctx.moveTo(lastX, lastY);
                     }
-                 
+
                     function draw(e) {
                         if (!drawing) return;
                         const [x, y] = getMousePos(e, drawCanvas);
                         if (isErasing) {
                             ctx.globalCompositeOperation = 'destination-out';
-                            ctx.strokeStyle = 'rgba(0,0,0,1)'; // Erase fully
+                            ctx.strokeStyle = 'rgba(0,0,0,1)';
                         } else {
                             ctx.globalCompositeOperation = 'source-over';
                             ctx.strokeStyle = textItem.color;
@@ -1059,38 +997,38 @@
                         ctx.stroke();
                         [lastX, lastY] = [x, y];
                     }
-                 
+
                     function endDraw() {
                         if (drawing) {
                             drawing = false;
-                            ctx.globalCompositeOperation = 'source-over'; // Reset
+                            ctx.globalCompositeOperation = 'source-over';
                             updateTextureFromDraw(textItem, drawCanvas);
                             saveState();
                         }
                     }
-                 
+
                     drawCanvas.addEventListener('mousedown', startDraw);
                     drawCanvas.addEventListener('mousemove', draw);
                     drawCanvas.addEventListener('mouseup', endDraw);
                     drawCanvas.addEventListener('mouseout', endDraw);
-                 
+
                     drawCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e.touches[0]); });
                     drawCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
                     drawCanvas.addEventListener('touchend', endDraw);
-                 
+
                     document.getElementById(`clear-${index}`).addEventListener('click', () => {
                         ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
                         updateTextureFromDraw(textItem, drawCanvas);
                         saveState();
                     });
-                 
+
                     const eraserBtn = document.getElementById(`eraser-${index}`);
                     eraserBtn.addEventListener('click', () => {
                         isErasing = !isErasing;
                         eraserBtn.textContent = isErasing ? 'Eraser On' : 'Eraser Off';
                         drawCanvas.style.cursor = isErasing ? 'cell' : 'crosshair';
                     });
-                 
+
                     const draw3dBtn = document.getElementById(`draw3d-${index}`);
                     draw3dBtn.addEventListener('click', () => {
                         drawing3DPanel = textItem;
@@ -1101,18 +1039,16 @@
                         draw3dBtn.onclick = () => {
                             drawing3DPanel = null;
                             draw3dBtn.textContent = 'Draw on 3D';
-                            controls.enabled = true; // Re-enable if was on
+                            controls.enabled = true;
                             updateModeIndicator();
-                            // Sync back to control canvas
                             const controlCtx = drawCanvas.getContext('2d');
                             controlCtx.drawImage(textItem.panel.userData.textureData.canvas, 0, 0, drawCanvas.width, drawCanvas.height);
                         };
                     });
-                 
+
                     textItem.controlCanvas = drawCanvas;
                     textItem.isErasing = isErasing;
-                 
-                    // Load drawing if exists
+
                     if (textItem.drawingData) {
                         const img = new Image();
                         img.src = textItem.drawingData;
@@ -1124,53 +1060,50 @@
                         updateTextureFromDraw(textItem, drawCanvas);
                     }
                 }
-             
-                // Size controls
+
+                const widthRange = document.getElementById(`width-${index}`);
+                const widthNum = document.getElementById(`width-num-${index}`);
+                widthRange.addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    widthNum.value = val;
+                    textItem.baseSize.width = val;
+                    updatePanelSize(textItem);
+                    saveState();
+                });
+                widthNum.addEventListener('change', (e) => {
+                    const val = parseFloat(e.target.value);
+                    widthRange.value = val;
+                    textItem.baseSize.width = val;
+                    updatePanelSize(textItem);
+                    saveState();
+                });
+
                 const sizeRange = document.getElementById(`size-${index}`);
                 const sizeNum = document.getElementById(`size-num-${index}`);
                 sizeRange.addEventListener('input', (e) => {
                     const val = parseFloat(e.target.value);
                     sizeNum.value = val;
                     textItem.size = val;
-                    if (type === 'text') {
-                        updateTextPanel(textItem);
-                    } else {
-                        const s = val / 100;
-                        const baseW = textItem.baseSize?.width || 227.5;
-                        const baseH = textItem.baseSize?.height || 455;
-                        textItem.panel.geometry.dispose();
-                        textItem.panel.geometry = new THREE.PlaneGeometry(baseW * s, baseH * s);
-                    }
+                    updatePanelSize(textItem);
                     saveState();
                 });
                 sizeNum.addEventListener('change', (e) => {
                     const val = parseFloat(e.target.value);
                     sizeRange.value = val;
                     textItem.size = val;
-                    if (type === 'text') {
-                        updateTextPanel(textItem);
-                    } else {
-                        const s = val / 100;
-                        const baseW = textItem.baseSize?.width || 227.5;
-                        const baseH = textItem.baseSize?.height || 455;
-                        textItem.panel.geometry.dispose();
-                        textItem.panel.geometry = new THREE.PlaneGeometry(baseW * s, baseH * s);
-                    }
+                    updatePanelSize(textItem);
                     saveState();
                 });
-             
-                // Position controls (only Y and Z, X is fixed at -11.4)
+
                 ['y', 'z'].forEach(axis => {
                     const range = document.getElementById(`text-${axis}-${index}`);
                     const num = document.getElementById(`text-${axis}-num-${index}`);
-                 
                     range.addEventListener('input', (e) => {
                         const val = parseFloat(e.target.value);
                         num.value = val.toFixed(1);
                         offset[axis] = val;
                         saveState();
                     });
-                 
                     num.addEventListener('change', (e) => {
                         const val = parseFloat(e.target.value);
                         range.value = val;
@@ -1178,11 +1111,9 @@
                         saveState();
                     });
                 });
-             
-                // X is always fixed at -11.4
+
                 offset.x = -11.4;
-             
-                // Rotation control
+
                 const rotRange = document.getElementById(`rot-${index}`);
                 const rotNum = document.getElementById(`rot-num-${index}`);
                 rotRange.addEventListener('input', (e) => {
@@ -1199,21 +1130,55 @@
                 });
             });
         }
-     
-        // Update text panel with new font/size
+
+        function updatePanelSize(textItem) {
+            const type = textItem.type || 'text';
+            const baseW = textItem.baseSize?.width || (type === 'text' ? 400 : 455);
+            const baseH = textItem.baseSize?.height || (type === 'text' ? 200 : 227.5);
+            const scale = textItem.size / 100;
+            textItem.panel.geometry.dispose();
+            textItem.panel.geometry = new THREE.PlaneGeometry(baseW * scale, baseH * scale);
+            if (type === 'text') {
+                updateTextPanel(textItem);
+            } else {
+                const textureCanvas = textItem.panel.userData.textureData.canvas;
+                const tCtx = textItem.panel.userData.textureData.ctx;
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = baseW * 2;
+                tempCanvas.height = baseH * 2;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(textureCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+                textureCanvas.width = baseW * 2;
+                textureCanvas.height = baseH * 2;
+                tCtx.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
+                tCtx.drawImage(tempCanvas, 0, 0, textureCanvas.width, textureCanvas.height);
+                textItem.panel.material.map.needsUpdate = true;
+                if (textItem.controlCanvas) {
+                    const controlCtx = textItem.controlCanvas.getContext('2d');
+                    textItem.controlCanvas.width = baseW * 0.65;
+                    textItem.controlCanvas.height = baseH * 0.65;
+                    controlCtx.drawImage(textureCanvas, 0, 0, textItem.controlCanvas.width, textItem.controlCanvas.height);
+                }
+            }
+        }
+
         function updateTextPanel(textItem) {
             const message = textItem.panel.userData.messageFunc();
+            const baseW = textItem.baseSize?.width || 400;
+            const baseH = textItem.baseSize?.height || 200;
             const newTexture = createHandwritingTexture(
                 message,
                 '#000000',
                 textItem.font,
-                textItem.size
+                textItem.size,
+                baseW * 2,
+                baseH * 2
             );
             textItem.panel.material.map = newTexture.texture;
+            textItem.panel.userData.textureData = newTexture;
             textItem.panel.material.needsUpdate = true;
         }
-     
-        // Update texture from drawing canvas
+
         function updateTextureFromDraw(textItem, drawCanvas) {
             const textureCanvas = textItem.panel.userData.textureData.canvas;
             const tCtx = textItem.panel.userData.textureData.ctx;
@@ -1221,14 +1186,14 @@
             tCtx.drawImage(drawCanvas, 0, 0, textureCanvas.width, textureCanvas.height);
             textItem.panel.material.map.needsUpdate = true;
         }
-     
-        // Save current state to localStorage
+
         function saveState() {
             const state = window.allTextPanels.map(item => ({
                 name: item.name,
                 type: item.type,
                 font: item.font,
                 size: item.size,
+                baseSize: item.baseSize,
                 offset: {
                     x: item.panelObj.offset.x,
                     y: item.panelObj.offset.y,
@@ -1243,12 +1208,11 @@
                 text: item.type === 'text' ? (item.text ?? undefined) : undefined,
                 drawingData: item.type === 'draw' && item.controlCanvas ? item.controlCanvas.toDataURL('image/png') : undefined
             }));
-         
+
             localStorage.setItem('textPanelState', JSON.stringify(state));
             console.log('State auto-saved to localStorage');
         }
-     
-        // Load state from localStorage
+
         function loadState(stateData = null) {
             const stateStr = stateData || localStorage.getItem('textPanelState');
             let state;
@@ -1258,8 +1222,7 @@
                 console.info('No saved state found! Start by adding new panels.');
                 return;
             }
-         
-            // Clear existing panels
+
             window.allTextPanels.forEach(item => {
                 scene.remove(item.panel);
                 item.panel.geometry.dispose();
@@ -1269,12 +1232,13 @@
             panelTexts.length = 0;
             textPanels.length = 0;
             window.textControls = {};
-         
+
             state.forEach((savedItem, index) => {
                 const newType = savedItem.type || 'text';
                 const newName = savedItem.name || `Custom ${index + 1}`;
                 const newFont = savedItem.font || availableFonts[0];
                 const newSize = savedItem.size || (newType === 'text' ? 76 : 100);
+                const newBaseSize = savedItem.baseSize || (newType === 'text' ? {width: 400, height: 200} : {width: 455, height: 227.5});
                 const newOffset = new THREE.Vector3(savedItem.offset.x, savedItem.offset.y, savedItem.offset.z);
                 const newRotation = new THREE.Euler(
                     savedItem.rotation ? savedItem.rotation.x : -Math.PI / 2,
@@ -1283,8 +1247,7 @@
                 );
                 const newAssigned = savedItem.assignedPanel || 0;
                 const newMessageFunc = newType === 'text' ? () => (savedItem.text || "New message\nEdit me") : () => '';
-                const newPanelSize = newType === 'text' ? {width: 250, height: 175} : {width: 227.5, height: 455};
-                const newPanel = createTextPanel(newMessageFunc, index + 100, newFont, newPanelSize, newType);
+                const newPanel = createTextPanel(newMessageFunc, index + 100, newFont, newBaseSize, newType);
                 newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
                 scene.add(newPanel);
                 const newPanelObj = {
@@ -1308,25 +1271,24 @@
                     drawingData: newType === 'draw' ? savedItem.drawingData : null,
                     isDynamic: false,
                     type: newType,
-                    baseSize: newPanelSize
+                    baseSize: newBaseSize
                 });
             });
-         
-            // Refresh UI controls
+
             initializeTextControls();
             console.log('State loaded successfully');
             if (!stateData) {
                 console.info('State loaded successfully!');
             }
         }
-     
-        // Export current state as code
+
         function exportState() {
             const state = window.allTextPanels.map(item => ({
                 name: item.name,
                 type: item.type,
                 font: item.font,
                 size: item.size,
+                baseSize: item.baseSize,
                 offset: {
                     x: item.panelObj.offset.x,
                     y: item.panelObj.offset.y,
@@ -1341,10 +1303,9 @@
                 text: item.type === 'text' ? (item.text ?? undefined) : undefined,
                 drawingData: item.type === 'draw' && item.controlCanvas ? item.controlCanvas.toDataURL('image/png') : undefined
             }));
-         
+
             const stateCode = `// Add this to your script to set initial text panels:\nconst INITIAL_TEXT_STATE = ${JSON.stringify(state, null, 2)};`;
-         
-            // Create a textarea to show the code
+
             const textarea = document.createElement('textarea');
             textarea.value = stateCode;
             textarea.style.position = 'fixed';
@@ -1361,8 +1322,7 @@
             textarea.style.border = '2px solid #333';
             textarea.style.fontFamily = 'monospace';
             textarea.style.fontSize = '12px';
-         
-            // Add close button
+
             const closeBtn = document.createElement('button');
             closeBtn.textContent = 'Copy & Close';
             closeBtn.style.position = 'fixed';
@@ -1377,7 +1337,7 @@
             closeBtn.style.borderRadius = '5px';
             closeBtn.style.cursor = 'pointer';
             closeBtn.style.fontSize = '14px';
-         
+
             closeBtn.onclick = () => {
                 textarea.select();
                 document.execCommand('copy');
@@ -1385,21 +1345,18 @@
                 document.body.removeChild(closeBtn);
                 console.info('Code copied to clipboard! Paste this in your script to set initial text panels.');
             };
-         
+
             document.body.appendChild(textarea);
             document.body.appendChild(closeBtn);
-         
-            // Also log to console
+
             console.log(stateCode);
         }
-     
-        // Reset to empty state
+
         function resetState() {
             if (!confirm('Are you sure you want to reset all text panels? This will remove all panels.')) {
                 return;
             }
-         
-            // Clear existing panels
+
             window.allTextPanels.forEach(item => {
                 scene.remove(item.panel);
                 item.panel.geometry.dispose();
@@ -1413,20 +1370,18 @@
             initializeTextControls();
             console.info('State reset to empty.');
         }
-     
-        // Create transparent text panels
+
         function createTextPanel(messageFunc, index, fontFamily = 'Kalam', panelSize = null, type = 'text') {
-            // Random panel sizes if not specified
-            const width = panelSize?.width || (type === 'text' ? (240 + Math.random() * 60) : 227.5); // 240-300 for text, 227.5 for draw
-            const height = panelSize?.height || (type === 'text' ? (150 + Math.random() * 50) : 455); // 150-200 for text, 455 for draw
+            const width = panelSize?.width || (type === 'text' ? 400 : 455);
+            const height = panelSize?.height || (type === 'text' ? 200 : 227.5);
             const geometry = new THREE.PlaneGeometry(width, height);
             let textureData;
             if (type === 'text') {
-                textureData = createHandwritingTexture(messageFunc(), '#000000', fontFamily);
+                textureData = createHandwritingTexture(messageFunc(), '#000000', fontFamily, null, width * 2, height * 2);
             } else {
-                textureData = createEmptyTexture();
+                textureData = createEmptyTexture(width * 2, height * 2);
             }
-         
+
             const material = new THREE.MeshBasicMaterial({
                 map: textureData.texture,
                 transparent: true,
@@ -1435,13 +1390,12 @@
                 depthTest: true,
                 depthWrite: false
             });
-         
+
             const panel = new THREE.Mesh(geometry, material);
             panel.userData = { textureData, messageFunc, index, type };
             return panel;
         }
-     
-        // Add new text panel
+
         function addNewTextPanel() {
             const typeChoice = prompt("Enter type (1 for typed text, 2 for hand drawn):", "1");
             const isTyped = typeChoice === "1";
@@ -1452,14 +1406,14 @@
             }
             const panelStr = prompt("Assign to panel (0=Pink, 1=Green, 2=Blue):", "0");
             const newAssigned = parseInt(panelStr) || 0;
-         
+
             const newIndex = window.allTextPanels.length;
             const newName = `Custom ${newIndex + 1}`;
             const newFont = availableFonts[0];
             const newSize = isTyped ? 76 : 100;
             const newOffset = new THREE.Vector3(-11.4, 100, -600);
             const newRotation = new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI);
-            const newPanelSize = isTyped ? {width: 250, height: 175} : {width: 227.5, height: 455};
+            const newPanelSize = isTyped ? {width: 400, height: 200} : {width: 455, height: 227.5};
             const newMessageFunc = isTyped ? () => initialText : () => '';
             const newPanel = createTextPanel(newMessageFunc, newIndex + 100, newFont, newPanelSize, isTyped ? 'text' : 'draw');
             newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
@@ -1482,6 +1436,7 @@
                 assignedPanel: newAssigned,
                 stlMesh: movableMeshes[newAssigned],
                 text: initialText,
+                drawingData: null,
                 isDynamic: false,
                 type: isTyped ? 'text' : 'draw',
                 baseSize: newPanelSize
@@ -1489,14 +1444,12 @@
             initializeTextControls();
             saveState();
         }
-     
-        // Toggle text controls panel
+
         document.getElementById('toggle-text-controls').addEventListener('click', () => {
             const panel = document.getElementById('text-controls');
             panel.classList.toggle('active');
         });
-     
-        // Add save/load/export button listeners
+
         setTimeout(() => {
             document.getElementById('save-state')?.addEventListener('click', saveState);
             document.getElementById('load-state')?.addEventListener('click', () => loadState());
@@ -1504,8 +1457,7 @@
             document.getElementById('reset-state')?.addEventListener('click', resetState);
             document.getElementById('add-new-text')?.addEventListener('click', addNewTextPanel);
         }, 100);
-     
-        // Handle window resize
+
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
