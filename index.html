@@ -27,7 +27,7 @@
             padding: 10px;
             display: none; /* Hide the controls menu */
         }
-      
+     
         #text-controls {
             position: absolute;
             top: 60px;
@@ -42,18 +42,18 @@
             font-size: 12px;
             display: none;
         }
-      
+     
         #text-controls.active {
             display: block;
         }
-      
+     
         #text-controls h3 {
             margin: 0 0 10px 0;
             color: #fff;
             border-bottom: 1px solid #555;
             padding-bottom: 5px;
         }
-      
+     
         .text-panel-control {
             background: rgba(255, 255, 255, 0.1);
             padding: 10px;
@@ -61,30 +61,30 @@
             border-radius: 5px;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-      
+     
         .text-panel-control h4 {
             margin: 0 0 8px 0;
             color: #ffd700;
             font-size: 13px;
         }
-      
+     
         .control-row {
             display: flex;
             align-items: center;
             margin: 5px 0;
             gap: 10px;
         }
-      
+     
         .control-row label {
             width: 60px;
             font-size: 11px;
         }
-      
+     
         .control-row input[type="range"] {
             flex: 1;
             height: 20px;
         }
-      
+     
         .control-row input[type="number"] {
             width: 60px;
             background: rgba(255, 255, 255, 0.1);
@@ -93,7 +93,7 @@
             padding: 2px 5px;
             border-radius: 3px;
         }
-      
+     
         .control-row select {
             flex: 1;
             background: rgba(255, 255, 255, 0.1);
@@ -102,11 +102,11 @@
             padding: 3px;
             border-radius: 3px;
         }
-      
+     
         .control-row select option {
             background: #333;
         }
-      
+     
         .control-row textarea {
             flex: 1;
             background: rgba(255, 255, 255, 0.1);
@@ -116,7 +116,7 @@
             border-radius: 3px;
             resize: vertical;
         }
-      
+     
         #toggle-text-controls {
             position: absolute;
             top: 10px;
@@ -129,11 +129,11 @@
             cursor: pointer;
             font-size: 14px;
         }
-      
+     
         #toggle-text-controls:hover {
             background: rgba(0, 0, 0, 0.7);
         }
-      
+     
         .text-preview {
             font-size: 10px;
             color: #aaa;
@@ -193,7 +193,7 @@
             padding: 10px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-      
+     
         .handwritten {
             font-family: 'Kalam', cursive;
             font-weight: 700;
@@ -202,48 +202,48 @@
             letter-spacing: 0.5px;
             text-shadow: 0.5px 0.5px 0px rgba(0,0,0,0.1);
         }
-      
+     
         .handwritten-large {
             font-size: 22px;
             font-weight: 700;
         }
-      
+     
         .handwritten-small {
             font-size: 16px;
         }
-      
+     
         /* Add slight variations to make it look more natural */
         .char-1 { transform: rotate(-1deg); display: inline-block; }
         .char-2 { transform: rotate(0.5deg); display: inline-block; }
         .char-3 { transform: rotate(-0.5deg); display: inline-block; }
         .char-4 { transform: rotate(1deg); display: inline-block; }
         .char-5 { transform: rotate(-0.3deg); display: inline-block; }
-      
+     
         .countdown-text {
             color: #e74c3c;
             margin-bottom: 5px;
         }
-      
+     
         .camping-text {
             color: #27ae60;
         }
-      
+     
         .love-text {
             color: #e91e63;
         }
-      
+     
         .heart-icon {
             color: #e74c3c;
             font-size: 24px;
             animation: heartbeat 1.5s ease-in-out infinite;
         }
-      
+     
         @keyframes heartbeat {
             0% { transform: scale(1); }
             50% { transform: scale(1.1); }
             100% { transform: scale(1); }
         }
-      
+     
         .campfire-icon {
             width: 30px;
             height: 30px;
@@ -256,28 +256,28 @@
             font-weight: normal;
             font-style: normal;
         }
-      
+     
         @font-face {
             font-family: 'MarkerFont';
             src: url('marker-font/MarkerFont-AyOm.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
-      
+     
         @font-face {
             font-family: 'Pwscritch';
             src: url('pwscritch-font/Pwscritch-7yBE.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
-      
+     
         @font-face {
             font-family: 'SmoothMarker';
             src: url('smooth-marker-font/SmoothMarker-45d6.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
-      
+     
         @font-face {
             font-family: 'WhiteboardRegular';
             src: url('whiteboard-font/WhiteboardRegular-O7gp.ttf') format('truetype');
@@ -300,7 +300,7 @@
         <button id="mobile-toggle-autorotate">Toggle AutoRotate</button>
         <button id="mobile-toggle-autoslide">Toggle AutoSlide</button>
     </div>
-  
+ 
     <button id="toggle-text-controls">Text Controls</button>
     <div id="text-controls">
         <h3>Text Panel Controls</h3>
@@ -331,7 +331,7 @@
         // Make text panels globally accessible for console control
         window.textControls = {};
         window.allTextPanels = []; // Store all text panels for UI control
-      
+     
         // Set up scene, camera, and renderer
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xdddddd);
@@ -423,7 +423,7 @@
         const slidePeriod = 10;
         const panelTexts = [];
         const textPanels = [];
-      
+     
         // Available fonts for selection (includes local fonts)
         const availableFonts = [
             // Custom local fonts
@@ -432,40 +432,40 @@
             'Kalam', 'Permanent Marker', 'Caveat', 'Shadows Into Light',
             'Patrick Hand', 'Coming Soon', 'Architects Daughter', 'Indie Flower'
         ];
-      
+     
         // Create handwriting texture for transparent panels
         function createHandwritingTexture(text, markerColor = '#000000', fontFamily = 'Kalam', fontSize = null) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = 512;  // Adjusted to be narrower
+            canvas.width = 512; // Adjusted to be narrower
             canvas.height = 1024; // Adjusted to be taller
-          
+         
             // Clear canvas with transparent background
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-          
+         
             // Transparent background - no fill needed
-          
+         
             // Marker settings
             ctx.strokeStyle = markerColor;
             ctx.fillStyle = markerColor;
             ctx.lineWidth = 6;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-          
+         
             // Randomize font size if not specified
             const size = fontSize || (65 + Math.random() * 20); // Random between 65-85px
             ctx.font = `bold ${size}px "${fontFamily}", "Permanent Marker", cursive`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-          
+         
             // Add some texture/roughness to simulate marker
             ctx.globalAlpha = 0.95;
-          
+         
             // Split text into lines and draw with marker effect
             const lines = text.split('\n');
             const lineHeight = 100;
             const startY = canvas.height / 2 - (lines.length - 1) * lineHeight / 2;
-          
+         
             lines.forEach((line, i) => {
                 // Add slight rotation and jitter for handwritten effect
                 ctx.save();
@@ -473,27 +473,27 @@
                 const y = startY + i * lineHeight;
                 ctx.translate(x, y);
                 ctx.rotate((Math.random() - 0.5) * 0.02);
-              
+             
                 // Draw with marker-like strokes - multiple passes for thickness
                 ctx.globalAlpha = 0.9;
                 ctx.fillText(line, 0, 0);
                 ctx.globalAlpha = 0.4;
                 ctx.fillText(line, 1, 0.5); // Slight offset for thickness
                 ctx.fillText(line, -0.5, 1); // Another offset
-              
+             
                 ctx.restore();
                 ctx.globalAlpha = 0.95;
             });
-          
+         
             const texture = new THREE.CanvasTexture(canvas);
             texture.needsUpdate = true;
             return { texture, canvas, ctx };
         }
-      
+     
         // Create empty texture for drawing
         function createEmptyTexture() {
             const canvas = document.createElement('canvas');
-            canvas.width = 512;  // Adjusted to be narrower
+            canvas.width = 512; // Adjusted to be narrower
             canvas.height = 1024; // Adjusted to be taller
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -501,7 +501,7 @@
             texture.needsUpdate = true;
             return { texture, canvas, ctx };
         }
-      
+     
         // Create position controls
         const controlsDiv = document.getElementById('controls');
         stlFiles.forEach((stl, index) => {
@@ -644,14 +644,14 @@
                         camera.updateProjectionMatrix();
                         defaultCameraSettings.position.copy(camera.position);
                         updateModeIndicator(); // Initial update after loading
-                      
+                     
                         // Initialize UI controls
                         setTimeout(() => {
                             initializeTextControls();
-                          
+                         
                             // Auto-load from localStorage if exists
                             loadState();
-                          
+                         
                             console.log('Text panel controls initialized.');
                             console.log('Click "Text Controls" button in top right for UI controls.');
                             console.log('Use "Add New Panel" to create text or drawing panels.');
@@ -807,20 +807,20 @@
                 console.log(` World: x=${worldPos.x.toFixed(2)}, y=${worldPos.y.toFixed(2)}, z=${worldPos.z.toFixed(2)}`);
                 console.log(` Rotation: x=${(mesh.rotation.x * 180/Math.PI).toFixed(0)}°, y=${(mesh.rotation.y * 180/Math.PI).toFixed(0)}°, z=${(mesh.rotation.z * 180/Math.PI).toFixed(0)}°`);
             });
-          
+         
             console.log('\nText Panels:');
             textPanels.forEach((panel, i) => {
                 console.log(` Text ${i + 1}:`);
                 console.log(` Position: x=${panel.position.x.toFixed(2)}, y=${panel.position.y.toFixed(2)}, z=${panel.position.z.toFixed(2)}`);
                 console.log(` Rotation: x=${(panel.rotation.x * 180/Math.PI).toFixed(0)}°, y=${(panel.rotation.y * 180/Math.PI).toFixed(0)}°, z=${(panel.rotation.z * 180/Math.PI).toFixed(0)}°`);
             });
-          
+         
             console.log('\nCamera:');
             console.log(` Position: x=${camera.position.x.toFixed(2)}, y=${camera.position.y.toFixed(2)}, z=${camera.position.z.toFixed(2)}`);
             console.log(` Target: x=${controls.target.x.toFixed(2)}, y=${controls.target.y.toFixed(2)}, z=${controls.target.z.toFixed(2)}`);
             console.log('======================');
         }
-      
+     
         // Animation loop with autorotation and autosliding
         function animate() {
             requestAnimationFrame(animate);
@@ -839,21 +839,21 @@
                     mesh.updateMatrixWorld(true);
                 });
             }
-          
+         
             // Update text panel positions to follow STL panels
             panelTexts.forEach(panelText => {
                 if (panelText.stlMesh && panelText.textPanel) {
                     // Get STL mesh world position
                     const worldPos = new THREE.Vector3();
                     panelText.stlMesh.getWorldPosition(worldPos);
-                  
+                 
                     // Position text panel at STL position with full offset
                     panelText.textPanel.position.copy(worldPos);
                     panelText.textPanel.position.add(panelText.offset);
-                  
+                 
                     // Start with STL panel rotation
                     panelText.textPanel.rotation.copy(panelText.stlMesh.rotation);
-                  
+                 
                     // Apply additional rotation offset if it exists
                     if (panelText.rotationOffset) {
                         panelText.textPanel.rotation.x += panelText.rotationOffset.x;
@@ -862,7 +862,7 @@
                     }
                 }
             });
-          
+         
             controls.update();
             renderer.render(scene, camera);
         }
@@ -871,14 +871,14 @@
         function initializeTextControls() {
             const controlsContainer = document.getElementById('text-panel-list');
             controlsContainer.innerHTML = '';
-          
+         
             window.allTextPanels.forEach((textItem, index) => {
                 const controlDiv = document.createElement('div');
                 controlDiv.className = 'text-panel-control';
-              
+             
                 const offset = textItem.panelObj.offset;
                 const rotation = textItem.panelObj.rotationOffset;
-              
+             
                 const type = textItem.type || 'text';
                 let textEditHtml = '';
                 let fontHtml = '';
@@ -912,7 +912,7 @@
                     textEditHtml = `
                         <div class="control-row">
                             <label>Drawing:</label>
-                            <canvas id="draw-${index}" width="300" height="150" style="border:1px solid #555; background: white; cursor: crosshair;"></canvas>
+                            <canvas id="draw-${index}" width="150" height="300" style="border:1px solid #555; background: white; cursor: crosshair;"></canvas>
                         </div>
                         <div class="control-row">
                             <label>Line:</label>
@@ -925,12 +925,12 @@
                         </div>
                     `;
                 }
-              
+             
                 const sizeLabel = type === 'text' ? 'Size:' : 'Scale (%):';
                 const sizeMin = type === 'text' ? 40 : 50;
                 const sizeMax = type === 'text' ? 100 : 200;
                 const sizeValue = type === 'text' ? (textItem.size || 76) : (textItem.size || 100);
-              
+             
                 controlDiv.innerHTML = `
                     <h4>${textItem.name}</h4>
                     ${textEditHtml}
@@ -950,7 +950,7 @@
                         <input type="number" id="size-num-${index}"
                                min="${sizeMin}" max="${sizeMax}" value="${sizeValue}" />
                     </div>
-                  
+                 
                     <div class="control-row">
                         <label>Y Pos:</label>
                         <input type="range" id="text-y-${index}" data-index="${index}"
@@ -958,7 +958,7 @@
                         <input type="number" id="text-y-num-${index}"
                                min="0" max="300" value="${offset.y.toFixed(1)}" />
                     </div>
-                  
+                 
                     <div class="control-row">
                         <label>Z Pos:</label>
                         <input type="range" id="text-z-${index}" data-index="${index}"
@@ -966,7 +966,7 @@
                         <input type="number" id="text-z-num-${index}"
                                min="-700" max="-500" value="${offset.z.toFixed(1)}" />
                     </div>
-                  
+                 
                     <div class="control-row">
                         <label>Rotation:</label>
                         <input type="range" id="rot-${index}" data-index="${index}"
@@ -975,9 +975,9 @@
                                min="150" max="210" value="${(rotation.z * 180 / Math.PI).toFixed(1)}" />
                     </div>
                 `;
-              
+             
                 controlsContainer.appendChild(controlDiv);
-              
+             
                 // Add event listeners
                 const panelSelect = document.getElementById(`panel-${index}`);
                 panelSelect.addEventListener('change', (e) => {
@@ -987,7 +987,7 @@
                     textItem.panelObj.stlMesh = movableMeshes[newPanelIndex];
                     saveState();
                 });
-              
+             
                 if (type === 'text') {
                     const fontSelect = document.getElementById(`font-${index}`);
                     if (fontSelect) {
@@ -998,7 +998,7 @@
                             saveState();
                         });
                     }
-                  
+                 
                     const textArea = document.getElementById(`text-${index}`);
                     if (textArea) {
                         textArea.addEventListener('input', (e) => {
@@ -1027,7 +1027,7 @@
                     widthInput.addEventListener('change', (e) => textItem.lineWidth = e.target.value);
                     textItem.color = colorInput.value;
                     textItem.lineWidth = widthInput.value;
-                  
+                 
                     function getMousePos(e, canvas) {
                         const rect = canvas.getBoundingClientRect();
                         return [
@@ -1035,14 +1035,14 @@
                             (e.clientY - rect.top) / rect.height * canvas.height
                         ];
                     }
-                  
+                 
                     function startDraw(e) {
                         drawing = true;
                         [lastX, lastY] = getMousePos(e, drawCanvas);
                         ctx.beginPath();
                         ctx.moveTo(lastX, lastY);
                     }
-                  
+                 
                     function draw(e) {
                         if (!drawing) return;
                         const [x, y] = getMousePos(e, drawCanvas);
@@ -1059,7 +1059,7 @@
                         ctx.stroke();
                         [lastX, lastY] = [x, y];
                     }
-                  
+                 
                     function endDraw() {
                         if (drawing) {
                             drawing = false;
@@ -1068,29 +1068,29 @@
                             saveState();
                         }
                     }
-                  
+                 
                     drawCanvas.addEventListener('mousedown', startDraw);
                     drawCanvas.addEventListener('mousemove', draw);
                     drawCanvas.addEventListener('mouseup', endDraw);
                     drawCanvas.addEventListener('mouseout', endDraw);
-                  
+                 
                     drawCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e.touches[0]); });
                     drawCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
                     drawCanvas.addEventListener('touchend', endDraw);
-                  
+                 
                     document.getElementById(`clear-${index}`).addEventListener('click', () => {
                         ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
                         updateTextureFromDraw(textItem, drawCanvas);
                         saveState();
                     });
-                  
+                 
                     const eraserBtn = document.getElementById(`eraser-${index}`);
                     eraserBtn.addEventListener('click', () => {
                         isErasing = !isErasing;
                         eraserBtn.textContent = isErasing ? 'Eraser On' : 'Eraser Off';
                         drawCanvas.style.cursor = isErasing ? 'cell' : 'crosshair';
                     });
-                  
+                 
                     const draw3dBtn = document.getElementById(`draw3d-${index}`);
                     draw3dBtn.addEventListener('click', () => {
                         drawing3DPanel = textItem;
@@ -1108,10 +1108,10 @@
                             controlCtx.drawImage(textItem.panel.userData.textureData.canvas, 0, 0, drawCanvas.width, drawCanvas.height);
                         };
                     });
-                  
+                 
                     textItem.controlCanvas = drawCanvas;
                     textItem.isErasing = isErasing;
-                  
+                 
                     // Load drawing if exists
                     if (textItem.drawingData) {
                         const img = new Image();
@@ -1124,7 +1124,7 @@
                         updateTextureFromDraw(textItem, drawCanvas);
                     }
                 }
-              
+             
                 // Size controls
                 const sizeRange = document.getElementById(`size-${index}`);
                 const sizeNum = document.getElementById(`size-num-${index}`);
@@ -1158,19 +1158,19 @@
                     }
                     saveState();
                 });
-              
+             
                 // Position controls (only Y and Z, X is fixed at -11.4)
                 ['y', 'z'].forEach(axis => {
                     const range = document.getElementById(`text-${axis}-${index}`);
                     const num = document.getElementById(`text-${axis}-num-${index}`);
-                  
+                 
                     range.addEventListener('input', (e) => {
                         const val = parseFloat(e.target.value);
                         num.value = val.toFixed(1);
                         offset[axis] = val;
                         saveState();
                     });
-                  
+                 
                     num.addEventListener('change', (e) => {
                         const val = parseFloat(e.target.value);
                         range.value = val;
@@ -1178,10 +1178,10 @@
                         saveState();
                     });
                 });
-              
+             
                 // X is always fixed at -11.4
                 offset.x = -11.4;
-              
+             
                 // Rotation control
                 const rotRange = document.getElementById(`rot-${index}`);
                 const rotNum = document.getElementById(`rot-num-${index}`);
@@ -1199,7 +1199,7 @@
                 });
             });
         }
-      
+     
         // Update text panel with new font/size
         function updateTextPanel(textItem) {
             const message = textItem.panel.userData.messageFunc();
@@ -1212,7 +1212,7 @@
             textItem.panel.material.map = newTexture.texture;
             textItem.panel.material.needsUpdate = true;
         }
-      
+     
         // Update texture from drawing canvas
         function updateTextureFromDraw(textItem, drawCanvas) {
             const textureCanvas = textItem.panel.userData.textureData.canvas;
@@ -1221,7 +1221,7 @@
             tCtx.drawImage(drawCanvas, 0, 0, textureCanvas.width, textureCanvas.height);
             textItem.panel.material.map.needsUpdate = true;
         }
-      
+     
         // Save current state to localStorage
         function saveState() {
             const state = window.allTextPanels.map(item => ({
@@ -1243,11 +1243,11 @@
                 text: item.type === 'text' ? (item.text ?? undefined) : undefined,
                 drawingData: item.type === 'draw' && item.controlCanvas ? item.controlCanvas.toDataURL('image/png') : undefined
             }));
-          
+         
             localStorage.setItem('textPanelState', JSON.stringify(state));
             console.log('State auto-saved to localStorage');
         }
-      
+     
         // Load state from localStorage
         function loadState(stateData = null) {
             const stateStr = stateData || localStorage.getItem('textPanelState');
@@ -1258,7 +1258,7 @@
                 console.info('No saved state found! Start by adding new panels.');
                 return;
             }
-          
+         
             // Clear existing panels
             window.allTextPanels.forEach(item => {
                 scene.remove(item.panel);
@@ -1269,7 +1269,7 @@
             panelTexts.length = 0;
             textPanels.length = 0;
             window.textControls = {};
-          
+         
             state.forEach((savedItem, index) => {
                 const newType = savedItem.type || 'text';
                 const newName = savedItem.name || `Custom ${index + 1}`;
@@ -1311,7 +1311,7 @@
                     baseSize: newPanelSize
                 });
             });
-          
+         
             // Refresh UI controls
             initializeTextControls();
             console.log('State loaded successfully');
@@ -1319,7 +1319,7 @@
                 console.info('State loaded successfully!');
             }
         }
-      
+     
         // Export current state as code
         function exportState() {
             const state = window.allTextPanels.map(item => ({
@@ -1341,9 +1341,9 @@
                 text: item.type === 'text' ? (item.text ?? undefined) : undefined,
                 drawingData: item.type === 'draw' && item.controlCanvas ? item.controlCanvas.toDataURL('image/png') : undefined
             }));
-          
+         
             const stateCode = `// Add this to your script to set initial text panels:\nconst INITIAL_TEXT_STATE = ${JSON.stringify(state, null, 2)};`;
-          
+         
             // Create a textarea to show the code
             const textarea = document.createElement('textarea');
             textarea.value = stateCode;
@@ -1361,7 +1361,7 @@
             textarea.style.border = '2px solid #333';
             textarea.style.fontFamily = 'monospace';
             textarea.style.fontSize = '12px';
-          
+         
             // Add close button
             const closeBtn = document.createElement('button');
             closeBtn.textContent = 'Copy & Close';
@@ -1377,7 +1377,7 @@
             closeBtn.style.borderRadius = '5px';
             closeBtn.style.cursor = 'pointer';
             closeBtn.style.fontSize = '14px';
-          
+         
             closeBtn.onclick = () => {
                 textarea.select();
                 document.execCommand('copy');
@@ -1385,20 +1385,20 @@
                 document.body.removeChild(closeBtn);
                 console.info('Code copied to clipboard! Paste this in your script to set initial text panels.');
             };
-          
+         
             document.body.appendChild(textarea);
             document.body.appendChild(closeBtn);
-          
+         
             // Also log to console
             console.log(stateCode);
         }
-      
+     
         // Reset to empty state
         function resetState() {
             if (!confirm('Are you sure you want to reset all text panels? This will remove all panels.')) {
                 return;
             }
-          
+         
             // Clear existing panels
             window.allTextPanels.forEach(item => {
                 scene.remove(item.panel);
@@ -1413,7 +1413,7 @@
             initializeTextControls();
             console.info('State reset to empty.');
         }
-      
+     
         // Create transparent text panels
         function createTextPanel(messageFunc, index, fontFamily = 'Kalam', panelSize = null, type = 'text') {
             // Random panel sizes if not specified
@@ -1426,7 +1426,7 @@
             } else {
                 textureData = createEmptyTexture();
             }
-          
+         
             const material = new THREE.MeshBasicMaterial({
                 map: textureData.texture,
                 transparent: true,
@@ -1435,12 +1435,12 @@
                 depthTest: true,
                 depthWrite: false
             });
-          
+         
             const panel = new THREE.Mesh(geometry, material);
             panel.userData = { textureData, messageFunc, index, type };
             return panel;
         }
-      
+     
         // Add new text panel
         function addNewTextPanel() {
             const typeChoice = prompt("Enter type (1 for typed text, 2 for hand drawn):", "1");
@@ -1452,7 +1452,7 @@
             }
             const panelStr = prompt("Assign to panel (0=Pink, 1=Green, 2=Blue):", "0");
             const newAssigned = parseInt(panelStr) || 0;
-          
+         
             const newIndex = window.allTextPanels.length;
             const newName = `Custom ${newIndex + 1}`;
             const newFont = availableFonts[0];
@@ -1489,13 +1489,13 @@
             initializeTextControls();
             saveState();
         }
-      
+     
         // Toggle text controls panel
         document.getElementById('toggle-text-controls').addEventListener('click', () => {
             const panel = document.getElementById('text-controls');
             panel.classList.toggle('active');
         });
-      
+     
         // Add save/load/export button listeners
         setTimeout(() => {
             document.getElementById('save-state')?.addEventListener('click', saveState);
@@ -1504,7 +1504,7 @@
             document.getElementById('reset-state')?.addEventListener('click', resetState);
             document.getElementById('add-new-text')?.addEventListener('click', addNewTextPanel);
         }, 100);
-      
+     
         // Handle window resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
