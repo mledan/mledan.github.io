@@ -661,48 +661,49 @@
                         updateModeIndicator();
                         setTimeout(() => {
                             initializeTextControls();
-                            loadState();
+                            if (!loadState()) {
+                                [0, 1, 2].forEach(panelIndex => {
+                                    const newIndex = window.allTextPanels.length;
+                                    const newName = `HandDrawn ${newIndex + 1}`;
+                                    const newFont = availableFonts[0];
+                                    const newSize = 131;
+                                    const newOffset = new THREE.Vector3(-11.4, 152, -624);
+                                    const newRotation = new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI);
+                                    const newPanelSize = {width: 86.5, height: 173};
+                                    const newMessageFunc = () => '';
+                                    const newPanel = createTextPanel(newMessageFunc, newIndex + 100, newFont, newPanelSize, 'draw');
+                                    newPanel.rotation.x = movableMeshes[panelIndex].rotation.x;
+                                    scene.add(newPanel);
+                                    const newPanelObj = {
+                                        stlMesh: movableMeshes[panelIndex],
+                                        textPanel: newPanel,
+                                        offset: newOffset,
+                                        rotationOffset: newRotation
+                                    };
+                                    panelTexts.push(newPanelObj);
+                                    textPanels.push(newPanel);
+                                    window.allTextPanels.push({
+                                        name: newName,
+                                        panelObj: newPanelObj,
+                                        panel: newPanel,
+                                        font: newFont,
+                                        size: newSize,
+                                        isMain: false,
+                                        assignedPanel: panelIndex,
+                                        stlMesh: movableMeshes[panelIndex],
+                                        text: null,
+                                        drawingData: null,
+                                        isDynamic: false,
+                                        type: 'draw',
+                                        baseSize: newPanelSize
+                                    });
+                                });
+                                initializeTextControls();
+                                saveState();
+                            }
                             console.log('Text panel controls initialized.');
                             console.log('Click "Text Controls" button in top right for UI controls.');
                             console.log('Use "Add New Panel" to create text or drawing panels.');
-                            [0, 1, 2].forEach(panelIndex => {
-                                const newIndex = window.allTextPanels.length;
-                                const newName = `HandDrawn ${newIndex + 1}`;
-                                const newFont = availableFonts[0];
-                                const newSize = 131;
-                                const newOffset = new THREE.Vector3(-11.4, 152, -624);
-                                const newRotation = new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI);
-                                const newPanelSize = {width: 173, height: 86.5};
-                                const newMessageFunc = () => '';
-                                const newPanel = createTextPanel(newMessageFunc, newIndex + 100, newFont, newPanelSize, 'draw');
-                                newPanel.rotation.x = movableMeshes[panelIndex].rotation.x;
-                                scene.add(newPanel);
-                                const newPanelObj = {
-                                    stlMesh: movableMeshes[panelIndex],
-                                    textPanel: newPanel,
-                                    offset: newOffset,
-                                    rotationOffset: newRotation
-                                };
-                                panelTexts.push(newPanelObj);
-                                textPanels.push(newPanel);
-                                window.allTextPanels.push({
-                                    name: newName,
-                                    panelObj: newPanelObj,
-                                    panel: newPanel,
-                                    font: newFont,
-                                    size: newSize,
-                                    isMain: false,
-                                    assignedPanel: panelIndex,
-                                    stlMesh: movableMeshes[panelIndex],
-                                    text: null,
-                                    drawingData: null,
-                                    isDynamic: false,
-                                    type: 'draw',
-                                    baseSize: newPanelSize
-                                });
-                            });
-                            initializeTextControls();
-                            saveState();
                         }, 1000);
                         setTimeout(() => {
                             meshes.forEach((mesh, index) => {
@@ -1002,7 +1003,7 @@
                     textEditHtml = `
                         <div class="control-row">
                             <label>Drawing:</label>
-                            <canvas id="draw-${index}" width="260" height="130" style="border:1px solid #555; background: white; cursor: crosshair;"></canvas>
+                            <canvas id="draw-${index}" style="border:1px solid #555; background: white; cursor: crosshair;"></canvas>
                         </div>
                         <div class="control-row">
                             <label>Line:</label>
@@ -1020,7 +1021,7 @@
                 const sizeMin = type === 'text' ? 40 : 50;
                 const sizeMax = type === 'text' ? 100 : 200;
                 const sizeValue = type === 'text' ? (textItem.size || 76) : (textItem.size || 100);
-                const widthValue = textItem.baseSize?.width || (type === 'text' ? 400 : 455);
+                const widthValue = textItem.baseSize?.width || (type === 'text' ? 400 : 227.5);
 
                 controlDiv.innerHTML = `
                     <h4>${textItem.name}</h4>
@@ -1104,6 +1105,8 @@
                     }
                 } else {
                     const drawCanvas = document.getElementById(`draw-${index}`);
+                    drawCanvas.width = textItem.baseSize.width * 0.65;
+                    drawCanvas.height = textItem.baseSize.height * 0.65;
                     const ctx = drawCanvas.getContext('2d');
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
@@ -1291,8 +1294,8 @@
 
         function updatePanelSize(textItem) {
             const type = textItem.type || 'text';
-            const baseW = textItem.baseSize?.width || (type === 'text' ? 400 : 455);
-            const baseH = textItem.baseSize?.height || (type === 'text' ? 200 : 227.5);
+            const baseW = textItem.baseSize?.width || (type === 'text' ? 400 : 227.5);
+            const baseH = textItem.baseSize?.height || (type === 'text' ? 200 : 455);
             const scale = textItem.size / 100;
             textItem.panel.geometry.dispose();
             textItem.panel.geometry = new THREE.PlaneGeometry(baseW * scale, baseH * scale);
@@ -1360,7 +1363,7 @@
                 rotation: item.panelObj.rotationOffset ? {
                     x: item.panelObj.rotationOffset.x,
                     y: item.panelObj.rotationOffset.y,
-                    z: item.z
+                    z: item.panelObj.rotationOffset.z
                 } : null,
                 assignedPanel: item.assignedPanel,
                 text: item.type === 'text' ? (item.text ?? undefined) : undefined,
@@ -1373,13 +1376,11 @@
 
         function loadState(stateData = null) {
             const stateStr = stateData || localStorage.getItem('textPanelState');
-            let state;
-            if (stateStr) {
-                state = JSON.parse(stateStr);
-            } else {
+            if (!stateStr) {
                 console.info('No saved state found! Start by adding new panels.');
-                return;
+                return false;
             }
+            let state = JSON.parse(stateStr);
 
             window.allTextPanels.forEach(item => {
                 scene.remove(item.panel);
@@ -1396,7 +1397,7 @@
                 const newName = savedItem.name || `Custom ${index + 1}`;
                 const newFont = savedItem.font || availableFonts[0];
                 const newSize = savedItem.size || (newType === 'text' ? 76 : 100);
-                const newBaseSize = savedItem.baseSize || (newType === 'text' ? {width: 400, height: 200} : {width: 455, height: 227.5});
+                const newBaseSize = savedItem.baseSize || (newType === 'text' ? {width: 400, height: 200} : {width: 227.5, height: 455});
                 const newOffset = new THREE.Vector3(savedItem.offset.x, savedItem.offset.y, savedItem.offset.z);
                 const newRotation = new THREE.Euler(
                     savedItem.rotation ? savedItem.rotation.x : -Math.PI / 2,
@@ -1438,6 +1439,7 @@
             if (!stateData) {
                 console.info('State loaded successfully!');
             }
+            return true;
         }
 
         function exportState() {
@@ -1530,8 +1532,8 @@
         }
 
         function createTextPanel(messageFunc, index, fontFamily = 'Kalam', panelSize = null, type = 'text') {
-            const width = panelSize?.width || (type === 'text' ? 400 : 455);
-            const height = panelSize?.height || (type === 'text' ? 200 : 227.5);
+            const width = panelSize?.width || (type === 'text' ? 400 : 227.5);
+            const height = panelSize?.height || (type === 'text' ? 200 : 455);
             const geometry = new THREE.PlaneGeometry(width, height);
             let textureData;
             if (type === 'text') {
@@ -1571,7 +1573,7 @@
             const newSize = isTyped ? 76 : 100;
             const newOffset = new THREE.Vector3(-11.4, 100, -600);
             const newRotation = new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI);
-            const newPanelSize = isTyped ? {width: 400, height: 200} : {width: 455, height: 227.5};
+            const newPanelSize = isTyped ? {width: 400, height: 200} : {width: 227.5, height: 455};
             const newMessageFunc = isTyped ? () => initialText : () => '';
             const newPanel = createTextPanel(newMessageFunc, newIndex + 100, newFont, newPanelSize, isTyped ? 'text' : 'draw');
             newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
