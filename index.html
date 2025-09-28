@@ -6,7 +6,7 @@
     <title>Interactive STL Assembly Viewer</title>
     <style>
         body { margin: 0; font-family: Arial; }
-        canvas { display: block; }
+        canvas { display: block; touch-action: none; }
         #info {
             position: absolute;
             top: 10px;
@@ -757,18 +757,27 @@
             }
         });
 
-        renderer.domElement.addEventListener('mousedown', onMouseDown);
-        renderer.domElement.addEventListener('mousemove', onMouseMove);
-        renderer.domElement.addEventListener('mouseup', onMouseUp);
+        function getClientXY(event) {
+            if (event.touches && event.touches.length > 0) {
+                return { x: event.touches[0].clientX, y: event.touches[0].clientY };
+            } else if (event.changedTouches && event.changedTouches.length > 0) {
+                return { x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY };
+            } else {
+                return { x: event.clientX, y: event.clientY };
+            }
+        }
+
         let drawing3DPanel = null;
         let drawing3D = false;
         let last3DPoint = null;
 
-        function onMouseDown(event) {
+        function onPointerDown(event) {
+            event.preventDefault();
+            const { x: clientX, y: clientY } = getClientXY(event);
+            mouse.x = (clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
             if (drawing3DPanel) {
-                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-                raycaster.setFromCamera(mouse, camera);
                 const intersects = raycaster.intersectObject(drawing3DPanel.panel);
                 if (intersects.length > 0) {
                     const uv = intersects[0].uv;
@@ -785,10 +794,6 @@
                     return;
                 }
             } else {
-                event.preventDefault();
-                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-                raycaster.setFromCamera(mouse, camera);
                 const intersects = raycaster.intersectObjects(movableMeshes);
                 if (intersects.length > 0) {
                     selectedMesh = intersects[0].object;
@@ -809,11 +814,13 @@
             }
         }
 
-        function onMouseMove(event) {
+        function onPointerMove(event) {
+            event.preventDefault();
+            const { x: clientX, y: clientY } = getClientXY(event);
+            mouse.x = (clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
             if (drawing3D && drawing3DPanel) {
-                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-                raycaster.setFromCamera(mouse, camera);
                 const intersects = raycaster.intersectObject(drawing3DPanel.panel);
                 if (intersects.length > 0) {
                     const uv = intersects[0].uv;
@@ -829,9 +836,6 @@
                     controlCtx.drawImage(textureCanvas, 0, 0, drawing3DPanel.controlCanvas.width, drawing3DPanel.controlCanvas.height);
                 }
             } else if (selectedMesh && frameBounds) {
-                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-                raycaster.setFromCamera(mouse, camera);
                 const planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial());
                 const intersectPoint = raycaster.intersectObject(planeMesh)[0]?.point;
                 if (intersectPoint) {
@@ -849,7 +853,8 @@
             }
         }
 
-        function onMouseUp() {
+        function onPointerUp(event) {
+            event.preventDefault();
             if (drawing3D && drawing3DPanel) {
                 drawing3D = false;
                 last3DPoint = null;
@@ -860,6 +865,14 @@
             }
             updateModeIndicator();
         }
+
+        renderer.domElement.addEventListener('mousedown', onPointerDown);
+        renderer.domElement.addEventListener('mousemove', onPointerMove);
+        renderer.domElement.addEventListener('mouseup', onPointerUp);
+        renderer.domElement.addEventListener('touchstart', onPointerDown);
+        renderer.domElement.addEventListener('touchmove', onPointerMove);
+        renderer.domElement.addEventListener('touchend', onPointerUp);
+        renderer.domElement.addEventListener('touchcancel', onPointerUp);
 
         function reportPositions() {
             console.log('=== POSITION REPORT ===');
