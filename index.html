@@ -505,6 +505,9 @@
             canvas.width = panelWidth;
             canvas.height = panelHeight;
             const ctx = canvas.getContext('2d');
+            ctx.beginPath();
+            ctx.roundRect(0, 0, canvas.width, canvas.height, Math.min(canvas.width, canvas.height) / 2);
+            ctx.clip();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const texture = new THREE.CanvasTexture(canvas);
             texture.needsUpdate = true;
@@ -669,7 +672,7 @@
                                     const newSize = 100;
                                     const newOffset = new THREE.Vector3(-11.4, 152, -623.8);
                                     const newRotation = new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI);
-                                    const newPanelSize = {width: 229, height: 373};
+                                    const newPanelSize = {width: 229, height: 300};
                                     const newMessageFunc = () => '';
                                     const newPanel = createTextPanel(newMessageFunc, newIndex + 100, newFont, newPanelSize, 'draw');
                                     newPanel.rotation.x = movableMeshes[panelIndex].rotation.x;
@@ -1108,6 +1111,9 @@
                     drawCanvas.width = textItem.baseSize.width * 0.65;
                     drawCanvas.height = textItem.baseSize.height * 0.65;
                     const ctx = drawCanvas.getContext('2d');
+                    ctx.beginPath();
+                    ctx.roundRect(0, 0, drawCanvas.width, drawCanvas.height, Math.min(drawCanvas.width, drawCanvas.height) / 2);
+                    ctx.clip();
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
                     ctx.shadowBlur = 2;
@@ -1175,6 +1181,9 @@
                     drawCanvas.addEventListener('touchend', endDraw);
 
                     document.getElementById(`clear-${index}`).addEventListener('click', () => {
+                        ctx.beginPath();
+                        ctx.roundRect(0, 0, drawCanvas.width, drawCanvas.height, Math.min(drawCanvas.width, drawCanvas.height) / 2);
+                        ctx.clip();
                         ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
                         updateTextureFromDraw(textItem, drawCanvas);
                         saveState();
@@ -1311,6 +1320,9 @@
                 tempCtx.drawImage(textureCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
                 textureCanvas.width = baseW * 2;
                 textureCanvas.height = baseH * 2;
+                tCtx.beginPath();
+                tCtx.roundRect(0, 0, textureCanvas.width, textureCanvas.height, Math.min(textureCanvas.width, textureCanvas.height) / 2);
+                tCtx.clip();
                 tCtx.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
                 tCtx.drawImage(tempCanvas, 0, 0, textureCanvas.width, textureCanvas.height);
                 textItem.panel.material.map.needsUpdate = true;
@@ -1318,6 +1330,14 @@
                     const controlCtx = textItem.controlCanvas.getContext('2d');
                     textItem.controlCanvas.width = baseW * 0.65;
                     textItem.controlCanvas.height = baseH * 0.65;
+                    controlCtx.beginPath();
+                    controlCtx.roundRect(0, 0, textItem.controlCanvas.width, textItem.controlCanvas.height, Math.min(textItem.controlCanvas.width, textItem.controlCanvas.height) / 2);
+                    controlCtx.clip();
+                    controlCtx.lineCap = 'round';
+                    controlCtx.lineJoin = 'round';
+                    controlCtx.shadowBlur = 2;
+                    controlCtx.shadowColor = 'rgba(0,0,0,0.3)';
+                    controlCtx.globalAlpha = 0.8;
                     controlCtx.drawImage(textureCanvas, 0, 0, textItem.controlCanvas.width, textItem.controlCanvas.height);
                 }
             }
@@ -1343,6 +1363,9 @@
         function updateTextureFromDraw(textItem, drawCanvas) {
             const textureCanvas = textItem.panel.userData.textureData.canvas;
             const tCtx = textItem.panel.userData.textureData.ctx;
+            tCtx.beginPath();
+            tCtx.roundRect(0, 0, textureCanvas.width, textureCanvas.height, Math.min(textureCanvas.width, textureCanvas.height) / 2);
+            tCtx.clip();
             tCtx.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
             tCtx.drawImage(drawCanvas, 0, 0, textureCanvas.width, textureCanvas.height);
             textItem.panel.material.map.needsUpdate = true;
