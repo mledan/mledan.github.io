@@ -506,7 +506,7 @@
             canvas.height = panelHeight;
             const ctx = canvas.getContext('2d');
             ctx.beginPath();
-            ctx.roundRect(0, 0, canvas.width, canvas.height, Math.min(canvas.width, canvas.height) / 2);
+            ctx.roundRect(0, 0, canvas.width, canvas.height, Math.min(canvas.width, canvas.height) / 4);
             ctx.clip();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const texture = new THREE.CanvasTexture(canvas);
@@ -672,7 +672,7 @@
                                     const newSize = 100;
                                     const newOffset = new THREE.Vector3(-11.4, 152, -623.8);
                                     const newRotation = new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI);
-                                    const newPanelSize = {width: 229, height: 300};
+                                    const newPanelSize = {width: 229, height: 280};
                                     const newMessageFunc = () => '';
                                     const newPanel = createTextPanel(newMessageFunc, newIndex + 100, newFont, newPanelSize, 'draw');
                                     newPanel.rotation.x = movableMeshes[panelIndex].rotation.x;
@@ -1112,7 +1112,7 @@
                     drawCanvas.height = textItem.baseSize.height * 0.65;
                     const ctx = drawCanvas.getContext('2d');
                     ctx.beginPath();
-                    ctx.roundRect(0, 0, drawCanvas.width, drawCanvas.height, Math.min(drawCanvas.width, drawCanvas.height) / 2);
+                    ctx.roundRect(0, 0, drawCanvas.width, drawCanvas.height, Math.min(drawCanvas.width, drawCanvas.height) / 4);
                     ctx.clip();
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
@@ -1182,7 +1182,7 @@
 
                     document.getElementById(`clear-${index}`).addEventListener('click', () => {
                         ctx.beginPath();
-                        ctx.roundRect(0, 0, drawCanvas.width, drawCanvas.height, Math.min(drawCanvas.width, drawCanvas.height) / 2);
+                        ctx.roundRect(0, 0, drawCanvas.width, drawCanvas.height, Math.min(drawCanvas.width, drawCanvas.height) / 4);
                         ctx.clip();
                         ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
                         updateTextureFromDraw(textItem, drawCanvas);
@@ -1321,7 +1321,7 @@
                 textureCanvas.width = baseW * 2;
                 textureCanvas.height = baseH * 2;
                 tCtx.beginPath();
-                tCtx.roundRect(0, 0, textureCanvas.width, textureCanvas.height, Math.min(textureCanvas.width, textureCanvas.height) / 2);
+                tCtx.roundRect(0, 0, textureCanvas.width, textureCanvas.height, Math.min(textureCanvas.width, textureCanvas.height) / 4);
                 tCtx.clip();
                 tCtx.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
                 tCtx.drawImage(tempCanvas, 0, 0, textureCanvas.width, textureCanvas.height);
@@ -1331,7 +1331,7 @@
                     textItem.controlCanvas.width = baseW * 0.65;
                     textItem.controlCanvas.height = baseH * 0.65;
                     controlCtx.beginPath();
-                    controlCtx.roundRect(0, 0, textItem.controlCanvas.width, textItem.controlCanvas.height, Math.min(textItem.controlCanvas.width, textItem.controlCanvas.height) / 2);
+                    controlCtx.roundRect(0, 0, textItem.controlCanvas.width, textItem.controlCanvas.height, Math.min(textItem.controlCanvas.width, textItem.controlCanvas.height) / 4);
                     controlCtx.clip();
                     controlCtx.lineCap = 'round';
                     controlCtx.lineJoin = 'round';
@@ -1364,7 +1364,7 @@
             const textureCanvas = textItem.panel.userData.textureData.canvas;
             const tCtx = textItem.panel.userData.textureData.ctx;
             tCtx.beginPath();
-            tCtx.roundRect(0, 0, textureCanvas.width, textureCanvas.height, Math.min(textureCanvas.width, textureCanvas.height) / 2);
+            tCtx.roundRect(0, 0, textureCanvas.width, textureCanvas.height, Math.min(textureCanvas.width, textureCanvas.height) / 4);
             tCtx.clip();
             tCtx.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
             tCtx.drawImage(drawCanvas, 0, 0, textureCanvas.width, textureCanvas.height);
