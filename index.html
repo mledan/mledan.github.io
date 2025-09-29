@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive STL Assembly Viewer</title>
+    <script src="https://unpkg.com/@azure/web-pubsub-client@1.0.0-beta.1/dist/web-pubsub-client.js"></script>
     <style>
         body {
             margin: 0;
@@ -383,8 +384,11 @@
         </div>
         <div id="text-panel-list"></div>
     </div>
-    <a href="https://www.kickstarter.com" target="_blank" style="position: absolute; bottom: 0; left: 0; width: 150px; height: 150px; background: #ff0000; clip-path: polygon(0 100%, 100% 100%, 0 0); display: flex; align-items: center; justify-content: center; text-decoration: none; cursor: pointer; z-index: 10;">
-        <span style="color: white; font-size: 16px; transform: rotate(-45deg); white-space: nowrap; padding-bottom: 20px; padding-left: 10px;">Preorder SlideBord!</span>
+    <a href="https://www.kickstarter.com" target="_blank"
+        style="position: absolute; bottom: 0; left: 0; width: 150px; height: 150px; background: #ff0000; clip-path: polygon(0 100%, 100% 100%, 0 0); display: flex; align-items: center; justify-content: center; text-decoration: none; cursor: pointer; z-index: 10;">
+        <span
+            style="color: white; font-size: 16px; transform: rotate(-45deg); white-space: nowrap; padding-bottom: 20px; padding-left: 10px;">Preorder
+            SlideBord!</span>
     </a>
     <script type="importmap">
         {
@@ -401,7 +405,125 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+        // Globals for Web PubSub
+        let pubsubClient;
+        let roomId;
+        let username;
+        let userRole;
+        let isWriter = false;
 
+        // Parse URL for room_id (e.g., /myroom → roomId = 'myroom')
+        function parseRoomId() {
+            const path = window.location.pathname.substring(1).toLowerCase();
+            return path || 'default';  // Fallback if no path
+        }
+
+        // Load username/role from localStorage or prompt
+        function loadUserInfo() {
+            username = localStorage.getItem('username');
+            userRole = localStorage.getItem('role');
+            if (!username || !userRole) {
+                username = prompt('Enter your username:');
+                userRole = prompt('Enter role (writer or reader):').toLowerCase();
+                if (username && (userRole === 'writer' || userRole === 'reader')) {
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('role', userRole);
+                } else {
+                    alert('Invalid input. Refresh to try again.');
+                    return false;
+                }
+            }
+            isWriter = userRole === 'writer';
+            // Disable editing if reader
+            if (!isWriter) {
+                document.querySelectorAll('canvas[id^="draw-"], textarea[id^="text-"], button[id^="add-"], button[id^="draw3d-"]').forEach(el => el.disabled = true);
+            }
+            return true;
+        }
+
+        // Connect to Web PubSub
+        async function connectPubSub() {
+            const negotiateUrl = `https://slidebord-erhgcyd4gvckdrc3.centralus-01.azurewebsites.net/api/negotiate?room_id=${roomId}&username=${username}&role=${userRole}`;
+            const response = await fetch(negotiateUrl);
+            const { url } = await response.text();  // Get WS URL
+
+            pubsubClient = new WebPubSubClient(url);
+            await pubsubClient.start();
+
+            // Join room group
+            await pubsubClient.joinGroup(roomId);
+
+            // Handle incoming messages
+            pubsubClient.on("group-message", (e) => {
+                if (e.message.data.type === 'join') {
+                    console.log(`${e.message.data.username} joined`);
+                    // Send current state if writer
+                    if (isWriter) sendFullState();
+                } else if (e.message.data.type === 'request_state') {
+                    if (isWriter) sendFullState();
+                } else if (e.message.data.type === 'full_state') {
+                    applyFullState(e.message.data.state);
+                } else if (e.message.data.type === 'draw_line') {
+                    applyDrawLine(e.message.data);
+                } else if (e.message.data.type === 'text_update') {
+                    applyTextUpdate(e.message.data);
+                } // Add more for positions, etc.
+            });
+
+            // Announce join and request state
+            pubsubClient.sendToGroup(roomId, { type: 'join', username });
+            pubsubClient.sendToGroup(roomId, { type: 'request_state' });
+        }
+
+        // Send full state (on request)
+        function sendFullState() {
+            const state = JSON.parse(localStorage.getItem('textPanelState'));  // From your saveState()
+            pubsubClient.sendToGroup(roomId, { type: 'full_state', state });
+        }
+
+        // Apply full state from message
+        function applyFullState(state) {
+            loadState(JSON.stringify(state));  // Your existing loadState()
+        }
+
+        // For incremental draws: Modify your draw functions
+        // Example: In draw() or onPointerMove for 3D/2D drawing
+        function applyDrawLine(data) {
+            // Find panel by data.panelIndex
+            const textItem = window.allTextPanels[data.panelIndex];
+            const ctx = textItem.panel.userData.textureData.ctx;  // Or controlCanvas
+            ctx.strokeStyle = data.color;
+            ctx.lineWidth = data.lineWidth;
+            ctx.beginPath();
+            ctx.moveTo(data.x1, data.y1);
+            ctx.lineTo(data.x2, data.y2);
+            ctx.stroke();
+            textItem.panel.material.map.needsUpdate = true;
+            // Update control canvas if needed
+        }
+
+        // When writer draws: In your draw() or onPointerMove
+        // Add: if (isWriter) pubsubClient.sendToGroup(roomId, { type: 'draw_line', panelIndex: ..., x1: lastX, y1: lastY, x2: x, y2: y, color: textItem.color, lineWidth: textItem.lineWidth });
+
+        // Similar for text updates: In textArea 'input' event
+        // if (isWriter) pubsubClient.sendToGroup(roomId, { type: 'text_update', panelIndex: index, text: e.target.value });
+
+        // Apply: function applyTextUpdate(data) { window.allTextPanels[data.panelIndex].text = data.text; updateTextPanel(window.allTextPanels[data.panelIndex]); }
+
+        // Init on load
+        document.addEventListener('DOMContentLoaded', () => {
+            roomId = parseRoomId();
+            if (loadUserInfo()) {
+                connectPubSub();
+            }
+        });
+
+        // Override saveState to broadcast if writer
+        const originalSaveState = saveState;
+        saveState = function () {
+            originalSaveState();
+            if (isWriter) sendFullState();
+        };
         window.textControls = {};
         window.allTextPanels = [];
 
