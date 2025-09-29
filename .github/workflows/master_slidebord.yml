@@ -44,8 +44,14 @@ jobs:
       - name: Zip artifact for deployment
         run: |
           cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          zip -r ../../release.zip .
-
+          zip -r release.zip . -x '*.git*' '*venv*'
+      
+      - name: Debug Zip
+        run: |
+          ls -la
+          ls -la ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          unzip -l release.zip  # List zip contents
+      
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -66,7 +72,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: python-app
-
+      - name: Debug Download
+        run: ls -la
       - name: Unzip artifact for deployment
         run: |
           unzip release.zip
@@ -86,3 +93,4 @@ jobs:
           app-name: 'slidebord'
           slot-name: 'Production'
           package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+
