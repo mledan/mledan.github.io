@@ -1,12 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive STL Assembly Viewer</title>
     <style>
-        body { margin: 0; font-family: Arial; }
-        canvas { display: block; touch-action: none; }
+        body {
+            margin: 0;
+            font-family: Arial;
+        }
+
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+
         #info {
             position: absolute;
             top: 10px;
@@ -18,6 +27,7 @@
             font-size: 14px;
             display: none;
         }
+
         #controls {
             position: absolute;
             top: 50px;
@@ -27,6 +37,7 @@
             padding: 10px;
             display: none;
         }
+
         #text-controls {
             position: absolute;
             top: 60px;
@@ -41,15 +52,18 @@
             font-size: 12px;
             display: none;
         }
+
         #text-controls.active {
             display: block;
         }
+
         #text-controls h3 {
             margin: 0 0 10px 0;
             color: #fff;
             border-bottom: 1px solid #555;
             padding-bottom: 5px;
         }
+
         .text-panel-control {
             background: rgba(255, 255, 255, 0.1);
             padding: 10px;
@@ -57,25 +71,30 @@
             border-radius: 5px;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
+
         .text-panel-control h4 {
             margin: 0 0 8px 0;
             color: #ffd700;
             font-size: 13px;
         }
+
         .control-row {
             display: flex;
             align-items: center;
             margin: 5px 0;
             gap: 10px;
         }
+
         .control-row label {
             width: 60px;
             font-size: 11px;
         }
+
         .control-row input[type="range"] {
             flex: 1;
             height: 20px;
         }
+
         .control-row input[type="number"] {
             width: 60px;
             background: rgba(255, 255, 255, 0.1);
@@ -84,6 +103,7 @@
             padding: 2px 5px;
             border-radius: 3px;
         }
+
         .control-row select {
             flex: 1;
             background: rgba(255, 255, 255, 0.1);
@@ -92,9 +112,11 @@
             padding: 3px;
             border-radius: 3px;
         }
+
         .control-row select option {
             background: #333;
         }
+
         .control-row textarea {
             flex: 1;
             background: rgba(255, 255, 255, 0.1);
@@ -104,6 +126,7 @@
             border-radius: 3px;
             resize: vertical;
         }
+
         #toggle-text-controls {
             position: absolute;
             bottom: 10px;
@@ -117,9 +140,11 @@
             font-size: 14px;
             z-index: 20;
         }
+
         #toggle-text-controls:hover {
             background: rgba(0, 0, 0, 0.7);
         }
+
         .text-preview {
             font-size: 10px;
             color: #aaa;
@@ -130,10 +155,25 @@
             max-height: 40px;
             overflow: hidden;
         }
-        #controls label { margin-right: 5px; }
-        #controls input[type="number"] { width: 60px; margin: 2px; }
-        #controls input[type="checkbox"] { margin: 2px; }
-        #controls button { margin: 5px 0; padding: 5px; }
+
+        #controls label {
+            margin-right: 5px;
+        }
+
+        #controls input[type="number"] {
+            width: 60px;
+            margin: 2px;
+        }
+
+        #controls input[type="checkbox"] {
+            margin: 2px;
+        }
+
+        #controls button {
+            margin: 5px 0;
+            padding: 5px;
+        }
+
         #mobile-controls {
             position: absolute;
             top: 10px;
@@ -142,6 +182,7 @@
             gap: 10px;
             z-index: 10;
         }
+
         #mobile-controls button {
             padding: 10px 15px;
             font-size: 16px;
@@ -152,15 +193,18 @@
             cursor: pointer;
             touch-action: manipulation;
         }
+
         #mobile-controls button:hover {
             background: rgba(0, 0, 0, 0.7);
         }
+
         @media (max-width: 600px) {
             #mobile-controls button {
                 padding: 8px 12px;
                 font-size: 14px;
             }
         }
+
         .panel-text {
             position: absolute;
             width: 200px;
@@ -176,77 +220,119 @@
             background: rgba(255, 255, 255, 0.95);
             border-radius: 5px;
             padding: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
+
         .handwritten {
             font-family: 'Kalam', cursive;
             font-weight: 700;
             font-size: 18px;
             line-height: 1.4;
             letter-spacing: 0.5px;
-            text-shadow: 0.5px 0.5px 0px rgba(0,0,0,0.1);
+            text-shadow: 0.5px 0.5px 0px rgba(0, 0, 0, 0.1);
         }
+
         .handwritten-large {
             font-size: 22px;
             font-weight: 700;
         }
+
         .handwritten-small {
             font-size: 16px;
         }
-        .char-1 { transform: rotate(-1deg); display: inline-block; }
-        .char-2 { transform: rotate(0.5deg); display: inline-block; }
-        .char-3 { transform: rotate(-0.5deg); display: inline-block; }
-        .char-4 { transform: rotate(1deg); display: inline-block; }
-        .char-5 { transform: rotate(-0.3deg); display: inline-block; }
+
+        .char-1 {
+            transform: rotate(-1deg);
+            display: inline-block;
+        }
+
+        .char-2 {
+            transform: rotate(0.5deg);
+            display: inline-block;
+        }
+
+        .char-3 {
+            transform: rotate(-0.5deg);
+            display: inline-block;
+        }
+
+        .char-4 {
+            transform: rotate(1deg);
+            display: inline-block;
+        }
+
+        .char-5 {
+            transform: rotate(-0.3deg);
+            display: inline-block;
+        }
+
         .countdown-text {
             color: #e74c3c;
             margin-bottom: 5px;
         }
+
         .camping-text {
             color: #27ae60;
         }
+
         .love-text {
             color: #e91e63;
         }
+
         .heart-icon {
             color: #e74c3c;
             font-size: 24px;
             animation: heartbeat 1.5s ease-in-out infinite;
         }
+
         @keyframes heartbeat {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
+
         .campfire-icon {
             width: 30px;
             height: 30px;
             margin: 5px;
         }
+
         @font-face {
             font-family: 'DfThin';
             src: url('df-thin-font/DfThin-W8Z4.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
+
         @font-face {
             font-family: 'MarkerFont';
             src: url('marker-font/MarkerFont-AyOm.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
+
         @font-face {
             font-family: 'Pwscritch';
             src: url('pwscritch-font/Pwscritch-7yBE.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
+
         @font-face {
             font-family: 'SmoothMarker';
             src: url('smooth-marker-font/SmoothMarker-45d6.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
+
         @font-face {
             font-family: 'WhiteboardRegular';
             src: url('whiteboard-font/WhiteboardRegular-O7gp.ttf') format('truetype');
@@ -255,8 +341,11 @@
         }
     </style>
 </head>
+
 <body>
-    <div id="info">Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle autorotate, 'a' to toggle autoslide, 'w' to toggle writing mode. Orbit: OFF, AutoRotate: OFF, AutoSlide: OFF, Writing: OFF</div>
+    <div id="info">Click and drag to slide boards (red, green, yellow). Press 'o' to toggle orbit, 'r' to toggle
+        autorotate, 'a' to toggle autoslide, 'w' to toggle writing mode. Orbit: OFF, AutoRotate: OFF, AutoSlide: OFF,
+        Writing: OFF</div>
     <div id="controls">
         <h3>Position Controls</h3>
         <button id="apply-values">Apply Values</button>
@@ -274,13 +363,23 @@
     <div id="text-controls">
         <h3>Text Panel Controls</h3>
         <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 5px;">
-            <button id="save-state" style="margin-right: 10px; padding: 5px 10px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">Save State</button>
-            <button id="load-state" style="margin-right: 10px; padding: 5px 10px; background: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer;">Load State</button>
-            <button id="export-state" style="margin-right: 10px; padding: 5px 10px; background: #FF9800; color: white; border: none; border-radius: 3px; cursor: pointer;">Export as Code</button>
-            <button id="reset-state" style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">Reset to Default</button>
+            <button id="save-state"
+                style="margin-right: 10px; padding: 5px 10px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">Save
+                State</button>
+            <button id="load-state"
+                style="margin-right: 10px; padding: 5px 10px; background: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer;">Load
+                State</button>
+            <button id="export-state"
+                style="margin-right: 10px; padding: 5px 10px; background: #FF9800; color: white; border: none; border-radius: 3px; cursor: pointer;">Export
+                as Code</button>
+            <button id="reset-state"
+                style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">Reset
+                to Default</button>
         </div>
         <div style="margin-bottom: 15px;">
-            <button id="add-new-text" style="padding: 5px 10px; background: #673AB7; color: white; border: none; border-radius: 3px; cursor: pointer;">Add New Panel</button>
+            <button id="add-new-text"
+                style="padding: 5px 10px; background: #673AB7; color: white; border: none; border-radius: 3px; cursor: pointer;">Add
+                New Panel</button>
         </div>
         <div id="text-panel-list"></div>
     </div>
@@ -292,7 +391,9 @@
             }
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Caveat:wght@700&family=Kalam:wght@700&family=Shadows+Into+Light&family=Patrick+Hand&family=Coming+Soon&family=Architects+Daughter&family=Indie+Flower&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Caveat:wght@700&family=Kalam:wght@700&family=Shadows+Into+Light&family=Patrick+Hand&family=Coming+Soon&family=Architects+Daughter&family=Indie+Flower&display=swap"
+        rel="stylesheet">
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -424,12 +525,24 @@
         directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
 
+        // const stlFiles = [
+        //     // { path: './completeframe-nosliders.stl', color: 0x5c5c5c, movable: false, scale: 1, initialPos: [0, 0, 500] },
+        //     { path: './frameonly.stl', color: 0x5c5c5c, movable: false, scale: 1, initialPos: [0, 0, 500] },
+        //     { path: './backingboard.stl', color: 0x5c5c5c, movable: false, scale: 1, initialPos: [0, 0, 500] },
+        //     { path: './slidingboard.stl', color: 0xFEECEC, movable: true, scale: 1, initialPos: [12.5, 0, 600], phase: 0, name: 'Pink Panel' },
+        //     { path: './slidingboard.stl', color: 0xf4f9f4, movable: true, scale: 1, initialPos: [7.5, 0, 520], phase: 2 * Math.PI / 3, name: 'Green Panel' },
+        //     { path: './slidingboard.stl', color: 0xEDF3FA, movable: true, scale: 1, initialPos: [0, 0, 700], phase: 4 * Math.PI / 3, name: 'Blue Panel' }
+        // ];
+
         const stlFiles = [
-            { path: './completeframe-nosliders.stl', color: 0x5c5c5c, movable: false, scale: 1, initialPos: [0, 0, 500] },
-            { path: './slidingboard.stl', color: 0xFEECEC, movable: true, scale: 1, initialPos: [12.5, 0, 600], phase: 0, name: 'Pink Panel' },
-            { path: './slidingboard.stl', color: 0xf4f9f4, movable: true, scale: 1, initialPos: [7.5, 0, 520], phase: 2 * Math.PI / 3, name: 'Green Panel' },
-            { path: './slidingboard.stl', color: 0xEDF3FA, movable: true, scale: 1, initialPos: [0, 0, 700], phase: 4 * Math.PI / 3, name: 'Blue Panel' }
-        ];
+            { path: './frameonly.stl', color: 0x111111, movable: false, scale: 1, initialPos: [0, 0, 500] },
+            { path: './backingboard.stl', color: 0xf5f5f5, movable: false, scale: 1, initialPos: [0, 0, 500] },
+            { path: './slidingboard.stl', color: 0xf5f5f5, movable: true, scale: 1, initialPos: [12.5, 0, 600], phase: 0, name: 'Pink Panel' },
+            { path: './slidingboard.stl', color: 0xf5f5f5, movable: true, scale: 1, initialPos: [7.5, 0, 520], phase: 2 * Math.PI / 3, name: 'Green Panel' },
+            { path: './slidingboard.stl', color: 0xf5f5f5, movable: true, scale: 1, initialPos: [0, 0, 700], phase: 4 * Math.PI / 3, name: 'Blue Panel' }
+        ]
+
+
 
         const loader = new STLLoader();
         let maxDim = 0;
@@ -682,7 +795,7 @@
                         }, 100);
                     }
                 },
-                (xhr) => {},
+                (xhr) => { },
                 (error) => console.error(`Error loading ${stl.path}:`, error)
             );
         });
@@ -883,14 +996,14 @@
                 console.log(` Panel ${i + 1} (${mesh.userData.name})`);
                 console.log(` Local: x=${mesh.position.x.toFixed(2)}, y=${mesh.position.y.toFixed(2)}, z=${mesh.position.z.toFixed(2)}`);
                 console.log(` World: x=${worldPos.x.toFixed(2)}, y=${worldPos.y.toFixed(2)}, z=${worldPos.z.toFixed(2)}`);
-                console.log(` Rotation: x=${(mesh.rotation.x * 180/Math.PI).toFixed(0)}°, y=${(mesh.rotation.y * 180/Math.PI).toFixed(0)}°, z=${(mesh.rotation.z * 180/Math.PI).toFixed(0)}°`);
+                console.log(` Rotation: x=${(mesh.rotation.x * 180 / Math.PI).toFixed(0)}°, y=${(mesh.rotation.y * 180 / Math.PI).toFixed(0)}°, z=${(mesh.rotation.z * 180 / Math.PI).toFixed(0)}°`);
             });
 
             console.log('\nText Panels:');
             textPanels.forEach((panel, i) => {
                 console.log(` Text ${i + 1}:`);
                 console.log(` Position: x=${panel.position.x.toFixed(2)}, y=${panel.position.y.toFixed(2)}, z=${panel.position.z.toFixed(2)}`);
-                console.log(` Rotation: x=${(panel.rotation.x * 180/Math.PI).toFixed(0)}°, y=${(panel.rotation.y * 180/Math.PI).toFixed(0)}°, z=${(panel.rotation.z * 180/Math.PI).toFixed(0)}°`);
+                console.log(` Rotation: x=${(panel.rotation.x * 180 / Math.PI).toFixed(0)}°, y=${(panel.rotation.y * 180 / Math.PI).toFixed(0)}°, z=${(panel.rotation.z * 180 / Math.PI).toFixed(0)}°`);
             });
 
             console.log('\nCamera:');
@@ -971,8 +1084,8 @@
                             <label>Font:</label>
                             <select id="font-${index}" data-index="${index}">
                                 ${availableFonts.map(f =>
-                                    `<option value="${f}" ${f === textItem.font ? 'selected' : ''}>${f}</option>`
-                                ).join('')}
+                        `<option value="${f}" ${f === textItem.font ? 'selected' : ''}>${f}</option>`
+                    ).join('')}
                             </select>
                         </div>
                     `;
@@ -1007,8 +1120,8 @@
                         <label>Follow:</label>
                         <select id="panel-${index}" data-index="${index}">
                             ${movableMeshes.map((mesh, i) =>
-                                `<option value="${i}" ${i === textItem.assignedPanel ? 'selected' : ''}>${stlFiles[i + 1].name}</option>`
-                            ).join('')}
+                    `<option value="${i}" ${i === textItem.assignedPanel ? 'selected' : ''}>${stlFiles[i + 1].name}</option>`
+                ).join('')}
                         </select>
                     </div>
                     ${fontHtml}
@@ -1394,7 +1507,7 @@
                 const newName = savedItem.name || `Custom ${index + 1}`;
                 const newFont = savedItem.font || availableFonts[0];
                 const newSize = savedItem.size || (newType === 'text' ? 76 : 100);
-                const newBaseSize = savedItem.baseSize || (newType === 'text' ? {width: 400, height: 200} : {width: 227.5, height: 455});
+                const newBaseSize = savedItem.baseSize || (newType === 'text' ? { width: 400, height: 200 } : { width: 227.5, height: 455 });
                 const newOffset = new THREE.Vector3(savedItem.offset.x, savedItem.offset.y, savedItem.offset.z);
                 const newRotation = new THREE.Euler(
                     savedItem.rotation ? savedItem.rotation.x : -Math.PI / 2,
@@ -1532,7 +1645,7 @@
                 const newSize = 100;
                 const newOffset = new THREE.Vector3(-11.4, 152, -623.8);
                 const newRotation = new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI);
-                const newPanelSize = {width: 229, height: 295};
+                const newPanelSize = { width: 229, height: 295 };
                 const newMessageFunc = () => '';
                 const newPanel = createTextPanel(newMessageFunc, newIndex + 100, newFont, newPanelSize, 'draw');
                 newPanel.rotation.x = movableMeshes[panelIndex].rotation.x;
@@ -1608,7 +1721,7 @@
             const newSize = isTyped ? 76 : 100;
             const newOffset = new THREE.Vector3(-11.4, 100, -600);
             const newRotation = new THREE.Euler(-Math.PI / 2, Math.PI / 2, Math.PI);
-            const newPanelSize = isTyped ? {width: 400, height: 200} : {width: 227.5, height: 455};
+            const newPanelSize = isTyped ? { width: 400, height: 200 } : { width: 227.5, height: 455 };
             const newMessageFunc = isTyped ? () => initialText : () => '';
             const newPanel = createTextPanel(newMessageFunc, newIndex + 100, newFont, newPanelSize, isTyped ? 'text' : 'draw');
             newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
@@ -1661,4 +1774,5 @@
         });
     </script>
 </body>
+
 </html>
