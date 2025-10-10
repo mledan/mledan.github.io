@@ -1200,6 +1200,9 @@
                             textItem.panel.userData.messageFunc = () => textItem.text;
                             updateTextPanel(textItem);
                             saveState();
+                            if (window.sendTextUpdate) {
+                                window.sendTextUpdate(index, textItem.text);
+                            }
                         });
                     }
                 } else {
@@ -1244,6 +1247,8 @@
                     function draw(e) {
                         if (!drawing) return;
                         const [x, y] = getMousePos(e, drawCanvas);
+                        const prevX = lastX;
+                        const prevY = lastY;
                         if (isErasing) {
                             ctx.globalCompositeOperation = 'destination-out';
                             ctx.strokeStyle = 'rgba(0,0,0,1)';
@@ -1255,6 +1260,9 @@
                         ctx.lineWidth = textItem.lineWidth;
                         ctx.lineTo(x, y);
                         ctx.stroke();
+                        if (!isErasing && window.sendDrawLine) {
+                            window.sendDrawLine(index, prevX, prevY, x, y, textItem.color, parseFloat(textItem.lineWidth || 2));
+                        }
                         [lastX, lastY] = [x, y];
                     }
 

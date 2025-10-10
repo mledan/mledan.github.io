@@ -1,7 +1,8 @@
 {
   "IsEncrypted": false,
   "Values": {
-    "AzureWebJobsStorage": "",
-    "FUNCTIONS_WORKER_RUNTIME": "python"
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AZURE_WEB_PUBSUB_CONNECTION_STRING": "Endpoint=https://<your-resource>.webpubsub.azure.com;AccessKey=<key>;Version=1.0;"
   }
 }

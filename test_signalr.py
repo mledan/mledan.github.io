@@ -5,10 +5,17 @@ import logging
 from typing import Optional
 
 import requests
+import base64
+import hashlib
+import hmac
+import time
+import urllib.parse
+import asyncio
+import websockets
 
 # Configuration (set via env vars or leave defaults for local testing)
 FUNCTION_URL = os.getenv("FUNCTION_URL", "http://localhost:7071/api/negotiate")
-HUB_NAME = os.getenv("HUB_NAME", "chat")  # Must match Function binding
+HUB_NAME = os.getenv("HUB_NAME", "ViewerHub")  # Web PubSub hub used by backend
 REQUEST_TIMEOUT_SECONDS = int(os.getenv("REQUEST_TIMEOUT_SECONDS", "10"))
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
@@ -23,15 +30,19 @@ def test_negotiate() -> Optional[dict]:
     """Test 1: Call negotiate endpoint to get connection info."""
     logger.info("Testing negotiate endpoint: %s", FUNCTION_URL)
     try:
-        response = requests.post(FUNCTION_URL, timeout=REQUEST_TIMEOUT_SECONDS)
+        # Web PubSub negotiate implemented as GET in this app
+        response = requests.get(FUNCTION_URL, timeout=REQUEST_TIMEOUT_SECONDS, params={
+            "room_id": os.getenv("ROOM_ID", "default"),
+            "username": os.getenv("USERNAME", "tester"),
+            "role": os.getenv("ROLE", "writer"),
+        })
         response.raise_for_status()
         negotiate_response = response.json()
 
         url = negotiate_response.get("url")
-        access_token = negotiate_response.get("accessToken")
-        if not url or not access_token:
+        if not url:
             logger.error(
-                "Invalid negotiate response: missing 'url' or 'accessToken' -> %s",
+                "Invalid negotiate response: missing 'url' -> %s",
                 json.dumps(negotiate_response, indent=2),
             )
             return None
@@ -57,72 +68,54 @@ def test_negotiate() -> Optional[dict]:
         return None
 
 
-def test_client_connection(negotiate_response: dict) -> None:
-    """Test 2: Connect as client to receive pub/sub messages (assumes broadcaster running)."""
+async def test_client_connection_ws(negotiate_response: dict) -> None:
+    """Connect to Azure Web PubSub using the negotiated client URL."""
     if not negotiate_response:
         return
 
-    # Upgrade to WebSocket scheme
-    url = negotiate_response["url"].replace("https://", "wss://").replace("http://", "ws://")
-    access_token = negotiate_response["accessToken"]
+    ws_url = negotiate_response["url"]
+    # Web PubSub expects subprotocol 'json.webpubsub.azure.v1'
+    subprotocols = ["json.webpubsub.azure.v1"]
+
+    async def receiver(websocket):
+        async for message in websocket:
+            try:
+                data = json.loads(message)
+            except Exception:
+                logger.debug("Non-JSON message: %s", message)
+                continue
+            logger.info("Received: %s", json.dumps(data))
 
     try:
-        from signalrcore.hub_connection_builder import HubConnectionBuilder  # type: ignore
-    except Exception:
-        logger.error("signalrcore is not installed. Please run: pip install signalrcore")
-        return
+        async with websockets.connect(ws_url, subprotocols=subprotocols, ping_interval=20, ping_timeout=20) as ws:
+            logger.info("Connected to Web PubSub. Listening for messages...")
+            # Join group according to our app logic
+            room_id = os.getenv("ROOM_ID", "default")
+            username = os.getenv("USERNAME", "tester")
+            join_envelope = {
+                "type": "joinGroup",
+                "group": room_id
+            }
+            await ws.send(json.dumps(join_envelope))
+            # Announce join (matches frontend schema)
+            await ws.send(json.dumps({
+                "type": "sendToGroup",
+                "group": room_id,
+                "dataType": "json",
+                "data": {"type": "join", "username": username, "sender": username}
+            }))
 
-    logger.info("Building SignalR client connection...")
-    # The negotiate 'url' already points at the Azure SignalR Service client endpoint for this hub
-    builder = (
-        HubConnectionBuilder()
-        .with_url(
-            url,
-            options={
-                "access_token_factory": lambda: access_token,
-                "skip_negotiation": True,  # we've already obtained url + token from negotiate
-                "transport": "webSockets",  # ensure WebSockets
-            },
-        )
-        .with_automatic_reconnect({
-            "type": "raw",
-            "keep_alive_interval": 10,
-            "reconnect_interval": 5,
-            "max_attempts": 5,
-        })
-        .configure_logging(logging.DEBUG)
-    )
-
-    hub_connection = builder.build()
-
-    # Handlers for pub/sub events
-    hub_connection.on_open(lambda: logger.info("Connected to SignalR hub! Waiting for messages..."))
-    hub_connection.on_close(lambda: logger.info("Connection closed."))
-
-    # Adjust target name as per your broadcaster Function's 'target'
-    hub_connection.on("newMessage", lambda data: logger.info("Received pub/sub message: %s", data))
-
-    try:
-        hub_connection.start()
-        logger.info("Press Enter to stop listening...")
-        try:
-            input()
-        except EOFError:
-            # Non-interactive environments
-            logger.info("Non-interactive session detected. Listening for 10 seconds...")
-            import time
-
-            time.sleep(10)
-    except Exception as conn_err:
-        logger.error("Connection failed: %s", conn_err)
-        logger.error(
-            "Check: Mismatched hubName, token expiry, or SignalR upstream/broadcaster issues."
-        )
-    finally:
-        try:
-            hub_connection.stop()
-        except Exception:
-            pass
+            # Receive loop or until Enter pressed
+            loop = asyncio.get_event_loop()
+            if sys.stdin.isatty():
+                logger.info("Press Enter to stop...")
+                receiver_task = asyncio.create_task(receiver(ws))
+                await loop.run_in_executor(None, sys.stdin.readline)
+                receiver_task.cancel()
+            else:
+                await asyncio.wait_for(receiver(ws), timeout=10)
+    except Exception as e:
+        logger.error("WebSocket connection failed: %s", e)
 
 
 if __name__ == "__main__":
@@ -133,11 +126,11 @@ if __name__ == "__main__":
     # Optional interactive prompt or env var control
     connect_env = os.getenv("CONNECT", "").strip().lower()
     if connect_env in ("y", "yes", "true", "1"):
-        test_client_connection(negotiate_resp)
+        asyncio.run(test_client_connection_ws(negotiate_resp))
     else:
         try:
             choice = input("Test client connection? (y/n): ").strip().lower()
         except EOFError:
             choice = "n"
         if choice.startswith("y"):
-            test_client_connection(negotiate_resp)
+            asyncio.run(test_client_connection_ws(negotiate_resp))

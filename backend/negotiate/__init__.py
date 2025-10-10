@@ -19,9 +19,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     # Optional: Use role to assign permissions
     role = req.params.get('role', 'reader').lower()
-    roles = [f"webpubsub.joinLeaveGroup.{room_id}"]
-    if role == 'writer':
-        roles.append(f"webpubsub.sendToGroup.{room_id}")
+    # Grant both join/leave and send permissions to simplify collaboration
+    roles = [
+        f"webpubsub.joinLeaveGroup.{room_id}",
+        f"webpubsub.sendToGroup.{room_id}"
+    ]
 
     # Optional: Placeholder for password validation
     password = req.params.get('password')
@@ -38,12 +40,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     try:
-        service = WebPubSubServiceClient.from_connection_string(conn_str, hub="ViewerHub")  # Confirm hub name matches your Web PubSub config
+        service = WebPubSubServiceClient.from_connection_string(conn_str, hub="ViewerHub")
         token = service.get_client_access_token(
             user_id=user_id,
             roles=roles,
-            minutes_to_expire=60  # Equivalent to 1 hour
-)
+            minutes_to_expire=60
+        )
         return func.HttpResponse(
             json.dumps({"url": token["url"]}),
             status_code=200,

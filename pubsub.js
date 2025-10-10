@@ -41,7 +41,7 @@ function loadUserInfo() {
 
 // Connect to Web PubSub
 async function connectPubSub() {
-    const NEGOTIATE_BASE = window.NEGOTIATE_BASE_URL || 'https://shmorgasbord.azurewebsites.net';
+    const NEGOTIATE_BASE = window.NEGOTIATE_BASE_URL || window.location.origin || 'https://shmorgasbord.azurewebsites.net';
     const negotiateUrl = `${NEGOTIATE_BASE}/api/negotiate?room_id=${roomId}&username=${username}&role=${userRole}`;
     let url;
     const response = await fetch(negotiateUrl, { method: 'GET' });
@@ -68,6 +68,11 @@ async function connectPubSub() {
 
     // Handle incoming messages
     pubsubClient.on("group-message", (e) => {
+        const msg = e?.message?.data;
+        if (msg && msg.sender && username && msg.sender === username) {
+            // Ignore messages sent by ourselves to prevent echo loops
+            return;
+        }
         if (e.message.data.type === 'join') {
             console.log(`${e.message.data.username} joined`);
             // Send current state if writer
@@ -84,8 +89,8 @@ async function connectPubSub() {
     });
 
     // Announce join and request state
-    pubsubClient.sendToGroup(roomId, { type: 'join', username });
-    pubsubClient.sendToGroup(roomId, { type: 'request_state' });
+    pubsubClient.sendToGroup(roomId, { type: 'join', username, sender: username });
+    pubsubClient.sendToGroup(roomId, { type: 'request_state', sender: username });
 }
 
 // Send full state (on request)
@@ -96,7 +101,7 @@ function sendFullState() {
         return;
     }
     const state = JSON.parse(stateStr);  // From your saveState()
-    pubsubClient.sendToGroup(roomId, { type: 'full_state', state });
+    pubsubClient.sendToGroup(roomId, { type: 'full_state', state, sender: username });
 }
 
 // Apply full state from message
@@ -175,12 +180,12 @@ window.sendFullState = function() {
 
 window.sendDrawLine = function(panelIndex, x1, y1, x2, y2, color, lineWidth) {
     if (isWriter && pubsubClient) {
-        pubsubClient.sendToGroup(roomId, { type: 'draw_line', panelIndex, x1, y1, x2, y2, color, lineWidth });
+        pubsubClient.sendToGroup(roomId, { type: 'draw_line', panelIndex, x1, y1, x2, y2, color, lineWidth, sender: username });
     }
 };
 
 window.sendTextUpdate = function(panelIndex, text) {
     if (isWriter && pubsubClient) {
-        pubsubClient.sendToGroup(roomId, { type: 'text_update', panelIndex, text });
+        pubsubClient.sendToGroup(roomId, { type: 'text_update', panelIndex, text, sender: username });
     }
 };
