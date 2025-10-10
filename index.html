@@ -450,8 +450,22 @@
         async function connectPubSub() {
             const NEGOTIATE_BASE = window.NEGOTIATE_BASE_URL || 'https://slidebord-erhgcyd4gvckdrc3.centralus-01.azurewebsites.net';
             const negotiateUrl = `${NEGOTIATE_BASE}/api/negotiate?room_id=${roomId}&username=${username}&role=${userRole}`;
-            const response = await fetch(negotiateUrl);
-            const { url } = await response.json();  // Get WS URL
+            let url;
+            const response = await fetch(negotiateUrl, { method: 'GET' });
+            if (!response.ok) {
+                const text = await response.text().catch(() => '');
+                throw new Error(`Negotiate failed: ${response.status} ${response.statusText} ${text}`);
+            }
+            try {
+                const data = await response.json();
+                url = data.url;
+            } catch (e) {
+                const text = await response.text().catch(() => '');
+                throw new Error(`Negotiate returned non-JSON: ${text}`);
+            }
+            if (!url) {
+                throw new Error('Negotiate response missing url');
+            }
 
             pubsubClient = new WebPubSubClient(url);
             await pubsubClient.start();
