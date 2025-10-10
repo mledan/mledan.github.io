@@ -9,20 +9,26 @@ from azure.messaging.webpubsubservice import WebPubSubServiceClient
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Negotiate endpoint called')
 
-    group = req.params.get('group')
-    if not group:
+    room_id = req.params.get('room_id')
+    if not room_id:
         return func.HttpResponse(
-            json.dumps({"error": "Missing 'group' query param"}),
+            json.dumps({"error": "Missing 'room_id' query param"}),
             status_code=400,
             headers={"Content-Type": "application/json"}
         )
 
-    # Optional: Placeholder for password validation (e.g., check DB for paid rooms)
-    password = req.params.get('password')
-    if password:  # Ignore for now; later: validate if room is locked
-        logging.info(f"Password provided for group {group}: {password}")
+    # Optional: Use role to assign permissions
+    role = req.params.get('role', 'reader').lower()
+    roles = [f"webpubsub.joinLeaveGroup.{room_id}"]
+    if role == 'writer':
+        roles.append(f"webpubsub.sendToGroup.{room_id}")
 
-    user_id = req.params.get('userId', str(uuid.uuid4()))
+    # Optional: Placeholder for password validation
+    password = req.params.get('password')
+    if password:  # Later: validate if room is locked
+        logging.info(f"Password provided for room {room_id}: {password}")
+
+    user_id = req.params.get('username', str(uuid.uuid4()))
     conn_str = os.environ.get("AZURE_WEB_PUBSUB_CONNECTION_STRING")
     if not conn_str:
         return func.HttpResponse(
@@ -32,14 +38,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     try:
-        service = WebPubSubServiceClient.from_connection_string(conn_str, hub="ViewerHub")
+        service = WebPubSubServiceClient.from_connection_string(conn_str, hub="ViewerHub")  # Confirm hub name matches your Web PubSub config
         token = service.get_client_access_token(
             user_id=user_id,
-            roles=[
-                f"webpubsub.joinGroup.group={group}",
-                f"webpubsub.sendToGroup.group={group}"
-            ],
-            expiration_delta=timedelta(hours=1)
+            roles=roles,
+            expires_in=timedelta(hours=1)
         )
         return func.HttpResponse(
             json.dumps({"url": token["url"]}),
