@@ -12,7 +12,7 @@ on:
 
 env:
   AZURE_FUNCTIONAPP_PACKAGE_PATH: './back/' # set this to the path to your web app project, defaults to the repository root
-  PYTHON_VERSION: '3.12' # set this to the python version to use (supports 3.6, 3.7, 3.8)
+  PYTHON_VERSION: '3.11' # Align with Azure Functions Python runtime
 
 jobs:
   build:
@@ -39,12 +39,18 @@ jobs:
           cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
           pip install -r requirements.txt
 
+      - name: Build dependencies into .python_packages for Azure Functions
+        run: |
+          cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -t .python_packages/lib/site-packages
+
       # Optional: Add step to run tests here
 
       - name: Zip artifact for deployment
         run: |
           cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          zip -r release.zip . -x '*.git*' '*venv*'
+          zip -r release.zip . -x '*.git*' '*venv*' 'local.settings.json'
 
       - name: Debug Zip
         run: |
@@ -75,9 +81,6 @@ jobs:
       - name: Debug Download
         run: ls -la
 
-      - name: Unzip artifact for deployment
-        run: unzip release.zip
-
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -91,4 +94,4 @@ jobs:
         with:
           app-name: 'slidebord'
           slot-name: 'Production'
-          package: '.'
+          package: 'release.zip'
