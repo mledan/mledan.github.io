@@ -32,29 +32,25 @@ jobs:
       - name: Change to backend directory
         run: cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
 
-      - name: Create and start virtual environment
+      - name: Install dependencies for Azure Functions
         run: |
-          python -m venv venv
-          source venv/bin/activate
-        working-directory: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-        working-directory: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          pushd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt --target=".python_packages/lib/site-packages"
+          popd
 
       # Optional: Add step to run tests here
 
       - name: Zip artifact for deployment
-        run: zip -r release.zip ./*
-        working-directory: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+        run: |
+          cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          zip -r ../release.zip . -x "*.git*" -x "*.venv*" -x "*__pycache__*" -x "*.pytest_cache*"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: |
-            ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/release.zip
-            !${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/venv/
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
