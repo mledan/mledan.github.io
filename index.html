@@ -1495,7 +1495,19 @@
                 console.info('No saved state found! Start by adding new panels.');
                 return false;
             }
-            let state = JSON.parse(stateStr);
+            
+            let state;
+            try {
+                state = JSON.parse(stateStr);
+            } catch (e) {
+                console.error('Failed to parse state:', e);
+                return false;
+            }
+            
+            if (!Array.isArray(state)) {
+                console.error('Invalid state format - expected array');
+                return false;
+            }
 
             window.allTextPanels.forEach(item => {
                 scene.remove(item.panel);
@@ -1508,12 +1520,22 @@
             window.textControls = {};
 
             state.forEach((savedItem, index) => {
+                // Skip invalid items
+                if (!savedItem || typeof savedItem !== 'object') {
+                    console.warn(`Skipping invalid state item at index ${index}`);
+                    return;
+                }
+                
                 const newType = savedItem.type || 'text';
                 const newName = savedItem.name || `Custom ${index + 1}`;
                 const newFont = savedItem.font || availableFonts[0];
                 const newSize = savedItem.size || (newType === 'text' ? 76 : 100);
                 const newBaseSize = savedItem.baseSize || (newType === 'text' ? { width: 400, height: 200 } : { width: 227.5, height: 455 });
-                const newOffset = new THREE.Vector3(savedItem.offset.x, savedItem.offset.y, savedItem.offset.z);
+                
+                // Ensure offset exists with default values
+                const offsetData = savedItem.offset || { x: -11.4, y: -10, z: 0 };
+                const newOffset = new THREE.Vector3(offsetData.x || -11.4, offsetData.y || -10, offsetData.z || 0);
+                
                 const newRotation = new THREE.Euler(
                     savedItem.rotation ? savedItem.rotation.x : -Math.PI / 2,
                     savedItem.rotation ? savedItem.rotation.y : Math.PI / 2,
@@ -1522,10 +1544,16 @@
                 const newAssigned = savedItem.assignedPanel || 0;
                 const newMessageFunc = newType === 'text' ? () => (savedItem.text || "New message\nEdit me") : () => '';
                 const newPanel = createTextPanel(newMessageFunc, index + 100, newFont, newBaseSize, newType);
-                newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
+                
+                // Check if movableMeshes exists and has the required element
+                if (movableMeshes && movableMeshes[newAssigned]) {
+                    newPanel.rotation.x = movableMeshes[newAssigned].rotation.x;
+                }
                 scene.add(newPanel);
+                
+                const assignedMesh = movableMeshes && movableMeshes[newAssigned] ? movableMeshes[newAssigned] : null;
                 const newPanelObj = {
-                    stlMesh: movableMeshes[newAssigned],
+                    stlMesh: assignedMesh,
                     textPanel: newPanel,
                     offset: newOffset,
                     rotationOffset: newRotation
@@ -1540,7 +1568,7 @@
                     size: newSize,
                     isMain: false,
                     assignedPanel: newAssigned,
-                    stlMesh: movableMeshes[newAssigned],
+                    stlMesh: assignedMesh,
                     text: newType === 'text' ? (savedItem.text || "New message\nEdit me") : null,
                     drawingData: newType === 'draw' ? savedItem.drawingData : null,
                     isDynamic: false,
@@ -1771,6 +1799,10 @@
             document.getElementById('add-new-text')?.addEventListener('click', addNewTextPanel);
         }, 100);
 
+        // Expose functions globally for pubsub.js
+        window.loadState = loadState;
+        window.updateTextPanel = updateTextPanel;
+        
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
