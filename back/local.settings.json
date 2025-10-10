@@ -1,8 +1,0 @@
-{
-  "IsEncrypted": false,
-  "Values": {
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "FUNCTIONS_WORKER_RUNTIME": "python",
-    "WEB_PUBSUB_CONNECTION_STRING": "<your-web-pubsub-connection-string-from-azure-portal>"
-  }
-}
