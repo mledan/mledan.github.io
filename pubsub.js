@@ -194,7 +194,9 @@ function applyTextUpdate(data) {
     updateTextPanel(textItem);
 }
 
-// Init on load
+// Init on load - DISABLED to prevent conflicts with collaboration-bridge.js
+// Uncomment the following if you want to use pubsub.js instead of collaboration-bridge.js
+/*
 document.addEventListener('DOMContentLoaded', () => {
     roomId = parseRoomId();
     if (loadUserInfo()) {
@@ -209,15 +211,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+*/
 
 // Expose functions for the main script to use (e.g., for sending updates)
 window.isWriter = function() {
     return isWriter;
 };
 
-window.sendFullState = function() {
+window.sendFullStateToGroup = function() {
     if (isWriter && pubsubClient) {
-        sendFullState();
+        sendFullState();  // Call the internal function, not the window function
     }
 };
 

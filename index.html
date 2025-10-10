@@ -7,7 +7,8 @@
     <title>Interactive STL Assembly Viewer</title>
     <!-- WebPubSub Client - Simple WebSocket Implementation -->
     <script src="webpubsub-simple.js"></script>
-    <script src="pubsub.js" defer></script>
+    <!-- Collaboration Bridge for Real-time Sync -->
+    <script src="collaboration-bridge.js" defer></script>
     <style>
         body {
             margin: 0;
@@ -1197,6 +1198,11 @@
                             textItem.panel.userData.messageFunc = () => textItem.text;
                             updateTextPanel(textItem);
                             saveState();
+                            
+                            // Collaboration hook
+                            if (window.collaborationBridge) {
+                                window.collaborationBridge.onTextChange(index, textItem.text);
+                            }
                         });
                     }
                 } else {
@@ -1236,6 +1242,11 @@
                         [lastX, lastY] = getMousePos(e, drawCanvas);
                         ctx.beginPath();
                         ctx.moveTo(lastX, lastY);
+                        
+                        // Collaboration hook
+                        if (window.collaborationBridge) {
+                            window.collaborationBridge.onDrawStart(index, lastX, lastY, textItem.color, textItem.lineWidth);
+                        }
                     }
 
                     function draw(e) {
@@ -1252,6 +1263,12 @@
                         ctx.lineWidth = textItem.lineWidth;
                         ctx.lineTo(x, y);
                         ctx.stroke();
+                        
+                        // Collaboration hook
+                        if (window.collaborationBridge && !isErasing) {
+                            window.collaborationBridge.onDrawMove(index, x, y);
+                        }
+                        
                         [lastX, lastY] = [x, y];
                     }
 
@@ -1261,6 +1278,12 @@
                             ctx.globalCompositeOperation = 'source-over';
                             updateTextureFromDraw(textItem, drawCanvas);
                             saveState();
+                            
+                            // Collaboration hook
+                            if (window.collaborationBridge) {
+                                const drawingData = drawCanvas.toDataURL('image/png');
+                                window.collaborationBridge.onDrawEnd(index, drawingData);
+                            }
                         }
                     }
 
@@ -1280,6 +1303,11 @@
                         ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
                         updateTextureFromDraw(textItem, drawCanvas);
                         saveState();
+                        
+                        // Collaboration hook
+                        if (window.collaborationBridge) {
+                            window.collaborationBridge.onPanelClear(index);
+                        }
                     });
 
                     const eraserBtn = document.getElementById(`eraser-${index}`);
@@ -1809,6 +1837,38 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
             updateModeIndicator();
+        });
+        
+        // Initialize collaboration when ready
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                // Check if collaboration bridge is available
+                if (window.collaborationBridge) {
+                    // Get room ID from URL or generate one
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const roomId = urlParams.get('room');
+                    const username = urlParams.get('username') || localStorage.getItem('username');
+                    
+                    // Initialize collaboration
+                    window.collaborationBridge.initialize(roomId, username)
+                        .then(connected => {
+                            if (connected) {
+                                console.log('[Main] Collaboration initialized successfully');
+                                // Update URL with room ID if not present
+                                if (!roomId && window.collaborationBridge.roomId) {
+                                    const newUrl = new URL(window.location);
+                                    newUrl.searchParams.set('room', window.collaborationBridge.roomId);
+                                    window.history.replaceState({}, '', newUrl);
+                                }
+                            } else {
+                                console.log('[Main] Collaboration failed to initialize, working offline');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('[Main] Collaboration error:', error);
+                        });
+                }
+            }, 2000); // Wait for everything to load
         });
     </script>
 </body>

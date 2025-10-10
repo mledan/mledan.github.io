@@ -1,0 +1,865 @@
+/**
+ * Collaboration Bridge for WebPubSub Integration
+ * Handles real-time collaboration without breaking existing functionality
+ */
+
+class CollaborationBridge {
+    constructor() {
+        this.client = null;
+        this.roomId = null;
+        this.userId = null;
+        this.username = null;
+        this.isConnected = false;
+        this.isEnabled = true; // Can be toggled to disable collaboration
+        this.pendingUpdates = [];
+        this.remoteUsers = new Map();
+        this.localLocks = new Set(); // Panels currently being edited locally
+        this.remoteLocks = new Map(); // Panels locked by remote users
+        this.lastSyncTime = Date.now();
+        this.syncInterval = null;
+        
+        // Throttle timers for different update types
+        this.updateTimers = {
+            drawing: null,
+            text: null,
+            position: null
+        };
+        
+        // Throttle delays (ms)
+        this.throttleDelays = {
+            drawing: 50,    // Send drawing updates every 50ms max
+            text: 500,      // Send text updates every 500ms max
+            position: 100   // Send position updates every 100ms max
+        };
+
+        // Bind methods
+        this.handleGroupMessage = this.handleGroupMessage.bind(this);
+        this.handleConnectionEstablished = this.handleConnectionEstablished.bind(this);
+        this.handleConnectionLost = this.handleConnectionLost.bind(this);
+    }
+
+    /**
+     * Initialize collaboration with room details
+     */
+    async initialize(roomId, username = null) {
+        if (!this.isEnabled) return false;
+        
+        this.roomId = roomId || this.generateRoomId();
+        this.userId = this.generateUserId();
+        this.username = username || `User_${this.userId.substring(0, 6)}`;
+        
+        console.log(`[Collaboration] Initializing for room: ${this.roomId}, user: ${this.username}`);
+        
+        try {
+            await this.connect();
+            this.setupEventListeners();
+            this.startPeriodicSync();
+            this.updateUIStatus('connected');
+            return true;
+        } catch (error) {
+            console.error('[Collaboration] Failed to initialize:', error);
+            this.updateUIStatus('error');
+            return false;
+        }
+    }
+
+    /**
+     * Connect to WebPubSub service
+     */
+    async connect() {
+        // Determine backend URL based on environment
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                          window.location.hostname === '127.0.0.1';
+        const backendUrl = isLocalhost ? 'http://localhost:7071' : 'https://shmorgasbord.azurewebsites.net';
+        
+        // Get connection URL from backend
+        const negotiateUrl = `${backendUrl}/api/negotiate?room_id=${this.roomId}&username=${this.username}&role=writer`;
+        
+        try {
+            const response = await fetch(negotiateUrl);
+            if (!response.ok) {
+                throw new Error(`Negotiate failed: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Use the simple WebPubSub client
+            if (typeof WebPubSubClient === 'undefined') {
+                throw new Error('WebPubSubClient not loaded');
+            }
+            
+            this.client = new WebPubSubClient(data.url);
+            
+            // Set up event handlers
+            this.client.on('connected', this.handleConnectionEstablished);
+            this.client.on('disconnected', this.handleConnectionLost);
+            this.client.on('group-message', this.handleGroupMessage);
+            
+            // Connect
+            await this.client.start();
+            
+            // Join the room group
+            await this.client.joinGroup(this.roomId);
+            
+            this.isConnected = true;
+            console.log('[Collaboration] Connected successfully');
+            
+            // Announce our presence
+            this.sendMessage('user_join', {
+                username: this.username,
+                timestamp: Date.now()
+            });
+            
+            // Request current state from other users
+            this.sendMessage('request_state', {});
+            
+        } catch (error) {
+            console.error('[Collaboration] Connection failed:', error);
+            this.isConnected = false;
+            throw error;
+        }
+    }
+
+    /**
+     * Handle connection established
+     */
+    handleConnectionEstablished(e) {
+        console.log('[Collaboration] Connection established:', e);
+        this.isConnected = true;
+        this.processPendingUpdates();
+    }
+
+    /**
+     * Handle connection lost
+     */
+    handleConnectionLost(e) {
+        console.log('[Collaboration] Connection lost:', e);
+        this.isConnected = false;
+        this.updateUIStatus('disconnected');
+        
+        // Try to reconnect after a delay
+        setTimeout(() => {
+            if (!this.isConnected) {
+                this.reconnect();
+            }
+        }, 5000);
+    }
+
+    /**
+     * Reconnect to service
+     */
+    async reconnect() {
+        console.log('[Collaboration] Attempting to reconnect...');
+        try {
+            await this.connect();
+            this.updateUIStatus('connected');
+        } catch (error) {
+            console.error('[Collaboration] Reconnection failed:', error);
+            // Will retry again after another delay
+        }
+    }
+
+    /**
+     * Send message to group
+     */
+    sendMessage(type, data, immediate = false) {
+        if (!this.isEnabled) return;
+        
+        const message = {
+            type,
+            userId: this.userId,
+            username: this.username,
+            roomId: this.roomId,
+            timestamp: Date.now(),
+            data
+        };
+        
+        if (this.isConnected && !immediate) {
+            // Send immediately if connected
+            this.client.sendToGroup(this.roomId, message);
+        } else if (immediate && this.isConnected) {
+            // Send immediately without throttling
+            this.client.sendToGroup(this.roomId, message);
+        } else {
+            // Queue for later if not connected
+            this.pendingUpdates.push(message);
+        }
+    }
+
+    /**
+     * Send throttled update
+     */
+    sendThrottledUpdate(type, data, category) {
+        if (!this.isEnabled || !this.isConnected) return;
+        
+        // Clear existing timer for this category
+        if (this.updateTimers[category]) {
+            clearTimeout(this.updateTimers[category]);
+        }
+        
+        // Set new timer
+        this.updateTimers[category] = setTimeout(() => {
+            this.sendMessage(type, data);
+            this.updateTimers[category] = null;
+        }, this.throttleDelays[category]);
+    }
+
+    /**
+     * Handle incoming group messages
+     */
+    handleGroupMessage(e) {
+        const message = e.message.data;
+        
+        // Ignore our own messages
+        if (message.userId === this.userId) return;
+        
+        console.log('[Collaboration] Received message:', message.type, message);
+        
+        switch (message.type) {
+            case 'user_join':
+                this.handleUserJoin(message);
+                break;
+            case 'user_leave':
+                this.handleUserLeave(message);
+                break;
+            case 'request_state':
+                this.handleStateRequest(message);
+                break;
+            case 'state_sync':
+                this.handleStateSync(message);
+                break;
+            case 'draw_stroke':
+                this.handleRemoteDrawing(message);
+                break;
+            case 'text_update':
+                this.handleRemoteTextUpdate(message);
+                break;
+            case 'panel_move':
+                this.handleRemotePanelMove(message);
+                break;
+            case 'panel_lock':
+                this.handleRemotePanelLock(message);
+                break;
+            case 'panel_unlock':
+                this.handleRemotePanelUnlock(message);
+                break;
+            case 'clear_panel':
+                this.handleRemoteClearPanel(message);
+                break;
+            case 'cursor_position':
+                this.handleRemoteCursor(message);
+                break;
+        }
+    }
+
+    /**
+     * Handle user join
+     */
+    handleUserJoin(message) {
+        this.remoteUsers.set(message.userId, {
+            username: message.username,
+            joinTime: message.timestamp,
+            cursor: null
+        });
+        
+        console.log(`[Collaboration] ${message.username} joined the room`);
+        this.showNotification(`${message.username} joined`, 'info');
+        
+        // Send our current state to the new user
+        if (window.allTextPanels && window.allTextPanels.length > 0) {
+            const state = this.getCurrentState();
+            this.sendMessage('state_sync', { state }, true);
+        }
+    }
+
+    /**
+     * Handle user leave
+     */
+    handleUserLeave(message) {
+        const user = this.remoteUsers.get(message.userId);
+        if (user) {
+            this.remoteUsers.delete(message.userId);
+            console.log(`[Collaboration] ${user.username} left the room`);
+            this.showNotification(`${user.username} left`, 'info');
+            
+            // Remove any locks held by this user
+            for (const [panelId, lockUserId] of this.remoteLocks.entries()) {
+                if (lockUserId === message.userId) {
+                    this.remoteLocks.delete(panelId);
+                    this.updatePanelLockIndicator(panelId, false);
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle state request
+     */
+    handleStateRequest(message) {
+        // Send our current state
+        if (window.allTextPanels && window.allTextPanels.length > 0) {
+            const state = this.getCurrentState();
+            this.sendMessage('state_sync', { state }, true);
+        }
+    }
+
+    /**
+     * Handle state sync
+     */
+    handleStateSync(message) {
+        const { state } = message.data;
+        if (state && typeof window.loadState === 'function') {
+            console.log('[Collaboration] Applying state from remote user');
+            
+            // Save current local changes that might not be in the remote state
+            const localDrawings = this.captureLocalDrawings();
+            
+            // Apply remote state
+            window.loadState(JSON.stringify(state));
+            
+            // Reapply local changes on top if needed
+            this.mergeLocalDrawings(localDrawings);
+            
+            this.lastSyncTime = Date.now();
+        }
+    }
+
+    /**
+     * Handle remote drawing
+     */
+    handleRemoteDrawing(message) {
+        const { panelIndex, drawData } = message.data;
+        
+        // Don't apply if we're currently editing this panel
+        if (this.localLocks.has(panelIndex)) return;
+        
+        if (window.allTextPanels && window.allTextPanels[panelIndex]) {
+            const textItem = window.allTextPanels[panelIndex];
+            if (textItem.type === 'draw' && textItem.panel) {
+                this.applyRemoteDrawing(textItem, drawData);
+            }
+        }
+    }
+
+    /**
+     * Apply remote drawing to panel
+     */
+    applyRemoteDrawing(textItem, drawData) {
+        const { action, x, y, x2, y2, color, lineWidth } = drawData;
+        const canvas = textItem.panel.userData.textureData.canvas;
+        const ctx = textItem.panel.userData.textureData.ctx;
+        
+        ctx.strokeStyle = color || '#000000';
+        ctx.lineWidth = lineWidth || 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        switch (action) {
+            case 'start':
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                break;
+            case 'move':
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                break;
+            case 'line':
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                break;
+        }
+        
+        textItem.panel.material.map.needsUpdate = true;
+        
+        // Update control canvas if it exists
+        if (textItem.controlCanvas) {
+            const controlCtx = textItem.controlCanvas.getContext('2d');
+            controlCtx.drawImage(canvas, 0, 0, textItem.controlCanvas.width, textItem.controlCanvas.height);
+        }
+    }
+
+    /**
+     * Handle remote text update
+     */
+    handleRemoteTextUpdate(message) {
+        const { panelIndex, text } = message.data;
+        
+        // Don't apply if we're currently editing this panel
+        if (this.localLocks.has(panelIndex)) return;
+        
+        if (window.allTextPanels && window.allTextPanels[panelIndex]) {
+            const textItem = window.allTextPanels[panelIndex];
+            if (textItem.type === 'text') {
+                textItem.text = text;
+                textItem.panel.userData.messageFunc = () => text;
+                
+                // Update the textarea if it exists
+                const textArea = document.getElementById(`text-${panelIndex}`);
+                if (textArea && textArea !== document.activeElement) {
+                    textArea.value = text;
+                }
+                
+                // Update the panel display
+                if (typeof window.updateTextPanel === 'function') {
+                    window.updateTextPanel(textItem);
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle remote panel move
+     */
+    handleRemotePanelMove(message) {
+        const { panelIndex, position } = message.data;
+        
+        if (window.movableMeshes && window.movableMeshes[panelIndex]) {
+            const mesh = window.movableMeshes[panelIndex];
+            mesh.position.set(position.x, position.y, position.z);
+            mesh.updateMatrixWorld(true);
+            
+            // Update UI controls
+            const inputs = {
+                x: document.getElementById(`x-${panelIndex + 2}`),
+                y: document.getElementById(`y-${panelIndex + 2}`),
+                z: document.getElementById(`z-${panelIndex + 2}`)
+            };
+            
+            if (inputs.x) inputs.x.value = position.x.toFixed(2);
+            if (inputs.y) inputs.y.value = position.y.toFixed(2);
+            if (inputs.z) inputs.z.value = position.z.toFixed(2);
+        }
+    }
+
+    /**
+     * Handle remote panel lock
+     */
+    handleRemotePanelLock(message) {
+        const { panelIndex } = message.data;
+        this.remoteLocks.set(panelIndex, message.userId);
+        this.updatePanelLockIndicator(panelIndex, true, message.username);
+    }
+
+    /**
+     * Handle remote panel unlock
+     */
+    handleRemotePanelUnlock(message) {
+        const { panelIndex } = message.data;
+        if (this.remoteLocks.get(panelIndex) === message.userId) {
+            this.remoteLocks.delete(panelIndex);
+            this.updatePanelLockIndicator(panelIndex, false);
+        }
+    }
+
+    /**
+     * Handle remote clear panel
+     */
+    handleRemoteClearPanel(message) {
+        const { panelIndex } = message.data;
+        
+        if (window.allTextPanels && window.allTextPanels[panelIndex]) {
+            const textItem = window.allTextPanels[panelIndex];
+            if (textItem.type === 'draw') {
+                const canvas = textItem.panel.userData.textureData.canvas;
+                const ctx = textItem.panel.userData.textureData.ctx;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                textItem.panel.material.map.needsUpdate = true;
+                
+                if (textItem.controlCanvas) {
+                    const controlCtx = textItem.controlCanvas.getContext('2d');
+                    controlCtx.clearRect(0, 0, textItem.controlCanvas.width, textItem.controlCanvas.height);
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle remote cursor position
+     */
+    handleRemoteCursor(message) {
+        const user = this.remoteUsers.get(message.userId);
+        if (user) {
+            user.cursor = message.data;
+            this.updateRemoteCursor(message.userId, message.username, message.data);
+        }
+    }
+
+    /**
+     * Setup event listeners for local changes
+     */
+    setupEventListeners() {
+        // Override saveState to broadcast changes
+        const originalSaveState = window.saveState;
+        window.saveState = () => {
+            originalSaveState();
+            
+            // Broadcast state change if connected
+            if (this.isConnected) {
+                const state = this.getCurrentState();
+                this.sendThrottledUpdate('state_sync', { state }, 'position');
+            }
+        };
+
+        // Listen for drawing events (will be hooked in separately)
+        window.collaborationBridge = this;
+    }
+
+    /**
+     * Hook into drawing start
+     */
+    onDrawStart(panelIndex, x, y, color, lineWidth) {
+        if (!this.isEnabled || !this.isConnected) return;
+        
+        this.localLocks.add(panelIndex);
+        this.sendMessage('panel_lock', { panelIndex });
+        
+        this.sendMessage('draw_stroke', {
+            panelIndex,
+            drawData: { action: 'start', x, y, color, lineWidth }
+        });
+    }
+
+    /**
+     * Hook into drawing move
+     */
+    onDrawMove(panelIndex, x, y) {
+        if (!this.isEnabled || !this.isConnected) return;
+        
+        this.sendThrottledUpdate('draw_stroke', {
+            panelIndex,
+            drawData: { action: 'move', x, y }
+        }, 'drawing');
+    }
+
+    /**
+     * Hook into drawing end
+     */
+    onDrawEnd(panelIndex, drawingData = null) {
+        if (!this.isEnabled || !this.isConnected) return;
+        
+        this.localLocks.delete(panelIndex);
+        this.sendMessage('panel_unlock', { panelIndex });
+        
+        // Send final drawing state if provided
+        if (drawingData) {
+            this.sendMessage('draw_stroke', {
+                panelIndex,
+                drawData: { action: 'end', data: drawingData }
+            });
+        }
+    }
+
+    /**
+     * Hook into text change
+     */
+    onTextChange(panelIndex, text) {
+        if (!this.isEnabled || !this.isConnected) return;
+        
+        this.sendThrottledUpdate('text_update', {
+            panelIndex,
+            text
+        }, 'text');
+    }
+
+    /**
+     * Hook into panel move
+     */
+    onPanelMove(panelIndex, position) {
+        if (!this.isEnabled || !this.isConnected) return;
+        
+        this.sendThrottledUpdate('panel_move', {
+            panelIndex,
+            position
+        }, 'position');
+    }
+
+    /**
+     * Hook into panel clear
+     */
+    onPanelClear(panelIndex) {
+        if (!this.isEnabled || !this.isConnected) return;
+        
+        this.sendMessage('clear_panel', { panelIndex }, true);
+    }
+
+    /**
+     * Get current state
+     */
+    getCurrentState() {
+        // Get state from localStorage (already saved by saveState)
+        const stateStr = localStorage.getItem('textPanelState');
+        return stateStr ? JSON.parse(stateStr) : [];
+    }
+
+    /**
+     * Capture local drawings for merge
+     */
+    captureLocalDrawings() {
+        const drawings = new Map();
+        
+        if (window.allTextPanels) {
+            window.allTextPanels.forEach((item, index) => {
+                if (item.type === 'draw' && item.controlCanvas) {
+                    drawings.set(index, item.controlCanvas.toDataURL());
+                }
+            });
+        }
+        
+        return drawings;
+    }
+
+    /**
+     * Merge local drawings after state sync
+     */
+    mergeLocalDrawings(localDrawings) {
+        // This would implement a more sophisticated merge strategy if needed
+        // For now, remote state takes precedence
+    }
+
+    /**
+     * Process pending updates
+     */
+    processPendingUpdates() {
+        if (this.pendingUpdates.length > 0) {
+            console.log(`[Collaboration] Processing ${this.pendingUpdates.length} pending updates`);
+            
+            this.pendingUpdates.forEach(message => {
+                this.client.sendToGroup(this.roomId, message);
+            });
+            
+            this.pendingUpdates = [];
+        }
+    }
+
+    /**
+     * Start periodic state sync
+     */
+    startPeriodicSync() {
+        // Sync every 30 seconds for consistency
+        this.syncInterval = setInterval(() => {
+            if (this.isConnected && Date.now() - this.lastSyncTime > 30000) {
+                this.sendMessage('request_state', {});
+            }
+        }, 30000);
+    }
+
+    /**
+     * Update UI status indicator
+     */
+    updateUIStatus(status) {
+        // Create or update status indicator
+        let statusEl = document.getElementById('collab-status');
+        if (!statusEl) {
+            statusEl = document.createElement('div');
+            statusEl.id = 'collab-status';
+            statusEl.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 8px 12px;
+                border-radius: 20px;
+                font-size: 12px;
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                cursor: pointer;
+            `;
+            document.body.appendChild(statusEl);
+            
+            // Click to show collaboration info
+            statusEl.addEventListener('click', () => this.showCollaborationInfo());
+        }
+        
+        const indicators = {
+            connected: { color: '#4ade80', text: '● Connected', title: 'Collaboration active' },
+            disconnected: { color: '#f87171', text: '● Disconnected', title: 'Working offline' },
+            connecting: { color: '#fbbf24', text: '● Connecting...', title: 'Establishing connection' },
+            error: { color: '#f87171', text: '● Error', title: 'Connection failed' }
+        };
+        
+        const indicator = indicators[status] || indicators.disconnected;
+        statusEl.innerHTML = `<span style="color: ${indicator.color};">${indicator.text}</span>`;
+        statusEl.title = indicator.title;
+        
+        // Add room info if connected
+        if (status === 'connected' && this.roomId) {
+            statusEl.innerHTML += `<span style="font-size: 10px; opacity: 0.7;">Room: ${this.roomId.substring(0, 8)}</span>`;
+        }
+    }
+
+    /**
+     * Update panel lock indicator
+     */
+    updatePanelLockIndicator(panelIndex, isLocked, username = null) {
+        // This would add visual indicators on locked panels
+        // For now, just log it
+        if (isLocked) {
+            console.log(`[Collaboration] Panel ${panelIndex} locked by ${username}`);
+        } else {
+            console.log(`[Collaboration] Panel ${panelIndex} unlocked`);
+        }
+    }
+
+    /**
+     * Update remote cursor display
+     */
+    updateRemoteCursor(userId, username, cursorData) {
+        // This would show remote user cursors
+        // Implementation depends on UI requirements
+    }
+
+    /**
+     * Show notification
+     */
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: ${type === 'error' ? '#ef4444' : '#3b82f6'};
+            color: white;
+            border-radius: 8px;
+            animation: slideIn 0.3s ease;
+            z-index: 10001;
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    /**
+     * Show collaboration info modal
+     */
+    showCollaborationInfo() {
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 10002;
+            min-width: 300px;
+        `;
+        
+        const users = Array.from(this.remoteUsers.values());
+        modal.innerHTML = `
+            <h3>Collaboration Info</h3>
+            <p>Room: ${this.roomId}</p>
+            <p>Your name: ${this.username}</p>
+            <p>Status: ${this.isConnected ? 'Connected' : 'Disconnected'}</p>
+            <p>Users in room: ${users.length + 1}</p>
+            <ul>
+                <li>You (${this.username})</li>
+                ${users.map(u => `<li>${u.username}</li>`).join('')}
+            </ul>
+            <button onclick="this.parentElement.remove()" style="
+                background: #3b82f6;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 5px;
+                cursor: pointer;
+                margin-top: 10px;
+            ">Close</button>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+
+    /**
+     * Generate room ID
+     */
+    generateRoomId() {
+        // Extract from URL or generate new
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomFromUrl = urlParams.get('room');
+        
+        if (roomFromUrl) {
+            return roomFromUrl;
+        }
+        
+        // Generate random room ID
+        return 'room-' + Math.random().toString(36).substring(2, 10);
+    }
+
+    /**
+     * Generate user ID
+     */
+    generateUserId() {
+        // Try to get from localStorage for persistence
+        let userId = localStorage.getItem('collab-user-id');
+        if (!userId) {
+            userId = 'user-' + Math.random().toString(36).substring(2, 10);
+            localStorage.setItem('collab-user-id', userId);
+        }
+        return userId;
+    }
+
+    /**
+     * Cleanup on disconnect
+     */
+    disconnect() {
+        if (this.client) {
+            this.sendMessage('user_leave', {});
+            this.client.stop();
+            this.client = null;
+        }
+        
+        if (this.syncInterval) {
+            clearInterval(this.syncInterval);
+            this.syncInterval = null;
+        }
+        
+        this.isConnected = false;
+        this.updateUIStatus('disconnected');
+    }
+
+    /**
+     * Toggle collaboration on/off
+     */
+    toggle() {
+        this.isEnabled = !this.isEnabled;
+        
+        if (this.isEnabled) {
+            this.initialize(this.roomId, this.username);
+        } else {
+            this.disconnect();
+        }
+        
+        return this.isEnabled;
+    }
+}
+
+// Create global instance
+window.collaborationBridge = new CollaborationBridge();
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
+
+console.log('[Collaboration Bridge] Module loaded. Use window.collaborationBridge.initialize(roomId, username) to start.');
