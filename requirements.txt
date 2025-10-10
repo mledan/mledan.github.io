@@ -4,9 +4,6 @@ requests>=2.31.0
 # Azure Web PubSub client for testing
 azure-messaging-webpubsubclient>=1.0.0
 
-# Optional: SignalR client (if using SignalR instead of Web PubSub)
-signalrcore>=0.9.5
-
 # Azure Functions dependencies (for local development)
 azure-functions>=1.17.0
 azure-functions-worker>=1.19.0
