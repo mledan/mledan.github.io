@@ -1,7 +1,15 @@
 {
   "IsEncrypted": false,
   "Values": {
-    "AzureWebJobsStorage": "",
-    "FUNCTIONS_WORKER_RUNTIME": "python"
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AZURE_WEB_PUBSUB_CONNECTION_STRING": "",
+    "WEB_PUBSUB_HUB_NAME": "ViewerHub",
+    "INCLUDE_ACCESS_TOKEN": "false"
+  },
+  "Host": {
+    "LocalHttpPort": 7071,
+    "CORS": "*",
+    "CORSCredentials": false
   }
 }
