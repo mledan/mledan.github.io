@@ -412,10 +412,15 @@
         let userRole;
         let isWriter = false;
 
-        // Parse URL for room_id (e.g., /myroom → roomId = 'myroom')
+        // Parse URL for room_id (supports SPA fallback via ?room=)
         function parseRoomId() {
             const path = window.location.pathname.substring(1).toLowerCase();
-            return path || 'default';  // Fallback if no path
+            if (path && path !== 'index.html' && path !== '404.html') {
+                return path;
+            }
+            const params = new URLSearchParams(window.location.search);
+            const qp = (params.get('room') || params.get('r') || params.get('p') || '').toLowerCase();
+            return qp || 'default';
         }
 
         // Load username/role from localStorage or prompt
@@ -443,9 +448,10 @@
 
         // Connect to Web PubSub
         async function connectPubSub() {
-            const negotiateUrl = `https://slidebord-erhgcyd4gvckdrc3.centralus-01.azurewebsites.net/api/negotiate?room_id=${roomId}&username=${username}&role=${userRole}`;
+            const NEGOTIATE_BASE = window.NEGOTIATE_BASE_URL || 'https://slidebord-erhgcyd4gvckdrc3.centralus-01.azurewebsites.net';
+            const negotiateUrl = `${NEGOTIATE_BASE}/api/negotiate?room_id=${roomId}&username=${username}&role=${userRole}`;
             const response = await fetch(negotiateUrl);
-            const { url } = await response.text();  // Get WS URL
+            const { url } = await response.json();  // Get WS URL
 
             pubsubClient = new WebPubSubClient(url);
             await pubsubClient.start();
@@ -500,6 +506,14 @@
             ctx.stroke();
             textItem.panel.material.map.needsUpdate = true;
             // Update control canvas if needed
+        }
+
+        function applyTextUpdate(data) {
+            const textItem = window.allTextPanels[data.panelIndex];
+            if (!textItem) return;
+            textItem.text = data.text;
+            textItem.panel.userData.messageFunc = () => textItem.text;
+            updateTextPanel(textItem);
         }
 
         // When writer draws: In your draw() or onPointerMove
@@ -1066,8 +1080,20 @@
                     const ctx = drawing3DPanel.panel.userData.textureData.ctx;
                     const x = uv.x * textureCanvas.width;
                     const y = (1 - uv.y) * textureCanvas.height;
+                    const prev = last3DPoint;
                     ctx.lineTo(x, y);
                     ctx.stroke();
+                    if (prev && isWriter && typeof pubsubClient !== 'undefined' && pubsubClient) {
+                        const panelIndex = window.allTextPanels.indexOf(drawing3DPanel);
+                        pubsubClient.sendToGroup(roomId, {
+                            type: 'draw_line',
+                            panelIndex,
+                            x1: prev.x, y1: prev.y,
+                            x2: x, y2: y,
+                            color: drawing3DPanel.color || '#000000',
+                            lineWidth: drawing3DPanel.lineWidth || 2
+                        });
+                    }
                     last3DPoint = { x, y };
                     drawing3DPanel.panel.material.map.needsUpdate = true;
                     const controlCtx = drawing3DPanel.controlCanvas.getContext('2d');
@@ -1316,6 +1342,9 @@
                             textItem.panel.userData.messageFunc = () => textItem.text;
                             updateTextPanel(textItem);
                             saveState();
+                            if (isWriter && typeof pubsubClient !== 'undefined' && pubsubClient) {
+                                pubsubClient.sendToGroup(roomId, { type: 'text_update', panelIndex: index, text: textItem.text });
+                            }
                         });
                     }
                 } else {
@@ -1369,8 +1398,20 @@
                             ctx.shadowColor = textItem.color;
                         }
                         ctx.lineWidth = textItem.lineWidth;
+                        const prevX = lastX;
+                        const prevY = lastY;
                         ctx.lineTo(x, y);
                         ctx.stroke();
+                        if (isWriter && typeof pubsubClient !== 'undefined' && pubsubClient) {
+                            pubsubClient.sendToGroup(roomId, {
+                                type: 'draw_line',
+                                panelIndex: index,
+                                x1: prevX, y1: prevY,
+                                x2: x, y2: y,
+                                color: textItem.color,
+                                lineWidth: textItem.lineWidth
+                            });
+                        }
                         [lastX, lastY] = [x, y];
                     }
 
