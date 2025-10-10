@@ -25,12 +25,19 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info(f"Params: {dict(req.params)}")
     logging.info(f"Headers: {dict(req.headers)}")
 
+    # Define default headers
+    headers = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+    }
+    
     # Support both GET and POST methods
     if req.method not in ['GET', 'POST']:
         return func.HttpResponse(
             json.dumps({"error": f"Method {req.method} not allowed. Use GET or POST."}),
             status_code=405,
-            headers={"Content-Type": "application/json"}
+            headers=headers
         )
 
     # Get room_id (required)
@@ -135,11 +142,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(
             json.dumps(response_data),
             status_code=200,
-            headers={
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",  # CORS for browser clients
-                "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
-            }
+            headers=headers
         )
         
     except Exception as e:
