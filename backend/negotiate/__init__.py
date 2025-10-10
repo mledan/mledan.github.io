@@ -42,8 +42,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         token = service.get_client_access_token(
             user_id=user_id,
             roles=roles,
-            expires_in=timedelta(hours=1)
-        )
+            minutes_to_expire=60  # Equivalent to 1 hour
+)
         return func.HttpResponse(
             json.dumps({"url": token["url"]}),
             status_code=200,
