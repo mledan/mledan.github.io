@@ -44,3 +44,15 @@ __blobstorage__
 __queuestorage__
 __azurite_testcontainers_*
 .node_modules/
+*.pyc
+__pycache__/
+.pytest_cache/
+*.pyo
+.coverage
+htmlcov/
+dist/
+*.egg-info/
+.tox/
+.nox/
+.hypothesis/
+.python-version

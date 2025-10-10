@@ -39,12 +39,15 @@ jobs:
           cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
           pip install -r requirements.txt
 
-      # Optional: Add step to run tests here
+      # Validate function structure
+      - name: Validate Azure Function structure
+        run: |
+          python validate_function.py ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
 
       - name: Zip artifact for deployment
         run: |
           cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          zip -r ../release.zip . -x '*.git*' '*venv*'
+          zip -r ../release.zip . -x '*.git*' '*venv*' '__pycache__/*' '*.pyc' '.funcignore'
 
       - name: Debug Zip
         run: |
