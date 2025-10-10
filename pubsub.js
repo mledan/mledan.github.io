@@ -41,7 +41,16 @@ function loadUserInfo() {
 
 // Connect to Web PubSub
 async function connectPubSub() {
-    const NEGOTIATE_BASE = window.NEGOTIATE_BASE_URL || 'https://shmorgasbord.azurewebsites.net';
+    // Check if we're in local development mode
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1' ||
+                       window.location.hostname.includes('.local');
+    
+    // Use localhost for testing if running locally, otherwise use Azure
+    const NEGOTIATE_BASE = window.NEGOTIATE_BASE_URL || 
+                          (isLocalhost ? 'http://localhost:7071' : 'https://shmorgasbord.azurewebsites.net');
+    
+    console.log(`Using negotiate base: ${NEGOTIATE_BASE}`);
     const negotiateUrl = `${NEGOTIATE_BASE}/api/negotiate?room_id=${roomId}&username=${username}&role=${userRole}`;
     let url;
     const response = await fetch(negotiateUrl, { method: 'GET' });
@@ -60,7 +69,8 @@ async function connectPubSub() {
         throw new Error('Negotiate response missing url');
     }
 
-    pubsubClient = new WebPubSubClient(url);
+    // The stable version uses window.WebPubSubClient from the global scope
+    pubsubClient = new window.WebPubSubClient(url);
     await pubsubClient.start();
 
     // Join room group

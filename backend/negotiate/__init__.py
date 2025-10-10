@@ -35,6 +35,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     # Get room_id (required)
     room_id = req.params.get('room_id')
+    logging.info(f'Room ID: {room_id}')
+    
     if not room_id:
         logging.warning("Missing room_id parameter")
         return func.HttpResponse(
@@ -43,7 +45,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 "example": "/api/negotiate?room_id=myroom&username=john&role=writer"
             }),
             status_code=400,
-            headers={"Content-Type": "application/json"}
+            headers=headers
         )
 
     # Get or generate user_id
@@ -82,6 +84,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     # Get connection string from environment
     conn_str = os.environ.get("AZURE_WEB_PUBSUB_CONNECTION_STRING")
+    logging.info(f'Connection string exists: {bool(conn_str)}')
+    if conn_str:
+        logging.info(f'Connection string length: {len(conn_str)}')
     if not conn_str:
         logging.error("AZURE_WEB_PUBSUB_CONNECTION_STRING not found in environment")
         return func.HttpResponse(
@@ -90,7 +95,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 "details": "Missing AZURE_WEB_PUBSUB_CONNECTION_STRING in application settings"
             }),
             status_code=500,
-            headers={"Content-Type": "application/json"}
+            headers=headers
         )
 
     # Get hub name from environment or use default
@@ -156,5 +161,5 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(
             json.dumps(error_details),
             status_code=500,
-            headers={"Content-Type": "application/json"}
+            headers=headers
         )

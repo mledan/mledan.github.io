@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Backend Test</title>
+</head>
+<body>
+    <h1>Testing Backend Connection</h1>
+    <button onclick="testNegotiate()">Test Negotiate Endpoint</button>
+    <div id="result"></div>
+    
+    <script>
+        async function testNegotiate() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const negotiateUrl = 'https://shmorgasbord.azurewebsites.net/api/negotiate?room_id=test&username=testuser&role=writer';
+                console.log('Fetching:', negotiateUrl);
+                
+                const response = await fetch(negotiateUrl, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                const text = await response.text();
+                console.log('Response text:', text);
+                
+                if (response.ok) {
+                    try {
+                        const data = JSON.parse(text);
+                        resultDiv.innerHTML = `<pre>Success!\n${JSON.stringify(data, null, 2)}</pre>`;
+                    } catch (e) {
+                        resultDiv.innerHTML = `<pre>Got response but not JSON:\n${text}</pre>`;
+                    }
+                } else {
+                    resultDiv.innerHTML = `<pre>Error: ${response.status} ${response.statusText}\n${text}</pre>`;
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                resultDiv.innerHTML = `<pre>Fetch Error: ${error.message}</pre>`;
+            }
+        }
+    </script>
+</body>
+</html>
