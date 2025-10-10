@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Module Loading Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .info { color: #60a5fa; }
+    </style>
+</head>
+<body>
+    <h1>WebPubSubClient Module Loading Test</h1>
+    <div id="status"></div>
+    
+    <!-- Import Map for Azure WebPubSub Client and its dependencies -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@azure/web-pubsub-client": "https://cdn.jsdelivr.net/npm/@azure/web-pubsub-client@1.0.2/dist/browser/index.min.js",
+            "@azure/core-util": "https://cdn.jsdelivr.net/npm/@azure/core-util@1.11.0/dist/index.js",
+            "@azure/core-client": "https://cdn.jsdelivr.net/npm/@azure/core-client@1.9.2/dist/index.js",
+            "@azure/core-rest-pipeline": "https://cdn.jsdelivr.net/npm/@azure/core-rest-pipeline@1.18.1/dist/index.js",
+            "@azure/logger": "https://cdn.jsdelivr.net/npm/@azure/logger@1.1.4/dist/index.js",
+            "@azure/abort-controller": "https://cdn.jsdelivr.net/npm/@azure/abort-controller@2.1.2/dist/index.js",
+            "@azure/core-tracing": "https://cdn.jsdelivr.net/npm/@azure/core-tracing@1.2.0/dist/index.js",
+            "@azure/core-auth": "https://cdn.jsdelivr.net/npm/@azure/core-auth@1.9.0/dist/index.js",
+            "tslib": "https://cdn.jsdelivr.net/npm/tslib@2.8.1/tslib.es6.mjs",
+            "events": "https://cdn.jsdelivr.net/npm/events@3.3.0/events.js",
+            "buffer": "https://cdn.jsdelivr.net/npm/buffer@6.0.3/index.js",
+            "process": "https://cdn.jsdelivr.net/npm/process@0.11.10/browser.js",
+            "util": "https://cdn.jsdelivr.net/npm/util@0.12.5/util.js"
+        }
+    }
+    </script>
+    
+    <!-- WebPubSub Client Module Loader -->
+    <script type="module">
+        import { WebPubSubClient } from '@azure/web-pubsub-client';
+        
+        // Make it available globally
+        window.WebPubSubClient = WebPubSubClient;
+        
+        // Also expose it in azure namespace for compatibility
+        window.azure = window.azure || {};
+        window.azure.webPubSubClient = window.azure.webPubSubClient || {};
+        window.azure.webPubSubClient.WebPubSubClient = WebPubSubClient;
+        
+        console.log('[Module Test] WebPubSubClient loaded and available globally');
+        
+        // Dispatch event to signal readiness
+        window.dispatchEvent(new Event('webpubsub-ready'));
+    </script>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            const time = new Date().toLocaleTimeString();
+            div.textContent = `[${time}] ${message}`;
+            statusDiv.appendChild(div);
+            console.log(message);
+        }
+        
+        log('Page loaded, waiting for WebPubSubClient...', 'info');
+        
+        // Listen for the ready event
+        window.addEventListener('webpubsub-ready', () => {
+            log('✅ Received webpubsub-ready event!', 'success');
+            
+            // Check if it's available
+            if (window.WebPubSubClient) {
+                log('✅ window.WebPubSubClient is available', 'success');
+                log(`Type: ${typeof window.WebPubSubClient}`, 'info');
+                
+                // Try to create an instance
+                try {
+                    const testUrl = 'wss://test.webpubsub.azure.com/client/hubs/hub?access_token=test';
+                    const client = new window.WebPubSubClient(testUrl);
+                    log('✅ Successfully created WebPubSubClient instance!', 'success');
+                    
+                    // Check for methods
+                    const methods = ['start', 'stop', 'joinGroup', 'sendToGroup', 'on'];
+                    methods.forEach(method => {
+                        if (typeof client[method] === 'function') {
+                            log(`✅ client.${method}() exists`, 'success');
+                        } else {
+                            log(`❌ client.${method}() missing`, 'error');
+                        }
+                    });
+                } catch (e) {
+                    log(`❌ Failed to create client: ${e.message}`, 'error');
+                }
+            } else {
+                log('❌ window.WebPubSubClient not found', 'error');
+            }
+            
+            // Check azure namespace
+            if (window.azure && window.azure.webPubSubClient && window.azure.webPubSubClient.WebPubSubClient) {
+                log('✅ azure.webPubSubClient.WebPubSubClient also available', 'success');
+            }
+        });
+        
+        // Timeout check
+        setTimeout(() => {
+            if (!window.WebPubSubClient) {
+                log('❌ WebPubSubClient still not loaded after 5 seconds', 'error');
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

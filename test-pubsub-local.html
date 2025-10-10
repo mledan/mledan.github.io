@@ -163,8 +163,8 @@
         </div>
     </div>
 
-    <!-- Include the WebPubSub client library -->
-    <script src="https://cdn.jsdelivr.net/npm/@azure/web-pubsub-client@1/dist/browser/index.js"></script>
+    <!-- WebPubSub Client - Simple WebSocket Implementation -->
+    <script src="webpubsub-simple.js"></script>
     
     <script>
         let negotiateUrl = null;
@@ -313,8 +313,19 @@
             setStatus('connection', 'Connecting...', 'info');
 
             try {
-                log('connection', `Creating WebPubSubClient with URL from negotiate`, 'info');
-                pubsubClient = new window.WebPubSubClient(negotiateUrl);
+                // Wait a moment for the module to load if needed
+                if (typeof WebPubSubClient === 'undefined') {
+                    log('connection', 'Waiting for WebPubSubClient to load...', 'warning');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                // Check if WebPubSubClient is available
+                if (typeof WebPubSubClient === 'undefined') {
+                    throw new Error('WebPubSubClient is not loaded. Make sure the import maps are properly configured.');
+                }
+                
+                log('connection', 'Creating WebPubSubClient with URL from negotiate', 'info');
+                pubsubClient = new WebPubSubClient(negotiateUrl);
                 
                 // Set up event handlers
                 pubsubClient.on('connected', (e) => {

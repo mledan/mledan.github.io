@@ -39,8 +39,37 @@ function loadUserInfo() {
     return true;
 }
 
+// Wait for WebPubSubClient to be ready
+async function waitForWebPubSubClient() {
+    if (window.WebPubSubClient) {
+        console.log('[PubSub] WebPubSubClient already available');
+        return;
+    }
+    
+    console.log('[PubSub] Waiting for WebPubSubClient to load...');
+    return new Promise((resolve) => {
+        window.addEventListener('webpubsub-ready', () => {
+            console.log('[PubSub] WebPubSubClient is now ready!');
+            resolve();
+        });
+        
+        // Timeout after 10 seconds
+        setTimeout(() => {
+            if (!window.WebPubSubClient) {
+                console.error('[PubSub] WebPubSubClient failed to load within 10 seconds');
+                resolve(); // Resolve anyway to continue
+            }
+        }, 10000);
+    });
+}
+
 // Connect to Web PubSub
 async function connectPubSub() {
+    console.log('[PubSub] Connecting to WebPubSub...');
+    
+    // Wait for the client to be available
+    await waitForWebPubSubClient();
+    
     // Check if we're in local development mode
     const isLocalhost = window.location.hostname === 'localhost' || 
                        window.location.hostname === '127.0.0.1' ||
@@ -50,9 +79,11 @@ async function connectPubSub() {
     const NEGOTIATE_BASE = window.NEGOTIATE_BASE_URL || 
                           (isLocalhost ? 'http://localhost:7071' : 'https://shmorgasbord.azurewebsites.net');
     
-    console.log(`Using negotiate base: ${NEGOTIATE_BASE}`);
+    console.log(`[PubSub] Using negotiate base: ${NEGOTIATE_BASE}`);
     const negotiateUrl = `${NEGOTIATE_BASE}/api/negotiate?room_id=${roomId}&username=${username}&role=${userRole}`;
     let url;
+    
+    console.log('[PubSub] Fetching negotiate URL...');
     const response = await fetch(negotiateUrl, { method: 'GET' });
     if (!response.ok) {
         const text = await response.text().catch(() => '');
@@ -61,6 +92,7 @@ async function connectPubSub() {
     try {
         const data = await response.json();
         url = data.url;
+        console.log('[PubSub] Got WebSocket URL from negotiate');
     } catch (e) {
         const text = await response.text().catch(() => '');
         throw new Error(`Negotiate returned non-JSON: ${text}`);
@@ -69,8 +101,14 @@ async function connectPubSub() {
         throw new Error('Negotiate response missing url');
     }
 
-    // The stable version uses window.WebPubSubClient from the global scope
-    pubsubClient = new window.WebPubSubClient(url);
+    // Check if WebPubSubClient is available
+    if (typeof WebPubSubClient === 'undefined') {
+        throw new Error('WebPubSubClient is not loaded. Make sure the import maps are properly configured.');
+    }
+    
+    // Create the client
+    console.log('[PubSub] Creating WebPubSubClient instance...');
+    pubsubClient = new WebPubSubClient(url);
     await pubsubClient.start();
 
     // Join room group

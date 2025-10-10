@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebPubSubClient Loading Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #0e4429;
+            color: #4ade80;
+            border: 1px solid #4ade80;
+        }
+        .error {
+            background: #4a1e1e;
+            color: #f87171;
+            border: 1px solid #f87171;
+        }
+        .info {
+            background: #1e3a4a;
+            color: #60a5fa;
+            border: 1px solid #60a5fa;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebPubSubClient Loading Test</h1>
+    <div id="status">Testing module loading...</div>
+    
+    <!-- Import WebPubSub Client Library from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@azure/web-pubsub-client@1.0.2/dist/web-pubsub-client.js"></script>
+    
+    <!-- Test script (simulating pubsub.js) -->
+    <script>
+        const statusDiv = document.getElementById('status');
+        
+        function addStatus(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            statusDiv.appendChild(div);
+            console.log(message);
+        }
+        
+        // Check if WebPubSubClient is available and get the constructor
+        function getWebPubSubClient() {
+            if (typeof azure !== 'undefined' && azure.webPubSubClient && azure.webPubSubClient.WebPubSubClient) {
+                addStatus('✅ WebPubSubClient found in azure.webPubSubClient namespace!', 'success');
+                return azure.webPubSubClient.WebPubSubClient;
+            } else if (typeof WebPubSubClient !== 'undefined') {
+                addStatus('✅ WebPubSubClient found globally!', 'success');
+                return WebPubSubClient;
+            }
+            addStatus('❌ WebPubSubClient not found in any expected location', 'error');
+            return null;
+        }
+        
+        // Test the loading
+        async function testLoading() {
+            addStatus('Starting test...', 'info');
+            
+            try {
+                // Get the WebPubSubClient constructor
+                const WebPubSubClientConstructor = getWebPubSubClient();
+                if (!WebPubSubClientConstructor) {
+                    throw new Error('WebPubSubClient is not available');
+                }
+                
+                // Check if we can use it
+                addStatus('Checking WebPubSubClient constructor...', 'info');
+                
+                if (typeof WebPubSubClientConstructor === 'function') {
+                    addStatus('✅ WebPubSubClient is a function (constructor)', 'success');
+                    
+                    // Try to create an instance (with a fake URL)
+                    const testUrl = 'wss://test.webpubsub.azure.com/client/hubs/hub?access_token=test';
+                    const client = new WebPubSubClientConstructor(testUrl);
+                    
+                    addStatus('✅ Successfully created WebPubSubClient instance', 'success');
+                    addStatus(`Client object type: ${typeof client}`, 'info');
+                    addStatus(`Client constructor: ${client.constructor.name}`, 'info');
+                    
+                    // Check for expected methods
+                    const methods = ['start', 'stop', 'joinGroup', 'sendToGroup', 'on'];
+                    let allMethodsPresent = true;
+                    
+                    for (const method of methods) {
+                        if (typeof client[method] === 'function') {
+                            addStatus(`✅ Method '${method}' is present`, 'success');
+                        } else {
+                            addStatus(`❌ Method '${method}' is missing`, 'error');
+                            allMethodsPresent = false;
+                        }
+                    }
+                    
+                    if (allMethodsPresent) {
+                        addStatus('🎉 All tests passed! WebPubSubClient is working correctly.', 'success');
+                    }
+                } else {
+                    addStatus(`❌ WebPubSubClient is not a function. Type: ${typeof WebPubSubClientConstructor}`, 'error');
+                }
+            } catch (error) {
+                addStatus(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        // Run test when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', testLoading);
+        } else {
+            testLoading();
+        }
+    </script>
+</body>
+</html>

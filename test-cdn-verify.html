@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CDN Verification Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .info { color: #60a5fa; }
+        pre { background: #2d2d2d; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Azure WebPubSub Client CDN Verification</h1>
+    <div id="output"></div>
+    
+    <!-- Load the CDN script -->
+    <script src="https://cdn.jsdelivr.net/npm/@azure/web-pubsub-client@1.0.2/dist/web-pubsub-client.js"></script>
+    
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = message;
+            output.appendChild(div);
+            console.log(message);
+        }
+        
+        window.addEventListener('load', () => {
+            log('=== CDN Script Loaded ===', 'info');
+            
+            // Check what's available globally
+            log('\nChecking global scope:', 'info');
+            
+            // Check for azure namespace
+            if (typeof azure !== 'undefined') {
+                log('✅ Found "azure" namespace', 'success');
+                
+                // Explore azure namespace
+                const azureKeys = Object.keys(azure);
+                log(`   azure contains: ${azureKeys.join(', ')}`, 'info');
+                
+                // Check for webPubSubClient
+                if (azure.webPubSubClient) {
+                    log('✅ Found azure.webPubSubClient', 'success');
+                    
+                    const webPubSubKeys = Object.keys(azure.webPubSubClient);
+                    log(`   azure.webPubSubClient contains: ${webPubSubKeys.join(', ')}`, 'info');
+                    
+                    // Check for the constructor
+                    if (azure.webPubSubClient.WebPubSubClient) {
+                        log('✅ Found azure.webPubSubClient.WebPubSubClient constructor!', 'success');
+                        log(`   Type: ${typeof azure.webPubSubClient.WebPubSubClient}`, 'info');
+                        
+                        // Try to create an instance
+                        try {
+                            const testUrl = 'wss://test.webpubsub.azure.com/client/hubs/hub?access_token=test';
+                            const client = new azure.webPubSubClient.WebPubSubClient(testUrl);
+                            log('✅ Successfully created client instance!', 'success');
+                            
+                            // Check methods
+                            const methods = ['start', 'stop', 'joinGroup', 'sendToGroup', 'on'];
+                            log('\nChecking client methods:', 'info');
+                            methods.forEach(method => {
+                                if (typeof client[method] === 'function') {
+                                    log(`   ✅ ${method}() exists`, 'success');
+                                } else {
+                                    log(`   ❌ ${method}() missing`, 'error');
+                                }
+                            });
+                        } catch (e) {
+                            log(`❌ Failed to create client: ${e.message}`, 'error');
+                        }
+                    }
+                }
+            } else {
+                log('❌ "azure" namespace not found', 'error');
+            }
+            
+            // Check for direct WebPubSubClient
+            if (typeof WebPubSubClient !== 'undefined') {
+                log('\n✅ Found global WebPubSubClient', 'success');
+                log(`   Type: ${typeof WebPubSubClient}`, 'info');
+            } else {
+                log('\n❌ Global WebPubSubClient not found', 'error');
+            }
+            
+            // Show the correct usage
+            log('\n=== Correct Usage ===', 'info');
+            log('const { WebPubSubClient } = azure.webPubSubClient;', 'info');
+            log('const client = new WebPubSubClient(url);', 'info');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Module Load Test</title>
+</head>
+<body>
+    <h1>Testing WebPubSub Client Module Loading</h1>
+    <div id="status">Loading module...</div>
+    
+    <script type="module">
+        console.log('Starting module load...');
+        
+        try {
+            // Try to import the module
+            const module = await import('https://unpkg.com/@azure/web-pubsub-client@1.0.2/dist/browser/index.js');
+            console.log('Module loaded:', module);
+            
+            // Check what's exported
+            const exports = Object.keys(module);
+            console.log('Module exports:', exports);
+            
+            // Try to get WebPubSubClient
+            const { WebPubSubClient } = module;
+            
+            if (WebPubSubClient) {
+                console.log('WebPubSubClient found!', WebPubSubClient);
+                window.WebPubSubClient = WebPubSubClient;
+                document.getElementById('status').innerHTML = `
+                    <div style="color: green;">
+                        ✅ Module loaded successfully!<br>
+                        WebPubSubClient is now available globally.<br>
+                        Type: ${typeof WebPubSubClient}<br>
+                        Constructor name: ${WebPubSubClient.name}
+                    </div>
+                `;
+                
+                // Test instantiation
+                try {
+                    const testUrl = 'wss://test.webpubsub.azure.com/client/hubs/hub?access_token=test';
+                    const client = new WebPubSubClient(testUrl);
+                    console.log('Test client created:', client);
+                    document.getElementById('status').innerHTML += '<br>✅ Test instantiation successful!';
+                } catch (e) {
+                    document.getElementById('status').innerHTML += `<br>❌ Test instantiation failed: ${e.message}`;
+                }
+            } else {
+                document.getElementById('status').innerHTML = `
+                    <div style="color: orange;">
+                        ⚠️ Module loaded but WebPubSubClient not found<br>
+                        Available exports: ${exports.join(', ')}
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Failed to load module:', error);
+            document.getElementById('status').innerHTML = `
+                <div style="color: red;">
+                    ❌ Failed to load module<br>
+                    Error: ${error.message}<br>
+                    <br>
+                    Check browser console for details.
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

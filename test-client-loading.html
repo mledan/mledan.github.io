@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebPubSub Client Loading Test</title>
+</head>
+<body>
+    <h1>WebPubSub Client Loading Test</h1>
+    <div id="results"></div>
+    
+    <!-- Try different CDN URLs -->
+    <h2>Testing different library URLs:</h2>
+    
+    <button onclick="testLibrary1()">Test Library 1 (webPubSubClient.js)</button>
+    <button onclick="testLibrary2()">Test Library 2 (index.js)</button>
+    <button onclick="testLibrary3()">Test Library 3 (UMD)</button>
+    
+    <script>
+        const resultsDiv = document.getElementById('results');
+        
+        function log(message, isError = false) {
+            const p = document.createElement('p');
+            p.style.color = isError ? 'red' : 'green';
+            p.textContent = message;
+            resultsDiv.appendChild(p);
+            console.log(message);
+        }
+        
+        function checkClient() {
+            log('Checking for WebPubSubClient...');
+            
+            // Check different possible locations
+            const checks = [
+                { name: 'window.WebPubSubClient', value: window.WebPubSubClient },
+                { name: 'window.Azure', value: window.Azure },
+                { name: 'window.azure', value: window.azure },
+                { name: 'globalThis.WebPubSubClient', value: globalThis.WebPubSubClient }
+            ];
+            
+            checks.forEach(check => {
+                if (check.value) {
+                    log(`✓ Found: ${check.name} = ${typeof check.value}`);
+                    if (typeof check.value === 'object') {
+                        Object.keys(check.value).forEach(key => {
+                            log(`  - ${check.name}.${key} = ${typeof check.value[key]}`);
+                        });
+                    }
+                } else {
+                    log(`✗ Not found: ${check.name}`, true);
+                }
+            });
+            
+            // Try to find the actual constructor
+            const possibleClients = [
+                window.WebPubSubClient,
+                window.Azure?.WebPubSub?.WebPubSubClient,
+                window.azure?.webpubsub?.WebPubSubClient,
+                window.Azure?.WebPubSubClient
+            ];
+            
+            for (const Client of possibleClients) {
+                if (Client && typeof Client === 'function') {
+                    log(`✓ Found constructor: ${Client.name || 'WebPubSubClient'}`);
+                    window.FoundWebPubSubClient = Client;
+                    return Client;
+                }
+            }
+            
+            log('✗ No WebPubSubClient constructor found!', true);
+            return null;
+        }
+        
+        function testLibrary1() {
+            resultsDiv.innerHTML = '<h3>Testing: webPubSubClient.js</h3>';
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@azure/web-pubsub-client@1.0.2/dist/browser/webPubSubClient.js';
+            script.onload = () => {
+                log('Script loaded');
+                setTimeout(checkClient, 100);
+            };
+            script.onerror = () => log('Failed to load script', true);
+            document.head.appendChild(script);
+        }
+        
+        function testLibrary2() {
+            resultsDiv.innerHTML = '<h3>Testing: index.js</h3>';
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@azure/web-pubsub-client@1/dist/browser/index.js';
+            script.onload = () => {
+                log('Script loaded');
+                setTimeout(checkClient, 100);
+            };
+            script.onerror = () => log('Failed to load script', true);
+            document.head.appendChild(script);
+        }
+        
+        function testLibrary3() {
+            resultsDiv.innerHTML = '<h3>Testing: UMD build</h3>';
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/@azure/web-pubsub-client@1.0.2/dist/webPubSubClient.min.js';
+            script.onload = () => {
+                log('Script loaded');
+                setTimeout(checkClient, 100);
+            };
+            script.onerror = () => log('Failed to load script', true);
+            document.head.appendChild(script);
+        }
+        
+        // Auto-test the first one
+        window.onload = () => {
+            testLibrary1();
+        };
+    </script>
+</body>
+</html>
