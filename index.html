@@ -445,7 +445,7 @@
         async function connectPubSub() {
             const negotiateUrl = `https://slidebord-erhgcyd4gvckdrc3.centralus-01.azurewebsites.net/api/negotiate?room_id=${roomId}&username=${username}&role=${userRole}`;
             const response = await fetch(negotiateUrl);
-            const { url } = await response.text();  // Get WS URL
+            const { url } = await response.json();  // Get WS URL
 
             pubsubClient = new WebPubSubClient(url);
             await pubsubClient.start();
@@ -500,6 +500,14 @@
             ctx.stroke();
             textItem.panel.material.map.needsUpdate = true;
             // Update control canvas if needed
+        }
+
+        function applyTextUpdate(data) {
+            const textItem = window.allTextPanels[data.panelIndex];
+            if (!textItem) return;
+            textItem.text = data.text;
+            textItem.panel.userData.messageFunc = () => textItem.text;
+            updateTextPanel(textItem);
         }
 
         // When writer draws: In your draw() or onPointerMove
