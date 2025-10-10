@@ -5,8 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive STL Assembly Viewer</title>
-    <script src="https://unpkg.com/@azure/web-pubsub-client@1.0.0-beta.1/dist/web-pubsub-client.js"></script>
-    <script src="pubsub.js"></script>
+    <script type="module">
+        import { WebPubSubClient } from 'https://unpkg.com/@azure/web-pubsub-client@1.0.2/dist/browser/webPubSubClient.js';
+        // Make WebPubSubClient available globally for pubsub.js
+        window.WebPubSubClient = WebPubSubClient;
+    </script>
+    <script src="pubsub.js" defer></script>
     <style>
         body {
             margin: 0;
