@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebPubSub Connection Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4ec9b0;
+        }
+        .test-section {
+            background: #252526;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            border: 1px solid #3c3c3c;
+        }
+        .test-section h2 {
+            color: #569cd6;
+            margin-top: 0;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 3px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #0e4429;
+            color: #4ade80;
+            border: 1px solid #4ade80;
+        }
+        .status.error {
+            background: #4a1e1e;
+            color: #f87171;
+            border: 1px solid #f87171;
+        }
+        .status.warning {
+            background: #4a3e1e;
+            color: #fbbf24;
+            border: 1px solid #fbbf24;
+        }
+        .status.info {
+            background: #1e3a4a;
+            color: #60a5fa;
+            border: 1px solid #60a5fa;
+        }
+        button {
+            background: #569cd6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #4a8bc7;
+        }
+        button:disabled {
+            background: #3c3c3c;
+            cursor: not-allowed;
+        }
+        .log-output {
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 3px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            border: 1px solid #3c3c3c;
+        }
+        .log-entry {
+            margin: 2px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .log-entry.error { color: #f87171; }
+        .log-entry.success { color: #4ade80; }
+        .log-entry.info { color: #60a5fa; }
+        .log-entry.warning { color: #fbbf24; }
+        input, select {
+            background: #3c3c3c;
+            color: #d4d4d4;
+            border: 1px solid #555;
+            padding: 5px;
+            border-radius: 3px;
+            margin: 5px;
+        }
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 WebPubSub Connection Debugger</h1>
+        
+        <div class="test-section">
+            <h2>Configuration</h2>
+            <div class="test-controls">
+                <label>Backend URL:</label>
+                <select id="backend-url">
+                    <option value="http://localhost:7071">Local (localhost:7071)</option>
+                    <option value="https://shmorgasbord.azurewebsites.net">Azure (shmorgasbord)</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <input type="text" id="custom-url" placeholder="Custom URL" style="display:none" />
+                
+                <label>Room ID:</label>
+                <input type="text" id="room-id" value="test-room" />
+                
+                <label>Username:</label>
+                <input type="text" id="username" value="test-user" />
+                
+                <label>Role:</label>
+                <select id="role">
+                    <option value="writer">Writer</option>
+                    <option value="reader">Reader</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Step 1: Test Negotiate Endpoint</h2>
+            <button id="test-negotiate">Test Negotiate</button>
+            <button id="clear-negotiate">Clear</button>
+            <div id="negotiate-status"></div>
+            <div class="log-output" id="negotiate-log"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Step 2: Connect to WebPubSub</h2>
+            <button id="connect-pubsub" disabled>Connect to PubSub</button>
+            <button id="disconnect-pubsub" disabled>Disconnect</button>
+            <div id="connection-status"></div>
+            <div class="log-output" id="connection-log"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Step 3: Test Messaging</h2>
+            <div class="test-controls">
+                <input type="text" id="test-message" placeholder="Enter test message" style="flex: 1" />
+                <button id="send-message" disabled>Send Message</button>
+                <button id="clear-messages">Clear Messages</button>
+            </div>
+            <div id="message-status"></div>
+            <div class="log-output" id="message-log"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Connection Details</h2>
+            <div id="connection-details"></div>
+        </div>
+    </div>
+
+    <!-- Include the WebPubSub client library -->
+    <script src="https://cdn.jsdelivr.net/npm/@azure/web-pubsub-client@1/dist/browser/index.js"></script>
+    
+    <script>
+        let negotiateUrl = null;
+        let pubsubClient = null;
+        let roomId = null;
+        let username = null;
+        let userRole = null;
+
+        // Logging helper
+        function log(section, message, type = 'info') {
+            const logElement = document.getElementById(`${section}-log`);
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function setStatus(section, message, type = 'info') {
+            const statusElement = document.getElementById(`${section}-status`);
+            statusElement.className = `status ${type}`;
+            statusElement.textContent = message;
+        }
+
+        // Backend URL selection
+        document.getElementById('backend-url').addEventListener('change', (e) => {
+            const customInput = document.getElementById('custom-url');
+            customInput.style.display = e.target.value === 'custom' ? 'inline' : 'none';
+        });
+
+        // Test negotiate endpoint
+        document.getElementById('test-negotiate').addEventListener('click', async () => {
+            const backendSelect = document.getElementById('backend-url');
+            let backendUrl = backendSelect.value;
+            if (backendUrl === 'custom') {
+                backendUrl = document.getElementById('custom-url').value;
+                if (!backendUrl) {
+                    setStatus('negotiate', 'Please enter a custom URL', 'error');
+                    return;
+                }
+            }
+
+            roomId = document.getElementById('room-id').value;
+            username = document.getElementById('username').value;
+            userRole = document.getElementById('role').value;
+
+            negotiateUrl = `${backendUrl}/api/negotiate?room_id=${roomId}&username=${username}&role=${userRole}`;
+            
+            log('negotiate', `Testing negotiate endpoint: ${negotiateUrl}`, 'info');
+            setStatus('negotiate', 'Testing...', 'info');
+
+            try {
+                log('negotiate', 'Sending GET request...', 'info');
+                const response = await fetch(negotiateUrl, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                log('negotiate', `Response status: ${response.status} ${response.statusText}`, 
+                    response.ok ? 'success' : 'error');
+                
+                // Log response headers
+                const headers = {};
+                response.headers.forEach((value, key) => {
+                    headers[key] = value;
+                });
+                log('negotiate', `Response headers: ${JSON.stringify(headers, null, 2)}`, 'info');
+
+                const text = await response.text();
+                log('negotiate', `Response body: ${text}`, 'info');
+
+                if (response.ok) {
+                    try {
+                        const data = JSON.parse(text);
+                        if (data.url) {
+                            negotiateUrl = data.url;
+                            log('negotiate', 'Successfully received WebPubSub URL', 'success');
+                            log('negotiate', `URL preview: ${data.url.substring(0, 50)}...`, 'info');
+                            setStatus('negotiate', '✓ Negotiate successful - Got WebPubSub URL', 'success');
+                            document.getElementById('connect-pubsub').disabled = false;
+                            
+                            // Parse and display connection details
+                            try {
+                                const url = new URL(data.url);
+                                const details = `
+                                    <div class="status info">
+                                        <strong>WebPubSub Connection Details:</strong><br/>
+                                        Host: ${url.hostname}<br/>
+                                        Protocol: ${url.protocol}<br/>
+                                        Hub: ${url.pathname.split('/')[2] || 'Unknown'}<br/>
+                                        Access Token: Present (hidden)
+                                    </div>
+                                `;
+                                document.getElementById('connection-details').innerHTML = details;
+                            } catch (e) {
+                                log('negotiate', `Could not parse URL: ${e.message}`, 'warning');
+                            }
+                        } else {
+                            throw new Error('Response missing URL field');
+                        }
+                    } catch (e) {
+                        log('negotiate', `Failed to parse JSON: ${e.message}`, 'error');
+                        setStatus('negotiate', '✗ Invalid response format', 'error');
+                    }
+                } else {
+                    setStatus('negotiate', `✗ HTTP ${response.status}: ${response.statusText}`, 'error');
+                    
+                    // Check for common issues
+                    if (response.status === 404) {
+                        log('negotiate', 'Function not found. Is the backend running?', 'error');
+                        log('negotiate', 'Try running: cd backend && ./run-local.sh', 'warning');
+                    } else if (response.status === 500) {
+                        log('negotiate', 'Server error. Check if AZURE_WEB_PUBSUB_CONNECTION_STRING is set', 'error');
+                    }
+                }
+            } catch (error) {
+                log('negotiate', `Network error: ${error.message}`, 'error');
+                setStatus('negotiate', `✗ Network error: ${error.message}`, 'error');
+                
+                if (error.message.includes('Failed to fetch')) {
+                    log('negotiate', 'Cannot connect to backend. Is it running?', 'error');
+                    log('negotiate', 'For local testing, run: cd backend && ./run-local.sh', 'warning');
+                }
+            }
+        });
+
+        // Clear negotiate logs
+        document.getElementById('clear-negotiate').addEventListener('click', () => {
+            document.getElementById('negotiate-log').innerHTML = '';
+            document.getElementById('negotiate-status').innerHTML = '';
+        });
+
+        // Connect to WebPubSub
+        document.getElementById('connect-pubsub').addEventListener('click', async () => {
+            if (!negotiateUrl) {
+                setStatus('connection', 'Please test negotiate first', 'error');
+                return;
+            }
+
+            log('connection', 'Connecting to WebPubSub...', 'info');
+            setStatus('connection', 'Connecting...', 'info');
+
+            try {
+                log('connection', `Creating WebPubSubClient with URL from negotiate`, 'info');
+                pubsubClient = new window.WebPubSubClient(negotiateUrl);
+                
+                // Set up event handlers
+                pubsubClient.on('connected', (e) => {
+                    log('connection', `Connected! Connection ID: ${e.connectionId}`, 'success');
+                    setStatus('connection', '✓ Connected to WebPubSub', 'success');
+                    document.getElementById('disconnect-pubsub').disabled = false;
+                    document.getElementById('send-message').disabled = false;
+                    
+                    // Join the room group
+                    log('connection', `Joining room: ${roomId}`, 'info');
+                    pubsubClient.joinGroup(roomId).then(() => {
+                        log('connection', `Successfully joined room: ${roomId}`, 'success');
+                    }).catch(err => {
+                        log('connection', `Failed to join room: ${err.message}`, 'error');
+                    });
+                });
+
+                pubsubClient.on('disconnected', (e) => {
+                    log('connection', `Disconnected: ${e.message || 'Unknown reason'}`, 'warning');
+                    setStatus('connection', '✗ Disconnected', 'warning');
+                    document.getElementById('disconnect-pubsub').disabled = true;
+                    document.getElementById('send-message').disabled = true;
+                });
+
+                pubsubClient.on('stopped', () => {
+                    log('connection', 'Client stopped', 'info');
+                });
+
+                pubsubClient.on('group-message', (e) => {
+                    log('message', `Received group message: ${JSON.stringify(e.message.data)}`, 'info');
+                });
+
+                pubsubClient.on('server-message', (e) => {
+                    log('message', `Received server message: ${JSON.stringify(e.message)}`, 'info');
+                });
+
+                // Start the connection
+                log('connection', 'Starting WebPubSub client...', 'info');
+                await pubsubClient.start();
+                
+            } catch (error) {
+                log('connection', `Connection error: ${error.message}`, 'error');
+                setStatus('connection', `✗ Connection failed: ${error.message}`, 'error');
+            }
+        });
+
+        // Disconnect from WebPubSub
+        document.getElementById('disconnect-pubsub').addEventListener('click', () => {
+            if (pubsubClient) {
+                log('connection', 'Disconnecting...', 'info');
+                pubsubClient.stop();
+                pubsubClient = null;
+                document.getElementById('connect-pubsub').disabled = false;
+                document.getElementById('disconnect-pubsub').disabled = true;
+                document.getElementById('send-message').disabled = true;
+            }
+        });
+
+        // Send test message
+        document.getElementById('send-message').addEventListener('click', async () => {
+            if (!pubsubClient) {
+                setStatus('message', 'Not connected', 'error');
+                return;
+            }
+
+            const message = document.getElementById('test-message').value;
+            if (!message) {
+                setStatus('message', 'Please enter a message', 'warning');
+                return;
+            }
+
+            try {
+                log('message', `Sending message to room ${roomId}: ${message}`, 'info');
+                await pubsubClient.sendToGroup(roomId, {
+                    type: 'test',
+                    username: username,
+                    message: message,
+                    timestamp: new Date().toISOString()
+                });
+                log('message', 'Message sent successfully', 'success');
+                setStatus('message', '✓ Message sent', 'success');
+                document.getElementById('test-message').value = '';
+            } catch (error) {
+                log('message', `Failed to send message: ${error.message}`, 'error');
+                setStatus('message', `✗ Send failed: ${error.message}`, 'error');
+            }
+        });
+
+        // Clear message logs
+        document.getElementById('clear-messages').addEventListener('click', () => {
+            document.getElementById('message-log').innerHTML = '';
+            document.getElementById('message-status').innerHTML = '';
+        });
+
+        // Initialize
+        log('negotiate', 'WebPubSub Connection Debugger ready', 'success');
+        log('negotiate', 'Select backend and click "Test Negotiate" to begin', 'info');
+    </script>
+</body>
+</html>
