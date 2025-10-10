@@ -361,7 +361,7 @@
             ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             if (drawingData) {
-                drawingData.forpoints.forEach(stroke => {
+                drawingData.forEach(stroke => {
                     ctx.beginPath();
                     ctx.strokeStyle = stroke.color || '#000000';
                     ctx.lineWidth = 2;
@@ -524,18 +524,38 @@
             saveState();
         }
 
+        document.getElementById('toggle-text-controls').addEventListener('click', () => {
+            const panel = document.getElementById('text-controls');
+            panel.classList.toggle('active');
+        });
+
+        setTimeout(() => {
+            document.getElementById('save-state')?.addEventListener('click', saveState);
+            document.getElementById('load-state')?.addEventListener('click', () => loadState());
+            document.getElementById('export-state')?.addEventListener('click', exportState);
+            document.getElementById('reset-state')?.addEventListener('click', resetState);
+            document.getElementById('add-new-text')?.addEventListener('click', addNewTextPanel);
+        }, 100);
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            updateModeIndicator();
+        });
+
         // PubSub Integration
         let pubsubClient = null;
         let myUserId = crypto.randomUUID();
         let roomId = window.location.pathname.slice(1);
 
-        // Auto-generate room if missing (easy UX)
+        // Auto-generate room if missing
         if (!roomId) {
             roomId = crypto.randomUUID().slice(0, 8);
             window.history.replaceState(null, '', `/${roomId}`);
         }
 
-        // Show room in UI (add to #text-controls)
+        // Show room in UI
         function updateRoomUI() {
             const roomDiv = document.getElementById('room-info');
             if (!roomDiv) {
@@ -555,12 +575,12 @@
         window.lockRoom = function() {
             const password = prompt('Set password for this room:');
             if (password) {
-                localStorage.setItem(`room_${roomId}_password`, password); // Store locally for now
+                localStorage.setItem(`room_${roomId}_password`, password);
                 alert('Room locked! (Payments placeholder - validation coming soon)');
             }
         };
 
-        // Get current state (serialize allTextPanels)
+        // Get current state
         function getCurrentState() {
             return window.allTextPanels.map(panel => ({
                 name: panel.name,
@@ -701,26 +721,6 @@
 
         initializeTextControls();
         saveState();
-
-        document.getElementById('toggle-text-controls').addEventListener('click', () => {
-            const panel = document.getElementById('text-controls');
-            panel.classList.toggle('active');
-        });
-
-        setTimeout(() => {
-            document.getElementById('save-state')?.addEventListener('click', saveState);
-            document.getElementById('load-state')?.addEventListener('click', () => loadState());
-            document.getElementById('export-state')?.addEventListener('click', exportState);
-            document.getElementById('reset-state')?.addEventListener('click', resetState);
-            document.getElementById('add-new-text')?.addEventListener('click', addNewTextPanel);
-        }, 100);
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            updateModeIndicator();
-        });
 
         window.addEventListener('load', async () => {
             updateRoomUI();
