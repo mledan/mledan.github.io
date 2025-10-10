@@ -90,13 +90,36 @@ async function connectPubSub() {
 
 // Send full state (on request)
 function sendFullState() {
-    const state = JSON.parse(localStorage.getItem('textPanelState'));  // From your saveState()
+    const stateStr = localStorage.getItem('textPanelState');
+    if (!stateStr) {
+        console.log('No state to send');
+        return;
+    }
+    const state = JSON.parse(stateStr);  // From your saveState()
     pubsubClient.sendToGroup(roomId, { type: 'full_state', state });
 }
 
 // Apply full state from message
 function applyFullState(state) {
-    loadState(JSON.stringify(state));  // Your existing loadState()
+    if (!state || !Array.isArray(state)) {
+        console.log('Invalid or empty state received');
+        return;
+    }
+    
+    // Check if loadState function is available
+    if (typeof window.loadState !== 'function') {
+        console.log('loadState function not available yet');
+        // Try again after a delay
+        setTimeout(() => {
+            if (typeof window.loadState === 'function') {
+                window.loadState(JSON.stringify(state));
+            }
+        }, 1000);
+        return;
+    }
+    
+    // loadState expects a JSON string
+    window.loadState(JSON.stringify(state));  // Your existing loadState()
 }
 
 // Apply draw line from message
@@ -127,7 +150,15 @@ function applyTextUpdate(data) {
 document.addEventListener('DOMContentLoaded', () => {
     roomId = parseRoomId();
     if (loadUserInfo()) {
-        connectPubSub().catch(console.error);
+        connectPubSub().catch(err => {
+            console.error('Failed to connect to PubSub:', err);
+            // Show user-friendly error message
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#ff6b6b;color:white;padding:10px 20px;border-radius:5px;z-index:10000';
+            errorDiv.textContent = 'Connection failed. Working in offline mode.';
+            document.body.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000);
+        });
     }
 });
 

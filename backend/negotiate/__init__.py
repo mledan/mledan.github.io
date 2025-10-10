@@ -13,8 +13,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     if not room_id:
         return func.HttpResponse(
             json.dumps({"error": "Missing 'room_id' query param"}),
+            json.dumps({"error": "Missing 'room_id' query param"}),
             status_code=400,
-            headers={"Content-Type": "application/json"}
+            headers=cors_headers
         )
 
     # Optional: Use role to assign permissions
@@ -31,10 +32,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     user_id = req.params.get('username', str(uuid.uuid4()))
     conn_str = os.environ.get("AZURE_WEB_PUBSUB_CONNECTION_STRING")
     if not conn_str:
+        logging.error("AZURE_WEB_PUBSUB_CONNECTION_STRING environment variable is not set")
         return func.HttpResponse(
             json.dumps({"error": "Missing connection string"}),
             status_code=500,
-            headers={"Content-Type": "application/json"}
+            headers=cors_headers
         )
 
     try:
@@ -47,12 +49,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(
             json.dumps({"url": token["url"]}),
             status_code=200,
-            headers={"Content-Type": "application/json"}
+            headers=cors_headers
         )
     except Exception as e:
-        logging.error(f"Token generation failed: {e}")
+        logging.error(f"Token generation failed: {str(e)}")
+        logging.error(f"Exception type: {type(e).__name__}")
+        error_message = f"Failed to generate token: {str(e)}"
         return func.HttpResponse(
-            json.dumps({"error": "Failed to generate token"}),
+            json.dumps({"error": error_message}),
             status_code=500,
-            headers={"Content-Type": "application/json"}
+            headers=cors_headers
         )
