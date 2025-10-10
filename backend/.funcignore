@@ -1,0 +1,38 @@
+## Python cache
+__pycache__/
+*.pyc
+
+## Python virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+## Local settings
+local.settings.json
+
+## VS Code
+.vscode/
+
+## Git
+.git/
+.gitignore
+
+## Tests
+tests/
+test_*.py
+
+## Documentation
+*.md
+docs/
+
+## IDE
+.idea/
+*.swp
+*.swo
+*~
+
+## Build artifacts
+*.egg-info/
+dist/
+build/
