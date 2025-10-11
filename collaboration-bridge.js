@@ -18,6 +18,11 @@ class CollaborationBridge {
         this.lastSyncTime = Date.now();
         this.syncInterval = null;
         
+        this.isMaster = false; // Is this client the master?
+        this.masterId = null;   // The userId of the current master
+        this.electionInProgress = false;
+        this.electionTimeout = null;
+
         // Throttle timers for different update types
         this.updateTimers = {
             drawing: null,
@@ -127,6 +132,9 @@ class CollaborationBridge {
         console.log('[Collaboration] Connection established:', e);
         this.isConnected = true;
         this.processPendingUpdates();
+        
+        // Start master election
+        this.startMasterElection();
     }
 
     /**
@@ -157,6 +165,79 @@ class CollaborationBridge {
             console.error('[Collaboration] Reconnection failed:', error);
             // Will retry again after another delay
         }
+    }
+
+    /**
+     * Master Election Logic
+     */
+    startMasterElection() {
+        if (this.electionInProgress) return;
+        
+        console.log('[Collaboration] Starting master election...');
+        this.electionInProgress = true;
+        this.masterId = null; // Unset current master
+        
+        // Send a request to become master
+        this.sendMessage('request_master', { proposedMasterId: this.userId }, true);
+        
+        // After a timeout, if no one else has claimed master, we become master
+        this.electionTimeout = setTimeout(() => {
+            if (!this.masterId) {
+                console.log('[Collaboration] Election timeout, claiming master');
+                this.claimMaster();
+            }
+        }, 2000 + Math.random() * 1000); // Random delay to prevent race conditions
+    }
+
+    claimMaster() {
+        this.isMaster = true;
+        this.masterId = this.userId;
+        this.electionInProgress = false;
+        clearTimeout(this.electionTimeout);
+        
+        console.log('[Collaboration] I am now the master');
+        this.sendMessage('announce_master', { masterId: this.userId }, true);
+        this.updateUIRole();
+        this.toggleFollowerUI(false); // Enable controls for master
+    }
+
+    handleMasterRequest(message) {
+        // If we think we are master, re-assert our claim
+        if (this.isMaster) {
+            this.sendMessage('announce_master', { masterId: this.userId }, true);
+        } else if (!this.masterId) {
+            // If there is no master, and this new user has a lower ID, let them be master
+            if (message.data.proposedMasterId < this.userId) {
+                // Defer to the other user
+                console.log(`[Collaboration] Deferring master to ${message.username}`);
+            } else {
+                // Our ID is lower, so we should be master
+                if (!this.electionInProgress) {
+                    this.startMasterElection();
+                }
+            }
+        }
+    }
+
+    handleMasterAnnouncement(message) {
+        console.log(`[Collaboration] Master announced: ${message.username}`);
+        this.masterId = message.data.masterId;
+        this.isMaster = this.userId === this.masterId;
+        this.electionInProgress = false;
+        clearTimeout(this.electionTimeout);
+        
+        this.updateUIRole();
+        this.toggleFollowerUI(!this.isMaster);
+
+        // If we are master, send a full state sync
+        if (this.isMaster) {
+            this.sendFullState(true);
+        }
+    }
+
+    handleActivityUpdate(message) {
+        const { activity, username } = message.data;
+        this.showNotification(`${username} is ${activity}...`, 'activity');
     }
 
     /**
@@ -222,8 +303,20 @@ class CollaborationBridge {
             case 'user_leave':
                 this.handleUserLeave(message);
                 break;
+            case 'request_master':
+                this.handleMasterRequest(message);
+                break;
+            case 'announce_master':
+                this.handleMasterAnnouncement(message);
+                break;
+            case 'activity_update':
+                this.handleActivityUpdate(message);
+                break;
             case 'request_state':
                 this.handleStateRequest(message);
+                break;
+            case 'full_state_sync':
+                this.applyComprehensiveState(message.data.state);
                 break;
             case 'state_sync':
                 this.handleStateSync(message);
@@ -289,6 +382,147 @@ class CollaborationBridge {
                     this.updatePanelLockIndicator(panelId, false);
                 }
             }
+        }
+    }
+
+    /**
+     * Send full state to group
+     */
+    sendFullState(immediate = false) {
+        if (!this.isMaster) return;
+        
+        const state = this.getComprehensiveState();
+        this.sendMessage('full_state_sync', { state }, immediate);
+    }
+
+    /**
+     * Get comprehensive state of the application
+     */
+    getComprehensiveState() {
+        const cameraState = {
+            position: window.camera.position.toArray(),
+            rotation: window.camera.rotation.toArray(),
+            zoom: window.camera.zoom
+        };
+        
+        const controlState = {
+            isAutorotating: window.isAutorotating,
+            isAutoSliding: window.isAutoSliding,
+            orbitControlsEnabled: window.controls.enabled
+        };
+        
+        // Get panel states from localStorage as a base
+        const panelState = JSON.parse(localStorage.getItem('textPanelState') || '[]');
+        
+        // Ensure drawings are up-to-date
+        panelState.forEach((item, index) => {
+            if (item.type === 'draw' && window.allTextPanels[index] && window.allTextPanels[index].controlCanvas) {
+                item.drawingData = window.allTextPanels[index].controlCanvas.toDataURL();
+            }
+        });
+        
+        return {
+            camera: cameraState,
+            controls: controlState,
+            panels: panelState
+        };
+    }
+
+    /**
+     * Apply comprehensive state from master
+     */
+    applyComprehensiveState(state) {
+        if (this.isMaster) return; // Master does not accept state
+
+        // Apply camera state
+        if (state.camera) {
+            window.camera.position.fromArray(state.camera.position);
+            window.camera.rotation.fromArray(state.camera.rotation);
+            window.camera.zoom = state.camera.zoom;
+            window.camera.updateProjectionMatrix();
+            window.controls.update();
+        }
+
+        // Apply control state
+        if (state.controls) {
+            window.isAutorotating = state.controls.isAutorotating;
+            window.isAutoSliding = state.controls.isAutoSliding;
+            window.controls.enabled = state.controls.orbitControlsEnabled;
+            window.updateModeIndicator();
+        }
+        
+        // Apply panel state
+        if (state.panels && typeof window.loadState === 'function') {
+            window.loadState(JSON.stringify(state.panels));
+        }
+    }
+
+    /**
+     * Toggle UI for follower mode
+     */
+    toggleFollowerUI(isFollower) {
+        const elementsToDisable = [
+            ...document.querySelectorAll('input, button, select, textarea')
+        ];
+        
+        elementsToDisable.forEach(el => {
+            // Don't disable the status indicator or its children
+            if (!el.closest('#collab-status')) {
+                el.disabled = isFollower;
+            }
+        });
+        
+        // Add overlay to prevent interaction with canvas
+        let overlay = document.getElementById('follower-overlay');
+        if (isFollower) {
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'follower-overlay';
+                overlay.style.cssText = `
+                    position: absolute;
+                    top: 0; left: 0; right: 0; bottom: 0;
+                    background: rgba(0,0,0,0.05);
+                    z-index: 9998; /* Below status indicator */
+                    display: flex; align-items: center; justify-content: center;
+                    color: white; font-size: 24px; text-shadow: 1px 1px 2px black;
+                `;
+                overlay.innerHTML = `<p>You are viewing in Follower Mode</p>`;
+                document.body.appendChild(overlay);
+            }
+            overlay.style.display = 'flex';
+        } else {
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+        }
+    }
+
+    /**
+     * Update UI with current role (Master/Follower)
+     */
+    updateUIRole() {
+        let statusEl = document.getElementById('collab-status');
+        if (!statusEl) return;
+        
+        let roleEl = document.getElementById('collab-role');
+        if (!roleEl) {
+            roleEl = document.createElement('span');
+            roleEl.id = 'collab-role';
+            roleEl.style.cssText = `
+                font-weight: bold;
+                margin-left: 10px;
+                padding: 2px 6px;
+                border-radius: 4px;
+            `;
+            statusEl.appendChild(roleEl);
+        }
+        
+        if (this.isMaster) {
+            roleEl.textContent = 'MASTER';
+            roleEl.style.background = '#f59e0b';
+        } else {
+            roleEl.textContent = 'FOLLOWER';
+            roleEl.style.background = '#3b82f6';
         }
     }
 
@@ -637,12 +871,21 @@ class CollaborationBridge {
      * Start periodic state sync
      */
     startPeriodicSync() {
-        // Sync every 30 seconds for consistency
+        // Sync every 2 seconds for master, 30 seconds for followers
+        const syncInterval = this.isMaster ? 2000 : 30000;
+        
         this.syncInterval = setInterval(() => {
-            if (this.isConnected && Date.now() - this.lastSyncTime > 30000) {
-                this.sendMessage('request_state', {});
+            if (this.isConnected) {
+                if (this.isMaster) {
+                    this.sendFullState();
+                } else {
+                    // Followers can request a state sync if they haven't received one
+                    if (Date.now() - this.lastSyncTime > 60000) {
+                        this.sendMessage('request_state', {});
+                    }
+                }
             }
-        }, 30000);
+        }, syncInterval);
     }
 
     /**
