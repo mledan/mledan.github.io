@@ -13,8 +13,6 @@ class CollaborationBridge {
         this.isEnabled = true; // Can be toggled to disable collaboration
         this.pendingUpdates = [];
         this.remoteUsers = new Map();
-        this.localLocks = new Set(); // Panels currently being edited locally
-        this.remoteLocks = new Map(); // Panels locked by remote users
         this.lastSyncTime = Date.now();
         this.syncInterval = null;
         
@@ -324,21 +322,6 @@ class CollaborationBridge {
             case 'draw_stroke':
                 this.handleRemoteDrawing(message);
                 break;
-            case 'text_update':
-                this.handleRemoteTextUpdate(message);
-                break;
-            case 'panel_move':
-                this.handleRemotePanelMove(message);
-                break;
-            case 'panel_lock':
-                this.handleRemotePanelLock(message);
-                break;
-            case 'panel_unlock':
-                this.handleRemotePanelUnlock(message);
-                break;
-            case 'clear_panel':
-                this.handleRemoteClearPanel(message);
-                break;
             case 'cursor_position':
                 this.handleRemoteCursor(message);
                 break;
@@ -541,152 +524,13 @@ class CollaborationBridge {
      * Handle remote drawing
      */
     handleRemoteDrawing(message) {
-        const { panelIndex, drawData } = message.data;
-        
-        // Don't apply if we're currently editing this panel
-        if (this.localLocks.has(panelIndex)) return;
-        
-        if (window.allTextPanels && window.allTextPanels[panelIndex]) {
-            const textItem = window.allTextPanels[panelIndex];
-            if (textItem.type === 'draw' && textItem.panel) {
-                this.applyRemoteDrawing(textItem, drawData);
-            }
+        const { drawData } = message.data;
+        if (window.drawingApp) {
+            window.drawingApp.handleRemoteDrawing(drawData);
         }
     }
 
-    /**
-     * Apply remote drawing to panel
-     */
-    applyRemoteDrawing(textItem, drawData) {
-        const { action, x, y, x2, y2, color, lineWidth } = drawData;
-        const canvas = textItem.panel.userData.textureData.canvas;
-        const ctx = textItem.panel.userData.textureData.ctx;
-        
-        ctx.strokeStyle = color || '#000000';
-        ctx.lineWidth = lineWidth || 2;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        
-        switch (action) {
-            case 'start':
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-                break;
-            case 'move':
-                ctx.lineTo(x, y);
-                ctx.stroke();
-                break;
-            case 'line':
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-                ctx.lineTo(x2, y2);
-                ctx.stroke();
-                break;
-        }
-        
-        textItem.panel.material.map.needsUpdate = true;
-        
-        // Update control canvas if it exists
-        if (textItem.controlCanvas) {
-            const controlCtx = textItem.controlCanvas.getContext('2d');
-            controlCtx.drawImage(canvas, 0, 0, textItem.controlCanvas.width, textItem.controlCanvas.height);
-        }
-    }
 
-    /**
-     * Handle remote text update
-     */
-    handleRemoteTextUpdate(message) {
-        const { panelIndex, text } = message.data;
-        
-        // Don't apply if we're currently editing this panel
-        if (this.localLocks.has(panelIndex)) return;
-        
-        if (window.allTextPanels && window.allTextPanels[panelIndex]) {
-            const textItem = window.allTextPanels[panelIndex];
-            if (textItem.type === 'text') {
-                textItem.text = text;
-                textItem.panel.userData.messageFunc = () => text;
-                
-                // Update the textarea if it exists
-                const textArea = document.getElementById(`text-${panelIndex}`);
-                if (textArea && textArea !== document.activeElement) {
-                    textArea.value = text;
-                }
-                
-                // Update the panel display
-                if (typeof window.updateTextPanel === 'function') {
-                    window.updateTextPanel(textItem);
-                }
-            }
-        }
-    }
-
-    /**
-     * Handle remote panel move
-     */
-    handleRemotePanelMove(message) {
-        const { panelIndex, position } = message.data;
-        
-        if (window.movableMeshes && window.movableMeshes[panelIndex]) {
-            const mesh = window.movableMeshes[panelIndex];
-            mesh.position.set(position.x, position.y, position.z);
-            mesh.updateMatrixWorld(true);
-            
-            // Update UI controls
-            const inputs = {
-                x: document.getElementById(`x-${panelIndex + 2}`),
-                y: document.getElementById(`y-${panelIndex + 2}`),
-                z: document.getElementById(`z-${panelIndex + 2}`)
-            };
-            
-            if (inputs.x) inputs.x.value = position.x.toFixed(2);
-            if (inputs.y) inputs.y.value = position.y.toFixed(2);
-            if (inputs.z) inputs.z.value = position.z.toFixed(2);
-        }
-    }
-
-    /**
-     * Handle remote panel lock
-     */
-    handleRemotePanelLock(message) {
-        const { panelIndex } = message.data;
-        this.remoteLocks.set(panelIndex, message.userId);
-        this.updatePanelLockIndicator(panelIndex, true, message.username);
-    }
-
-    /**
-     * Handle remote panel unlock
-     */
-    handleRemotePanelUnlock(message) {
-        const { panelIndex } = message.data;
-        if (this.remoteLocks.get(panelIndex) === message.userId) {
-            this.remoteLocks.delete(panelIndex);
-            this.updatePanelLockIndicator(panelIndex, false);
-        }
-    }
-
-    /**
-     * Handle remote clear panel
-     */
-    handleRemoteClearPanel(message) {
-        const { panelIndex } = message.data;
-        
-        if (window.allTextPanels && window.allTextPanels[panelIndex]) {
-            const textItem = window.allTextPanels[panelIndex];
-            if (textItem.type === 'draw') {
-                const canvas = textItem.panel.userData.textureData.canvas;
-                const ctx = textItem.panel.userData.textureData.ctx;
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                textItem.panel.material.map.needsUpdate = true;
-                
-                if (textItem.controlCanvas) {
-                    const controlCtx = textItem.controlCanvas.getContext('2d');
-                    controlCtx.clearRect(0, 0, textItem.controlCanvas.width, textItem.controlCanvas.height);
-                }
-            }
-        }
-    }
 
     /**
      * Handle remote cursor position
@@ -722,14 +566,10 @@ class CollaborationBridge {
     /**
      * Hook into drawing start
      */
-    onDrawStart(panelIndex, x, y, color, lineWidth) {
+    onDrawStart(x, y, color, lineWidth) {
         if (!this.isEnabled || !this.isConnected) return;
         
-        this.localLocks.add(panelIndex);
-        this.sendMessage('panel_lock', { panelIndex });
-        
         this.sendMessage('draw_stroke', {
-            panelIndex,
             drawData: { action: 'start', x, y, color, lineWidth }
         });
     }
@@ -737,11 +577,10 @@ class CollaborationBridge {
     /**
      * Hook into drawing move
      */
-    onDrawMove(panelIndex, x, y) {
+    onDrawMove(x, y) {
         if (!this.isEnabled || !this.isConnected) return;
         
         this.sendThrottledUpdate('draw_stroke', {
-            panelIndex,
             drawData: { action: 'move', x, y }
         }, 'drawing');
     }
@@ -749,53 +588,14 @@ class CollaborationBridge {
     /**
      * Hook into drawing end
      */
-    onDrawEnd(panelIndex, drawingData = null) {
+    onDrawEnd(drawingData = null) {
         if (!this.isEnabled || !this.isConnected) return;
-        
-        this.localLocks.delete(panelIndex);
-        this.sendMessage('panel_unlock', { panelIndex });
-        
-        // Send final drawing state if provided
-        if (drawingData) {
-            this.sendMessage('draw_stroke', {
-                panelIndex,
-                drawData: { action: 'end', data: drawingData }
-            });
-        }
+
+        this.sendMessage('draw_stroke', {
+            drawData: { action: 'end' }
+        });
     }
 
-    /**
-     * Hook into text change
-     */
-    onTextChange(panelIndex, text) {
-        if (!this.isEnabled || !this.isConnected) return;
-        
-        this.sendThrottledUpdate('text_update', {
-            panelIndex,
-            text
-        }, 'text');
-    }
-
-    /**
-     * Hook into panel move
-     */
-    onPanelMove(panelIndex, position) {
-        if (!this.isEnabled || !this.isConnected) return;
-        
-        this.sendThrottledUpdate('panel_move', {
-            panelIndex,
-            position
-        }, 'position');
-    }
-
-    /**
-     * Hook into panel clear
-     */
-    onPanelClear(panelIndex) {
-        if (!this.isEnabled || !this.isConnected) return;
-        
-        this.sendMessage('clear_panel', { panelIndex }, true);
-    }
 
     /**
      * Get current state
