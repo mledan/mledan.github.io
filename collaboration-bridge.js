@@ -382,6 +382,13 @@ class CollaborationBridge {
                     this.updatePanelLockIndicator(panelId, false);
                 }
             }
+            
+            // If the master left, start a new election
+            if (message.userId === this.masterId) {
+                console.log('[Collaboration] Master has left. Starting new election.');
+                this.showNotification('The master user has left. Electing a new master...', 'warning');
+                this.startMasterElection();
+            }
         }
     }
 
@@ -434,26 +441,12 @@ class CollaborationBridge {
     applyComprehensiveState(state) {
         if (this.isMaster) return; // Master does not accept state
 
-        // Apply camera state
-        if (state.camera) {
-            window.camera.position.fromArray(state.camera.position);
-            window.camera.rotation.fromArray(state.camera.rotation);
-            window.camera.zoom = state.camera.zoom;
-            window.camera.updateProjectionMatrix();
-            window.controls.update();
-        }
+        // Follower camera is independent, so we do not apply camera/control state from master.
 
-        // Apply control state
-        if (state.controls) {
-            window.isAutorotating = state.controls.isAutorotating;
-            window.isAutoSliding = state.controls.isAutoSliding;
-            window.controls.enabled = state.controls.orbitControlsEnabled;
-            window.updateModeIndicator();
-        }
-        
-        // Apply panel state
+        // Apply panel state (drawings, text, etc.)
         if (state.panels && typeof window.loadState === 'function') {
             window.loadState(JSON.stringify(state.panels));
+            this.lastSyncTime = Date.now(); // Record that we have received a state update
         }
     }
 
@@ -461,39 +454,30 @@ class CollaborationBridge {
      * Toggle UI for follower mode
      */
     toggleFollowerUI(isFollower) {
+        // Elements to disable for followers (anything that changes state)
         const elementsToDisable = [
-            ...document.querySelectorAll('input, button, select, textarea')
+            ...document.querySelectorAll('#text-controls, #controls, #mobile-controls button:not(#mobile-toggle-orbit)')
         ];
-        
+
         elementsToDisable.forEach(el => {
-            // Don't disable the status indicator or its children
-            if (!el.closest('#collab-status')) {
-                el.disabled = isFollower;
-            }
+            el.style.display = isFollower ? 'none' : '';
         });
-        
-        // Add overlay to prevent interaction with canvas
-        let overlay = document.getElementById('follower-overlay');
+
         if (isFollower) {
-            if (!overlay) {
-                overlay = document.createElement('div');
-                overlay.id = 'follower-overlay';
-                overlay.style.cssText = `
-                    position: absolute;
-                    top: 0; left: 0; right: 0; bottom: 0;
-                    background: rgba(0,0,0,0.05);
-                    z-index: 9998; /* Below status indicator */
-                    display: flex; align-items: center; justify-content: center;
-                    color: white; font-size: 24px; text-shadow: 1px 1px 2px black;
-                `;
-                overlay.innerHTML = `<p>You are viewing in Follower Mode</p>`;
-                document.body.appendChild(overlay);
-            }
-            overlay.style.display = 'flex';
+            // Enable orbit controls and turn off autoslide for followers
+            window.controls.enabled = true;
+            window.isAutoSliding = false;
+            window.updateModeIndicator();
+            this.showNotification('You are in Follower Mode. Board state is synced, but your camera is independent.', 'info');
         } else {
-            if (overlay) {
-                overlay.style.display = 'none';
-            }
+            // Restore full UI for master
+            document.getElementById('text-controls').style.display = ''; // Or its previous state
+        }
+
+        // Remove the old overlay logic
+        let overlay = document.getElementById('follower-overlay');
+        if (overlay) {
+            overlay.remove();
         }
     }
 
