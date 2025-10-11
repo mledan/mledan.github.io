@@ -1492,6 +1492,65 @@
             textItem.panel.material.map.needsUpdate = true;
         }
 
+        /**
+         * Applies a state update from the master client without a full reload.
+         * This is used for real-time synchronization of followers.
+         */
+        function applyStateUpdate(state) {
+            if (!Array.isArray(state) || window.collaborationBridge.isMaster) {
+                return; // Only followers apply this state
+            }
+
+            // Fallback to a full load if panel counts differ (master added/removed a panel)
+            if (state.length !== window.allTextPanels.length) {
+                console.warn('[Sync] Panel count mismatch, performing full reload.');
+                window.loadState(JSON.stringify(state));
+                return;
+            }
+
+            // Update each panel in place
+            state.forEach((savedItem, index) => {
+                const textItem = window.allTextPanels[index];
+                if (!textItem) return;
+
+                // Only update if data has changed to prevent unnecessary re-renders
+                if (textItem.type === 'draw' && savedItem.drawingData && textItem.drawingData !== savedItem.drawingData) {
+                    textItem.drawingData = savedItem.drawingData;
+                    const textureCanvas = textItem.panel.userData.textureData.canvas;
+                    const tCtx = textItem.panel.userData.textureData.ctx;
+                    
+                    const img = new Image();
+                    img.onload = () => {
+                        requestAnimationFrame(() => {
+                            tCtx.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
+                            tCtx.drawImage(img, 0, 0, textureCanvas.width, textureCanvas.height);
+                            textItem.panel.material.map.needsUpdate = true;
+
+                            // Update the UI control canvas as well
+                            if (textItem.controlCanvas) {
+                                const controlCtx = textItem.controlCanvas.getContext('2d');
+                                controlCtx.clearRect(0, 0, textItem.controlCanvas.width, textItem.controlCanvas.height);
+                                controlCtx.drawImage(img, 0, 0, textItem.controlCanvas.width, textItem.controlCanvas.height);
+                            }
+                        });
+                    };
+                    img.src = savedItem.drawingData;
+                } else if (textItem.type === 'text' && savedItem.text && textItem.text !== savedItem.text) {
+                    textItem.text = savedItem.text;
+                    textItem.panel.userData.messageFunc = () => savedItem.text;
+                    updateTextPanel(textItem);
+                }
+
+                // Sync panel position and transforms if they have changed
+                if (savedItem.offset) {
+                    textItem.panelObj.offset.set(savedItem.offset.x, savedItem.offset.y, savedItem.offset.z);
+                }
+                if (savedItem.rotation) {
+                    textItem.panelObj.rotationOffset.set(savedItem.rotation.x, savedItem.rotation.y, savedItem.rotation.z);
+                }
+            });
+        }
+
         function saveState() {
             const state = window.allTextPanels.map(item => ({
                 name: item.name,

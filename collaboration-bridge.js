@@ -294,6 +294,9 @@ class CollaborationBridge {
         // Ignore our own messages
         if (message.userId === this.userId) return;
         
+        // The master only sends; it does not process incoming state changes
+        if (this.isMaster && message.type.includes('_sync')) return;
+
         console.log('[Collaboration] Received message:', message.type, message);
         
         switch (message.type) {
@@ -316,10 +319,7 @@ class CollaborationBridge {
                 this.handleStateRequest(message);
                 break;
             case 'full_state_sync':
-                this.applyComprehensiveState(message.data.state);
-                break;
-            case 'state_sync':
-                this.handleStateSync(message);
+                this.handleStateSync(message.data.panels);
                 break;
             case 'draw_stroke':
                 this.handleRemoteDrawing(message);
@@ -526,19 +526,14 @@ class CollaborationBridge {
      */
     handleStateSync(message) {
         const { state } = message.data;
-        if (state && typeof window.loadState === 'function') {
-            console.log('[Collaboration] Applying state from remote user');
-            
-            // Save current local changes that might not be in the remote state
-            const localDrawings = this.captureLocalDrawings();
-            
-            // Apply remote state
-            window.loadState(JSON.stringify(state));
-            
-            // Reapply local changes on top if needed
-            this.mergeLocalDrawings(localDrawings);
-            
+        if (state && typeof window.applyStateUpdate === 'function') {
+            console.log('[Collaboration] Applying state update from master');
+            window.applyStateUpdate(state);
             this.lastSyncTime = Date.now();
+        } else if (state && typeof window.loadState === 'function') {
+            // Fallback for initial load or panel count mismatch
+            console.log('[Collaboration] Performing full state load');
+            window.loadState(JSON.stringify(state));
         }
     }
 
