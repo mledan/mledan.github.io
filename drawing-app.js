@@ -13,9 +13,10 @@ window.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.screenSpacePanning = true;
+    controls.enabled = false;  // Disable orbit controls - keep scene static
+    // controls.enableDamping = true;
+    // controls.dampingFactor = 0.05;
+    // controls.screenSpacePanning = true;
 
     const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
     const raycaster = new THREE.Raycaster();
@@ -30,6 +31,137 @@ window.addEventListener('DOMContentLoaded', () => {
         width: window.innerWidth,
         height: window.innerHeight
     });
+    
+    // Effects system
+    const effectsObjects = [];
+    let rainbowPhase = 0;
+    
+    function applyEffectsToStroke(stroke, scene) {
+        const effects = stroke.properties.effects;
+        
+        // Glow effect
+        if (effects.includes('glow')) {
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: stroke.properties.color,
+                transparent: true,
+                opacity: 0.3,
+                side: THREE.DoubleSide
+            });
+            
+            // Create a tube geometry for glow
+            const curve = new THREE.CatmullRomCurve3(
+                stroke.points.map(p => new THREE.Vector3(p.x, p.y, p.z))
+            );
+            const tubeGeometry = new THREE.TubeGeometry(
+                curve,
+                stroke.points.length * 2,
+                stroke.properties.width * 3,
+                8,
+                false
+            );
+            const glowMesh = new THREE.Mesh(tubeGeometry, glowMaterial);
+            scene.add(glowMesh);
+            stroke.glowMesh = glowMesh;
+        }
+        
+        // Sparkle effect
+        if (effects.includes('sparkle')) {
+            stroke.sparkles = [];
+            const sparkleGeometry = new THREE.BufferGeometry();
+            const sparkleCount = 20;
+            const positions = [];
+            const sizes = [];
+            
+            for (let i = 0; i < sparkleCount; i++) {
+                const t = i / sparkleCount;
+                const index = Math.floor(t * (stroke.points.length - 1));
+                const point = stroke.points[index];
+                if (point) {
+                    positions.push(
+                        point.x + (Math.random() - 0.5) * stroke.properties.width * 2,
+                        point.y + (Math.random() - 0.5) * stroke.properties.width * 2,
+                        point.z
+                    );
+                    sizes.push(Math.random() * 3 + 1);
+                }
+            }
+            
+            sparkleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            sparkleGeometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+            
+            const sparkleMaterial = new THREE.PointsMaterial({
+                size: 2,
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.8,
+                sizeAttenuation: true,
+                vertexColors: false,
+                blending: THREE.AdditiveBlending
+            });
+            
+            const sparkleSystem = new THREE.Points(sparkleGeometry, sparkleMaterial);
+            scene.add(sparkleSystem);
+            stroke.sparkleSystem = sparkleSystem;
+            
+            // Animate sparkles
+            effectsObjects.push({
+                type: 'sparkle',
+                object: sparkleSystem,
+                phase: 0
+            });
+        }
+        
+        // Rainbow effect
+        if (effects.includes('rainbow')) {
+            stroke.rainbowEnabled = true;
+            stroke.rainbowPhase = 0;
+            effectsObjects.push({
+                type: 'rainbow',
+                stroke: stroke,
+                phase: 0
+            });
+        }
+        
+        // Pulse effect  
+        if (effects.includes('pulse')) {
+            stroke.pulseEnabled = true;
+            stroke.pulsePhase = 0;
+            stroke.originalWidth = stroke.properties.width;
+            effectsObjects.push({
+                type: 'pulse',
+                stroke: stroke,
+                phase: 0
+            });
+        }
+    }
+    
+    function updateEffects() {
+        effectsObjects.forEach(effect => {
+            if (effect.type === 'sparkle') {
+                effect.phase += 0.05;
+                effect.object.material.opacity = 0.4 + Math.sin(effect.phase) * 0.4;
+                effect.object.rotation.z += 0.01;
+            } else if (effect.type === 'rainbow') {
+                effect.phase += 0.02;
+                const hue = (effect.phase * 360) % 360;
+                if (effect.stroke.line) {
+                    effect.stroke.line.material.color.setHSL(hue / 360, 1.0, 0.5);
+                }
+                if (effect.stroke.glowMesh) {
+                    effect.stroke.glowMesh.material.color.setHSL(hue / 360, 1.0, 0.5);
+                }
+            } else if (effect.type === 'pulse') {
+                effect.phase += 0.05;
+                const scale = 1 + Math.sin(effect.phase) * 0.3;
+                if (effect.stroke.line) {
+                    effect.stroke.line.scale.set(scale, scale, 1);
+                }
+                if (effect.stroke.glowMesh) {
+                    effect.stroke.glowMesh.scale.set(scale, scale, scale);
+                }
+            }
+        });
+    }
 
     renderer.domElement.addEventListener('pointerdown', (event) => {
         isDrawing = true;
@@ -66,18 +198,13 @@ window.addEventListener('DOMContentLoaded', () => {
         });
         
         const line = new THREE.Line(geometry, material);
-        
-        // Apply special effects
-        if (currentStroke.properties.effects && currentStroke.properties.effects.includes('glow')) {
-            // Add glow effect using emissive properties
-            if (material.emissive) {
-                material.emissive = new THREE.Color(currentStroke.properties.color);
-                material.emissiveIntensity = 0.5;
-            }
-        }
-        
         scene.add(line);
         currentStroke.line = line;
+        
+        // Apply special effects
+        if (currentStroke.properties.effects && currentStroke.properties.effects.length > 0) {
+            applyEffectsToStroke(currentStroke, scene);
+        }
 
         const simplifiedPoints = simplifyDouglasPeucker(currentStroke.points, 5);
         const simplifiedGeometry = new THREE.BufferGeometry().setFromPoints(simplifiedPoints);
@@ -137,7 +264,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function animate() {
         requestAnimationFrame(animate);
-        controls.update();
+        // controls.update();  // Disabled - keeping scene static
+        
+        // Update effects animations
+        updateEffects();
 
         const viewBounds = {
             x: camera.position.x - (window.innerWidth / 2 / camera.zoom),
@@ -147,18 +277,22 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         strokes.forEach(stroke => {
-            stroke.line.visible = false;
+            if (stroke.line) stroke.line.visible = false;
+            if (stroke.simplifiedLine) stroke.simplifiedLine.visible = false;
         });
 
         const visibleStrokes = quadtree.retrieve(viewBounds);
         visibleStrokes.forEach(item => {
+            if (!item.stroke.line) return;
             const distance = camera.position.distanceTo(item.stroke.line.position);
-            if (distance > 500) {
+            if (distance > 500 && item.stroke.simplifiedLine) {
                 item.stroke.line.visible = false;
                 item.stroke.simplifiedLine.visible = true;
             } else {
                 item.stroke.line.visible = true;
-                item.stroke.simplifiedLine.visible = false;
+                if (item.stroke.simplifiedLine) {
+                    item.stroke.simplifiedLine.visible = false;
+                }
             }
         });
 
@@ -181,14 +315,17 @@ window.addEventListener('DOMContentLoaded', () => {
     
     window.drawingApp = {
         clearCanvas: () => {
-            // Remove all strokes from the scene
+            // Remove all strokes and effects from the scene
             strokes.forEach(stroke => {
                 if (stroke.line) scene.remove(stroke.line);
                 if (stroke.simplifiedLine) scene.remove(stroke.simplifiedLine);
+                if (stroke.glowMesh) scene.remove(stroke.glowMesh);
+                if (stroke.sparkleSystem) scene.remove(stroke.sparkleSystem);
             });
             strokes.length = 0;
             strokeHistory.length = 0;
             redoHistory.length = 0;
+            effectsObjects.length = 0;
             quadtree.clear();
         },
         
@@ -197,6 +334,16 @@ window.addEventListener('DOMContentLoaded', () => {
                 const lastStroke = strokes.pop();
                 if (lastStroke.line) scene.remove(lastStroke.line);
                 if (lastStroke.simplifiedLine) scene.remove(lastStroke.simplifiedLine);
+                if (lastStroke.glowMesh) scene.remove(lastStroke.glowMesh);
+                if (lastStroke.sparkleSystem) scene.remove(lastStroke.sparkleSystem);
+                
+                // Remove from effects objects
+                effectsObjects.forEach((effect, index) => {
+                    if (effect.stroke === lastStroke || effect.object === lastStroke.sparkleSystem) {
+                        effectsObjects.splice(index, 1);
+                    }
+                });
+                
                 redoHistory.push(lastStroke);
             }
         },
@@ -206,6 +353,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 const stroke = redoHistory.pop();
                 if (stroke.line) scene.add(stroke.line);
                 if (stroke.simplifiedLine) scene.add(stroke.simplifiedLine);
+                if (stroke.glowMesh) scene.add(stroke.glowMesh);
+                if (stroke.sparkleSystem) scene.add(stroke.sparkleSystem);
+                
+                // Re-add to effects if needed
+                if (stroke.properties.effects && stroke.properties.effects.length > 0) {
+                    applyEffectsToStroke(stroke, scene);
+                }
+                
                 strokes.push(stroke);
             }
         },
