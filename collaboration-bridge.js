@@ -13,7 +13,8 @@ class CollaborationBridge {
         this.isEnabled = true; // Can be toggled to disable collaboration
         this.pendingUpdates = [];
         this.remoteUsers = new Map();
-        this.lastSyncTime = Date.now();
+        this.drawingQueue = [];
+        this.drawingBatchTimer = null;
         this.syncInterval = null;
         
         this.isMaster = false; // Is this client the master?
@@ -525,8 +526,41 @@ class CollaborationBridge {
      */
     handleRemoteDrawing(message) {
         const { drawData } = message.data;
-        if (window.drawingApp) {
-            window.drawingApp.handleRemoteDrawing(drawData);
+        const { userId } = message;
+        if (Array.isArray(drawData)) {
+            drawData.forEach(action => {
+                if (action.data) {
+                    const strokes = deserialize(action.data);
+                    strokes.forEach(stroke => {
+                        action.points = stroke.points;
+                        action.color = stroke.properties.color;
+                        action.lineWidth = stroke.properties.lineWidth;
+                        if (window.drawingApp) {
+                            window.drawingApp.handleRemoteDrawing(action, userId);
+                        }
+                    });
+                } else {
+                    if (window.drawingApp) {
+                        window.drawingApp.handleRemoteDrawing(action, userId);
+                    }
+                }
+            });
+        } else {
+            if (drawData.data) {
+                const strokes = deserialize(drawData.data);
+                strokes.forEach(stroke => {
+                    drawData.points = stroke.points;
+                    drawData.color = stroke.properties.color;
+                    drawData.lineWidth = stroke.properties.lineWidth;
+                    if (window.drawingApp) {
+                        window.drawingApp.handleRemoteDrawing(drawData, userId);
+                    }
+                });
+            } else {
+                if (window.drawingApp) {
+                    window.drawingApp.handleRemoteDrawing(drawData, userId);
+                }
+            }
         }
     }
 
@@ -569,9 +603,8 @@ class CollaborationBridge {
     onDrawStart(x, y, color, lineWidth) {
         if (!this.isEnabled || !this.isConnected) return;
         
-        this.sendMessage('draw_stroke', {
-            drawData: { action: 'start', x, y, color, lineWidth }
-        });
+        this.drawingQueue.push({ action: 'start', x, y, color, lineWidth });
+        this.startBatchTimer();
     }
 
     /**
@@ -580,20 +613,32 @@ class CollaborationBridge {
     onDrawMove(x, y) {
         if (!this.isEnabled || !this.isConnected) return;
         
-        this.sendThrottledUpdate('draw_stroke', {
-            drawData: { action: 'move', x, y }
-        }, 'drawing');
+        this.drawingQueue.push({ action: 'move', x, y });
+        this.startBatchTimer();
     }
 
     /**
      * Hook into drawing end
      */
-    onDrawEnd(drawingData = null) {
+    onDrawEnd(points) {
         if (!this.isEnabled || !this.isConnected) return;
 
-        this.sendMessage('draw_stroke', {
-            drawData: { action: 'end' }
-        });
+        const binaryData = serialize([{ points: points, properties: { color: '#000000', lineWidth: 2 } }]);
+
+        this.drawingQueue.push({ action: 'end', data: binaryData });
+        this.startBatchTimer();
+    }
+
+    startBatchTimer() {
+        if (!this.drawingBatchTimer) {
+            this.drawingBatchTimer = setTimeout(() => {
+                if (this.drawingQueue.length > 0) {
+                    this.sendMessage('draw_stroke', { drawData: this.drawingQueue });
+                    this.drawingQueue = [];
+                }
+                this.drawingBatchTimer = null;
+            }, 100);
+        }
     }
 
 

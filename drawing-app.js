@@ -21,7 +21,15 @@ window.addEventListener('DOMContentLoaded', () => {
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
     let isDrawing = false;
-    let currentLine = null;
+    let currentStroke = null;
+    const strokes = [];
+    const strokePropertiesFactory = new StrokePropertiesFactory();
+    const quadtree = new Quadtree({
+        x: -window.innerWidth / 2,
+        y: -window.innerHeight / 2,
+        width: window.innerWidth,
+        height: window.innerHeight
+    });
 
     renderer.domElement.addEventListener('pointerdown', (event) => {
         isDrawing = true;
@@ -31,11 +39,34 @@ window.addEventListener('DOMContentLoaded', () => {
         const intersection = new THREE.Vector3();
         raycaster.ray.intersectPlane(plane, intersection);
 
-        const points = [intersection.clone()];
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        const material = new THREE.LineBasicMaterial({ color: 0x000000 });
-        currentLine = new THREE.Line(geometry, material);
-        scene.add(currentLine);
+        const properties = strokePropertiesFactory.get('#000000', 2);
+        currentStroke = {
+            points: [intersection.clone()],
+            properties: properties
+        };
+        strokes.push(currentStroke);
+
+        const geometry = new THREE.BufferGeometry().setFromPoints(currentStroke.points);
+        const material = new THREE.LineBasicMaterial({ color: currentStroke.properties.color });
+        const line = new THREE.Line(geometry, material);
+        scene.add(line);
+        currentStroke.line = line;
+
+        const simplifiedPoints = simplifyDouglasPeucker(currentStroke.points, 5);
+        const simplifiedGeometry = new THREE.BufferGeometry().setFromPoints(simplifiedPoints);
+        const simplifiedLine = new THREE.Line(simplifiedGeometry, material);
+        scene.add(simplifiedLine);
+        currentStroke.simplifiedLine = simplifiedLine;
+        currentStroke.simplifiedPoints = simplifiedPoints;
+
+        const boundingBox = new THREE.Box3().setFromObject(line);
+        quadtree.insert({
+            x: boundingBox.min.x,
+            y: boundingBox.min.y,
+            width: boundingBox.max.x - boundingBox.min.x,
+            height: boundingBox.max.y - boundingBox.min.y,
+            stroke: currentStroke
+        });
 
         if (window.collaborationBridge) {
             window.collaborationBridge.onDrawStart(intersection.x, intersection.y, '#000000', 2);
@@ -43,7 +74,7 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     renderer.domElement.addEventListener('pointermove', (event) => {
-        if (!isDrawing) return;
+        if (!isDrawing || !currentStroke) return;
 
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
@@ -51,13 +82,8 @@ window.addEventListener('DOMContentLoaded', () => {
         const intersection = new THREE.Vector3();
         raycaster.ray.intersectPlane(plane, intersection);
 
-        const positions = currentLine.geometry.attributes.position.array;
-        const newPositions = new Float32Array(positions.length + 3);
-        newPositions.set(positions);
-        newPositions.set([intersection.x, intersection.y, intersection.z], positions.length);
-
-        currentLine.geometry.setAttribute('position', new THREE.BufferAttribute(newPositions, 3));
-        currentLine.geometry.attributes.position.needsUpdate = true;
+        currentStroke.points.push(intersection.clone());
+        currentStroke.line.geometry.setFromPoints(currentStroke.points);
 
         if (window.collaborationBridge) {
             window.collaborationBridge.onDrawMove(intersection.x, intersection.y);
@@ -66,16 +92,43 @@ window.addEventListener('DOMContentLoaded', () => {
 
     renderer.domElement.addEventListener('pointerup', () => {
         isDrawing = false;
-        currentLine = null;
+        currentStroke = null;
 
         if (window.collaborationBridge) {
-            window.collaborationBridge.onDrawEnd();
+            const simplifiedPoints = simplifyDouglasPeucker(strokes[strokes.length - 1].points, 1);
+            strokes[strokes.length - 1].points = simplifiedPoints;
+            strokes[strokes.length - 1].line.geometry.setFromPoints(simplifiedPoints);
+            window.collaborationBridge.onDrawEnd(simplifiedPoints);
         }
     });
 
     function animate() {
         requestAnimationFrame(animate);
         controls.update();
+
+        const viewBounds = {
+            x: camera.position.x - (window.innerWidth / 2 / camera.zoom),
+            y: camera.position.y - (window.innerHeight / 2 / camera.zoom),
+            width: window.innerWidth / camera.zoom,
+            height: window.innerHeight / camera.zoom
+        };
+
+        strokes.forEach(stroke => {
+            stroke.line.visible = false;
+        });
+
+        const visibleStrokes = quadtree.retrieve(viewBounds);
+        visibleStrokes.forEach(item => {
+            const distance = camera.position.distanceTo(item.stroke.line.position);
+            if (distance > 500) {
+                item.stroke.line.visible = false;
+                item.stroke.simplifiedLine.visible = true;
+            } else {
+                item.stroke.line.visible = true;
+                item.stroke.simplifiedLine.visible = false;
+            }
+        });
+
         renderer.render(scene, camera);
     }
 
@@ -87,31 +140,41 @@ window.addEventListener('DOMContentLoaded', () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
+    const remoteStrokes = {};
+
     window.drawingApp = {
-        handleRemoteDrawing: (drawData) => {
-            const { action, x, y, color, lineWidth } = drawData;
+        handleRemoteDrawing: (drawData, userId) => {
+            const { action, x, y, color, lineWidth, points } = drawData;
+
+            let stroke = remoteStrokes[userId];
 
             switch (action) {
                 case 'start':
-                    const points = [new THREE.Vector3(x, y, 0)];
-                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-                    const material = new THREE.LineBasicMaterial({ color: color || 0x000000 });
-                    currentLine = new THREE.Line(geometry, material);
-                    scene.add(currentLine);
+                    const properties = strokePropertiesFactory.get(color, lineWidth);
+                    stroke = {
+                        points: [new THREE.Vector3(x, y, 0)],
+                        properties: properties,
+                    };
+                    remoteStrokes[userId] = stroke;
+
+                    const geometry = new THREE.BufferGeometry().setFromPoints(stroke.points);
+                    const material = new THREE.LineBasicMaterial({ color: stroke.properties.color });
+                    const line = new THREE.Line(geometry, material);
+                    scene.add(line);
+                    stroke.line = line;
                     break;
                 case 'move':
-                    if (currentLine) {
-                        const positions = currentLine.geometry.attributes.position.array;
-                        const newPositions = new Float32Array(positions.length + 3);
-                        newPositions.set(positions);
-                        newPositions.set([x, y, 0], positions.length);
-
-                        currentLine.geometry.setAttribute('position', new THREE.BufferAttribute(newPositions, 3));
-                        currentLine.geometry.attributes.position.needsUpdate = true;
+                    if (stroke) {
+                        stroke.points.push(new THREE.Vector3(x, y, 0));
+                        stroke.line.geometry.setFromPoints(stroke.points);
                     }
                     break;
                 case 'end':
-                    currentLine = null;
+                    if (stroke) {
+                        stroke.points = points;
+                        stroke.line.geometry.setFromPoints(stroke.points);
+                        delete remoteStrokes[userId];
+                    }
                     break;
             }
         }
