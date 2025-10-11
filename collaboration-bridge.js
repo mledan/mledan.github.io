@@ -397,9 +397,8 @@ class CollaborationBridge {
         };
         
         const controlState = {
-            isAutorotating: window.isAutorotating,
-            isAutoSliding: window.isAutoSliding,
-            orbitControlsEnabled: window.controls.enabled
+            isAutorotating: window.isAutorotating || false,
+            isAutoSliding: window.isAutoSliding || false
         };
         
         // Get panel states from localStorage as a base
@@ -440,7 +439,7 @@ class CollaborationBridge {
     toggleFollowerUI(isFollower) {
         // Elements to disable for followers (anything that changes state)
         const elementsToDisable = [
-            ...document.querySelectorAll('#text-controls, #controls, #mobile-controls button:not(#mobile-toggle-orbit)')
+            ...document.querySelectorAll('#brush-toolbar, #controls')
         ];
 
         elementsToDisable.forEach(el => {
@@ -448,14 +447,15 @@ class CollaborationBridge {
         });
 
         if (isFollower) {
-            // Enable orbit controls and turn off autoslide for followers
-            window.controls.enabled = true;
+            // Turn off autoslide for followers
+            if (window.controls) window.controls.enabled = true;
             window.isAutoSliding = false;
-            window.updateModeIndicator();
-            this.showNotification('You are in Follower Mode. Board state is synced, but your camera is independent.', 'info');
+            if (window.updateModeIndicator) window.updateModeIndicator();
+            this.showNotification('You are in Follower Mode. Drawing state is synced, but your camera is independent.', 'info');
         } else {
             // Restore full UI for master
-            document.getElementById('text-controls').style.display = ''; // Or its previous state
+            const toolbar = document.getElementById('brush-toolbar');
+            if (toolbar) toolbar.style.display = '';
         }
 
         // Remove the old overlay logic

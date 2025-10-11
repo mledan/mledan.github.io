@@ -39,7 +39,16 @@ window.addEventListener('DOMContentLoaded', () => {
         const intersection = new THREE.Vector3();
         raycaster.ray.intersectPlane(plane, intersection);
 
-        const properties = strokePropertiesFactory.get('#000000', 2);
+        // Use brush engine properties if available
+        const brushProps = window.brushEngine ? window.brushEngine.getBrushProperties() : null;
+        const color = brushProps ? brushProps.color : '#000000';
+        const width = brushProps ? brushProps.width : 2;
+        const opacity = brushProps ? brushProps.opacity : 1;
+        
+        const properties = strokePropertiesFactory.get(color, width);
+        properties.opacity = opacity;
+        properties.effects = brushProps ? brushProps.effects : [];
+        
         currentStroke = {
             points: [intersection.clone()],
             properties: properties
@@ -47,8 +56,26 @@ window.addEventListener('DOMContentLoaded', () => {
         strokes.push(currentStroke);
 
         const geometry = new THREE.BufferGeometry().setFromPoints(currentStroke.points);
-        const material = new THREE.LineBasicMaterial({ color: currentStroke.properties.color });
+        
+        // Create material with brush properties
+        const material = new THREE.LineBasicMaterial({ 
+            color: currentStroke.properties.color,
+            opacity: currentStroke.properties.opacity || 1,
+            transparent: currentStroke.properties.opacity < 1,
+            linewidth: currentStroke.properties.width || 1
+        });
+        
         const line = new THREE.Line(geometry, material);
+        
+        // Apply special effects
+        if (currentStroke.properties.effects && currentStroke.properties.effects.includes('glow')) {
+            // Add glow effect using emissive properties
+            if (material.emissive) {
+                material.emissive = new THREE.Color(currentStroke.properties.color);
+                material.emissiveIntensity = 0.5;
+            }
+        }
+        
         scene.add(line);
         currentStroke.line = line;
 
@@ -69,7 +96,13 @@ window.addEventListener('DOMContentLoaded', () => {
         });
 
         if (window.collaborationBridge) {
-            window.collaborationBridge.onDrawStart(intersection.x, intersection.y, '#000000', 2);
+            const brushState = window.brushEngine ? window.brushEngine.getCurrentBrushState() : null;
+            window.collaborationBridge.onDrawStart(
+                intersection.x, 
+                intersection.y, 
+                brushState ? brushState.properties.color : '#000000', 
+                brushState ? brushState.properties.width : 2
+            );
         }
     });
 
@@ -142,7 +175,41 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const remoteStrokes = {};
 
+    // Store strokes for undo/redo functionality
+    let strokeHistory = [];
+    let redoHistory = [];
+    
     window.drawingApp = {
+        clearCanvas: () => {
+            // Remove all strokes from the scene
+            strokes.forEach(stroke => {
+                if (stroke.line) scene.remove(stroke.line);
+                if (stroke.simplifiedLine) scene.remove(stroke.simplifiedLine);
+            });
+            strokes.length = 0;
+            strokeHistory.length = 0;
+            redoHistory.length = 0;
+            quadtree.clear();
+        },
+        
+        undo: () => {
+            if (strokes.length > 0) {
+                const lastStroke = strokes.pop();
+                if (lastStroke.line) scene.remove(lastStroke.line);
+                if (lastStroke.simplifiedLine) scene.remove(lastStroke.simplifiedLine);
+                redoHistory.push(lastStroke);
+            }
+        },
+        
+        redo: () => {
+            if (redoHistory.length > 0) {
+                const stroke = redoHistory.pop();
+                if (stroke.line) scene.add(stroke.line);
+                if (stroke.simplifiedLine) scene.add(stroke.simplifiedLine);
+                strokes.push(stroke);
+            }
+        },
+        
         handleRemoteDrawing: (drawData, userId) => {
             const { action, x, y, color, lineWidth, points } = drawData;
 
