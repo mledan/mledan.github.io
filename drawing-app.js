@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { PerfectFreehandHelper } from './perfect-freehand-helper.js';
 
 window.addEventListener('DOMContentLoaded', () => {
+    // Initialize Perfect Freehand helper
+    const freehandHelper = new PerfectFreehandHelper();
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xdddddd);
 
@@ -39,29 +42,25 @@ window.addEventListener('DOMContentLoaded', () => {
     function applyEffectsToStroke(stroke, scene) {
         const effects = stroke.properties.effects;
         
-        // Glow effect
-        if (effects.includes('glow')) {
-            const glowMaterial = new THREE.MeshBasicMaterial({
-                color: stroke.properties.color,
-                transparent: true,
+        // Glow effect - create a larger, semi-transparent copy behind the stroke
+        if (effects.includes('glow') && stroke.points.length > 1) {
+            const glowOptions = freehandHelper.getOptionsFromBrush({
+                width: stroke.properties.width * 2.5, // Larger for glow
                 opacity: 0.3,
-                side: THREE.DoubleSide
+                brush: 'glow'
             });
             
-            // Create a tube geometry for glow
-            const curve = new THREE.CatmullRomCurve3(
-                stroke.points.map(p => new THREE.Vector3(p.x, p.y, p.z))
+            const glowMesh = freehandHelper.createStrokeMesh(
+                stroke.points,
+                stroke.properties.color,
+                glowOptions
             );
-            const tubeGeometry = new THREE.TubeGeometry(
-                curve,
-                stroke.points.length * 2,
-                stroke.properties.width * 3,
-                8,
-                false
-            );
-            const glowMesh = new THREE.Mesh(tubeGeometry, glowMaterial);
-            scene.add(glowMesh);
-            stroke.glowMesh = glowMesh;
+            
+            if (glowMesh) {
+                glowMesh.position.z = -0.01; // Slightly behind main stroke
+                scene.add(glowMesh);
+                stroke.glowMesh = glowMesh;
+            }
         }
         
         // Sparkle effect
@@ -144,10 +143,10 @@ window.addEventListener('DOMContentLoaded', () => {
             } else if (effect.type === 'rainbow') {
                 effect.phase += 0.02;
                 const hue = (effect.phase * 360) % 360;
-                if (effect.stroke.line) {
+                if (effect.stroke.line && effect.stroke.line.material) {
                     effect.stroke.line.material.color.setHSL(hue / 360, 1.0, 0.5);
                 }
-                if (effect.stroke.glowMesh) {
+                if (effect.stroke.glowMesh && effect.stroke.glowMesh.material) {
                     effect.stroke.glowMesh.material.color.setHSL(hue / 360, 1.0, 0.5);
                 }
             } else if (effect.type === 'pulse') {
@@ -157,7 +156,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     effect.stroke.line.scale.set(scale, scale, 1);
                 }
                 if (effect.stroke.glowMesh) {
-                    effect.stroke.glowMesh.scale.set(scale, scale, scale);
+                    effect.stroke.glowMesh.scale.set(scale, scale, 1);
                 }
             }
         });
@@ -187,40 +186,47 @@ window.addEventListener('DOMContentLoaded', () => {
         };
         strokes.push(currentStroke);
 
-        const geometry = new THREE.BufferGeometry().setFromPoints(currentStroke.points);
-        
-        // Create material with brush properties
-        const material = new THREE.LineBasicMaterial({ 
-            color: currentStroke.properties.color,
-            opacity: currentStroke.properties.opacity || 1,
-            transparent: currentStroke.properties.opacity < 1,
-            linewidth: currentStroke.properties.width || 1
+        // Create initial mesh using perfect-freehand (will be updated as we draw)
+        const freehandOptions = freehandHelper.getOptionsFromBrush({
+            width: currentStroke.properties.width,
+            opacity: currentStroke.properties.opacity,
+            brush: brushProps ? brushProps.brush : 'pencil'
         });
         
-        const line = new THREE.Line(geometry, material);
-        scene.add(line);
-        currentStroke.line = line;
+        // Start with a simple point - will be updated on move
+        const mesh = freehandHelper.createStrokeMesh(
+            currentStroke.points,
+            currentStroke.properties.color,
+            freehandOptions
+        );
+        
+        if (mesh) {
+            scene.add(mesh);
+            currentStroke.line = mesh; // Keep same property name for compatibility
+        }
         
         // Apply special effects
         if (currentStroke.properties.effects && currentStroke.properties.effects.length > 0) {
             applyEffectsToStroke(currentStroke, scene);
         }
 
+        // Create simplified version for LOD (Level of Detail) at distance
         const simplifiedPoints = simplifyDouglasPeucker(currentStroke.points, 5);
-        const simplifiedGeometry = new THREE.BufferGeometry().setFromPoints(simplifiedPoints);
-        const simplifiedLine = new THREE.Line(simplifiedGeometry, material);
-        scene.add(simplifiedLine);
-        currentStroke.simplifiedLine = simplifiedLine;
         currentStroke.simplifiedPoints = simplifiedPoints;
+        
+        // We'll create the simplified mesh later when we have more points
+        currentStroke.simplifiedLine = null;
 
-        const boundingBox = new THREE.Box3().setFromObject(line);
-        quadtree.insert({
-            x: boundingBox.min.x,
-            y: boundingBox.min.y,
-            width: boundingBox.max.x - boundingBox.min.x,
-            height: boundingBox.max.y - boundingBox.min.y,
-            stroke: currentStroke
-        });
+        if (currentStroke.line) {
+            const boundingBox = new THREE.Box3().setFromObject(currentStroke.line);
+            quadtree.insert({
+                x: boundingBox.min.x,
+                y: boundingBox.min.y,
+                width: boundingBox.max.x - boundingBox.min.x,
+                height: boundingBox.max.y - boundingBox.min.y,
+                stroke: currentStroke
+            });
+        }
 
         if (window.collaborationBridge) {
             const brushState = window.brushEngine ? window.brushEngine.getCurrentBrushState() : null;
@@ -243,7 +249,18 @@ window.addEventListener('DOMContentLoaded', () => {
         raycaster.ray.intersectPlane(plane, intersection);
 
         currentStroke.points.push(intersection.clone());
-        currentStroke.line.geometry.setFromPoints(currentStroke.points);
+        
+        // Update the stroke mesh with perfect-freehand
+        if (currentStroke.line && currentStroke.points.length > 1) {
+            const brushProps = window.brushEngine ? window.brushEngine.getBrushProperties() : null;
+            const freehandOptions = freehandHelper.getOptionsFromBrush({
+                width: currentStroke.properties.width,
+                opacity: currentStroke.properties.opacity,
+                brush: brushProps ? brushProps.brush : 'pencil'
+            });
+            
+            freehandHelper.updateStrokeMesh(currentStroke.line, currentStroke.points, freehandOptions);
+        }
 
         if (window.collaborationBridge) {
             window.collaborationBridge.onDrawMove(intersection.x, intersection.y);
@@ -251,15 +268,41 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     renderer.domElement.addEventListener('pointerup', () => {
+        if (currentStroke) {
+            // Create simplified version for LOD
+            const lastStroke = strokes[strokes.length - 1];
+            if (lastStroke && lastStroke.points.length > 2) {
+                const simplifiedPoints = simplifyDouglasPeucker(lastStroke.points, 1);
+                lastStroke.simplifiedPoints = simplifiedPoints;
+                
+                // Create simplified mesh
+                const brushProps = window.brushEngine ? window.brushEngine.getBrushProperties() : null;
+                const freehandOptions = freehandHelper.getOptionsFromBrush({
+                    width: lastStroke.properties.width,
+                    opacity: lastStroke.properties.opacity,
+                    brush: brushProps ? brushProps.brush : 'pencil'
+                });
+                
+                const simplifiedMesh = freehandHelper.createStrokeMesh(
+                    simplifiedPoints,
+                    lastStroke.properties.color,
+                    freehandOptions
+                );
+                
+                if (simplifiedMesh) {
+                    simplifiedMesh.visible = false; // Hidden by default, shown at distance
+                    scene.add(simplifiedMesh);
+                    lastStroke.simplifiedLine = simplifiedMesh;
+                }
+                
+                if (window.collaborationBridge) {
+                    window.collaborationBridge.onDrawEnd(simplifiedPoints);
+                }
+            }
+        }
+        
         isDrawing = false;
         currentStroke = null;
-
-        if (window.collaborationBridge) {
-            const simplifiedPoints = simplifyDouglasPeucker(strokes[strokes.length - 1].points, 1);
-            strokes[strokes.length - 1].points = simplifiedPoints;
-            strokes[strokes.length - 1].line.geometry.setFromPoints(simplifiedPoints);
-            window.collaborationBridge.onDrawEnd(simplifiedPoints);
-        }
     });
 
     function animate() {
@@ -379,22 +422,53 @@ window.addEventListener('DOMContentLoaded', () => {
                     };
                     remoteStrokes[userId] = stroke;
 
-                    const geometry = new THREE.BufferGeometry().setFromPoints(stroke.points);
-                    const material = new THREE.LineBasicMaterial({ color: stroke.properties.color });
-                    const line = new THREE.Line(geometry, material);
-                    scene.add(line);
-                    stroke.line = line;
+                    // Create initial mesh with perfect-freehand
+                    const freehandOptions = freehandHelper.getOptionsFromBrush({
+                        width: stroke.properties.width,
+                        opacity: stroke.properties.opacity || 1,
+                        brush: 'pencil'
+                    });
+                    
+                    const mesh = freehandHelper.createStrokeMesh(
+                        stroke.points,
+                        stroke.properties.color,
+                        freehandOptions
+                    );
+                    
+                    if (mesh) {
+                        scene.add(mesh);
+                        stroke.line = mesh;
+                    }
                     break;
                 case 'move':
-                    if (stroke) {
+                    if (stroke && stroke.line) {
                         stroke.points.push(new THREE.Vector3(x, y, 0));
-                        stroke.line.geometry.setFromPoints(stroke.points);
+                        
+                        // Update mesh with perfect-freehand
+                        if (stroke.points.length > 1) {
+                            const freehandOptions = freehandHelper.getOptionsFromBrush({
+                                width: stroke.properties.width,
+                                opacity: stroke.properties.opacity || 1,
+                                brush: 'pencil'
+                            });
+                            freehandHelper.updateStrokeMesh(stroke.line, stroke.points, freehandOptions);
+                        }
                     }
                     break;
                 case 'end':
-                    if (stroke) {
-                        stroke.points = points;
-                        stroke.line.geometry.setFromPoints(stroke.points);
+                    if (stroke && stroke.line) {
+                        stroke.points = points.map(p => new THREE.Vector3(p.x, p.y, p.z || 0));
+                        
+                        // Final update with all points
+                        const freehandOptions = freehandHelper.getOptionsFromBrush({
+                            width: stroke.properties.width,
+                            opacity: stroke.properties.opacity || 1,
+                            brush: 'pencil'
+                        });
+                        freehandHelper.updateStrokeMesh(stroke.line, stroke.points, freehandOptions);
+                        
+                        // Move to permanent strokes
+                        strokes.push(stroke);
                         delete remoteStrokes[userId];
                     }
                     break;
