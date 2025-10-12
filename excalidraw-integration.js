@@ -1,65 +1,65 @@
 /**
  * Excalidraw Integration with WebPubSub Collaboration
- * Replaces the custom Three.js drawing system while preserving all collaboration features
+ * Uses React-based Excalidraw with proper integration
  */
 
 class ExcalidrawCollaborationBridge {
     constructor() {
-        this.excalidrawAPI = null;
+        this.excalidrawRef = null;
         this.collaborationBridge = null;
         this.roomId = null;
         this.isInitialized = false;
         this.lastSyncTime = 0;
         this.syncThrottle = 100; // ms
+        this.reactRoot = null;
     }
 
     async initialize() {
         try {
-            // Wait for Excalidraw to be available
-            if (typeof window.Excalidraw === 'undefined') {
-                console.error('Excalidraw not loaded');
+            // Wait for React and Excalidraw to be available
+            if (typeof window.React === 'undefined' || typeof window.ReactDOM === 'undefined') {
+                console.error('[Excalidraw] React not loaded');
                 return false;
             }
 
-            // Initialize Excalidraw
+            if (typeof window.ExcalidrawLib === 'undefined') {
+                console.error('[Excalidraw] ExcalidrawLib not loaded');
+                return false;
+            }
+
+            // Get the container
             const container = document.getElementById('excalidraw-container');
             if (!container) {
-                console.error('Excalidraw container not found');
+                console.error('[Excalidraw] Container not found');
                 return false;
             }
 
-            // Create Excalidraw instance
-            // (Removed duplicate declaration - using ExcalidrawClass below)
-            
-            // Initialize with collaboration support
-            const excalidrawElement = document.createElement('div');
-            excalidrawElement.style.width = '100%';
-            excalidrawElement.style.height = '100%';
-            container.appendChild(excalidrawElement);
+            // Create React root
+            this.reactRoot = window.ReactDOM.createRoot(container);
 
-            // Initialize Excalidraw with proper API
-            const ExcalidrawClass = window.Excalidraw.Excalidraw;
-            this.excalidrawAPI = ExcalidrawClass;
+            // Create Excalidraw component
+            const ExcalidrawComponent = window.ExcalidrawLib.Excalidraw;
             
-            // Create the Excalidraw component
-            const excalidrawComponent = new ExcalidrawClass({
-                target: excalidrawElement,
-                props: {
-                    onChange: this.handleExcalidrawChange.bind(this),
-                    isCollaborating: true,
-                    UIOptions: {
-                        canvasActions: {
-                            loadScene: false,
-                            saveToActiveFile: false,
-                            export: true,
-                            toggleTheme: true
-                        }
+            // Create the React element
+            const excalidrawElement = window.React.createElement(ExcalidrawComponent, {
+                ref: (ref) => {
+                    this.excalidrawRef = ref;
+                    console.log('[Excalidraw] Component ref set');
+                },
+                onChange: this.handleExcalidrawChange.bind(this),
+                isCollaborating: true,
+                UIOptions: {
+                    canvasActions: {
+                        loadScene: false,
+                        saveToActiveFile: false,
+                        export: true,
+                        toggleTheme: true
                     }
                 }
             });
 
-            // Store the component for API access
-            this.excalidrawComponent = excalidrawComponent;
+            // Render the component
+            this.reactRoot.render(excalidrawElement);
 
             // Initialize collaboration bridge
             this.collaborationBridge = window.collaborationBridge;
@@ -129,25 +129,14 @@ class ExcalidrawCollaborationBridge {
         });
     }
 
-    handleCollaborationChange(pointer, button, pointersMap) {
-        // Handle cursor/pointer collaboration
-        if (this.collaborationBridge && this.collaborationBridge.isConnected) {
-            this.collaborationBridge.sendMessage('cursor_position', {
-                pointer: pointer,
-                button: button,
-                pointersMap: pointersMap
-            });
-        }
-    }
-
     handleRemoteExcalidrawSync(message) {
-        if (!this.excalidrawComponent || message.userId === this.collaborationBridge.userId) {
+        if (!this.excalidrawRef || message.userId === this.collaborationBridge.userId) {
             return; // Ignore our own messages
         }
 
         try {
             // Update Excalidraw with remote changes
-            this.excalidrawComponent.$set({
+            this.excalidrawRef.updateScene({
                 elements: message.data.elements,
                 appState: message.data.appState
             });
@@ -228,9 +217,9 @@ class ExcalidrawCollaborationBridge {
 
     // Export current drawing
     exportDrawing() {
-        if (this.excalidrawComponent) {
-            const elements = this.excalidrawComponent.elements || [];
-            const appState = this.excalidrawComponent.appState || {};
+        if (this.excalidrawRef) {
+            const elements = this.excalidrawRef.getSceneElements();
+            const appState = this.excalidrawRef.getAppState();
             
             return {
                 elements: elements,
@@ -243,8 +232,8 @@ class ExcalidrawCollaborationBridge {
 
     // Import drawing
     importDrawing(drawingData) {
-        if (this.excalidrawComponent && drawingData) {
-            this.excalidrawComponent.$set({
+        if (this.excalidrawRef && drawingData) {
+            this.excalidrawRef.updateScene({
                 elements: drawingData.elements || [],
                 appState: drawingData.appState || {}
             });
@@ -253,10 +242,10 @@ class ExcalidrawCollaborationBridge {
 
     // Clear canvas
     clearCanvas() {
-        if (this.excalidrawComponent) {
-            this.excalidrawComponent.$set({
+        if (this.excalidrawRef) {
+            this.excalidrawRef.updateScene({
                 elements: [],
-                appState: this.excalidrawComponent.appState || {}
+                appState: this.excalidrawRef.getAppState()
             });
         }
     }
@@ -264,15 +253,22 @@ class ExcalidrawCollaborationBridge {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('[Excalidraw] DOM loaded, waiting for Excalidraw library...');
+    console.log('[Excalidraw] DOM loaded, waiting for React and Excalidraw...');
     
-    // Wait for Excalidraw to load
-    const checkExcalidraw = setInterval(async () => {
-        console.log('[Excalidraw] Checking for library...', typeof window.Excalidraw);
+    // Wait for React and Excalidraw to load
+    const checkLibraries = setInterval(async () => {
+        console.log('[Excalidraw] Checking for libraries...', {
+            React: typeof window.React,
+            ReactDOM: typeof window.ReactDOM,
+            ExcalidrawLib: typeof window.ExcalidrawLib
+        });
         
-        if (typeof window.Excalidraw !== 'undefined') {
-            clearInterval(checkExcalidraw);
-            console.log('[Excalidraw] Library found, initializing...');
+        if (typeof window.React !== 'undefined' && 
+            typeof window.ReactDOM !== 'undefined' && 
+            typeof window.ExcalidrawLib !== 'undefined') {
+            
+            clearInterval(checkLibraries);
+            console.log('[Excalidraw] All libraries found, initializing...');
             
             // Initialize the integration
             window.excalidrawBridge = new ExcalidrawCollaborationBridge();
@@ -284,14 +280,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('[Excalidraw] Integration failed');
             }
         }
-    }, 500); // Check every 500ms instead of 100ms
+    }, 500);
 
     // Timeout after 15 seconds
     setTimeout(() => {
-        clearInterval(checkExcalidraw);
-        if (typeof window.Excalidraw === 'undefined') {
-            console.error('[Excalidraw] Failed to load Excalidraw library after 15 seconds');
-            console.log('[Excalidraw] Available window properties:', Object.keys(window).filter(k => k.toLowerCase().includes('excalidraw')));
+        clearInterval(checkLibraries);
+        if (typeof window.React === 'undefined' || 
+            typeof window.ReactDOM === 'undefined' || 
+            typeof window.ExcalidrawLib === 'undefined') {
+            console.error('[Excalidraw] Failed to load required libraries after 15 seconds');
+            console.log('[Excalidraw] Available libraries:', {
+                React: typeof window.React,
+                ReactDOM: typeof window.ReactDOM,
+                ExcalidrawLib: typeof window.ExcalidrawLib
+            });
         }
     }, 15000);
 });

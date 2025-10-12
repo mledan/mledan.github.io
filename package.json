@@ -1,23 +1,22 @@
 {
-  "name": "workspace",
-  "version": "1.0.0",
-  "description": "This repository contains test scripts and utilities for Azure Web PubSub Service integration, focusing on real-time collaborative features.",
-  "main": "app.js",
+  "name": "excalidraw-collaboration-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mledan/mledan.github.io.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/mledan/mledan.github.io/issues"
-  },
-  "homepage": "https://github.com/mledan/mledan.github.io#readme",
   "dependencies": {
-    "perfect-freehand": "^1.2.2"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@excalidraw/excalidraw": "^0.18.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.0.8"
   }
 }

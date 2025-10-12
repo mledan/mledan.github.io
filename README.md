@@ -1,93 +1,74 @@
-# Azure Web PubSub Test Script
+# Excalidraw Collaboration App
 
-This repository contains test scripts and utilities for Azure Web PubSub Service integration, focusing on real-time collaborative features.
+A React-based infinite canvas drawing app with real-time collaboration powered by Azure WebPubSub/SignalR.
 
-## Overview
+## Features
 
-The test script (`test_webpubsub.py`) helps debug and verify:
-- Negotiate endpoint functionality
-- WebSocket connection establishment
-- Real-time message publishing and subscription
-- Room/group joining and messaging
+- 🎨 **Infinite Canvas Drawing** - Powered by Excalidraw
+- 🤝 **Real-time Collaboration** - Multiple users can draw together
+- 🏠 **Room-based Sessions** - Join or create drawing rooms
+- 👥 **User Presence** - See who's in your room
+- 🎯 **Master/Follower System** - Coordinated collaboration
+- 📱 **Responsive Design** - Works on desktop and mobile
 
-## Quick Start
+## Setup
 
-### 1. Install Dependencies
+1. **Install Dependencies**
+   ```bash
+   npm install
+   ```
 
-```bash
-pip install -r requirements.txt
+2. **Start Development Server**
+   ```bash
+   npm run dev
+   ```
+
+3. **Build for Production**
+   ```bash
+   npm run build
+   ```
+
+## How to Use
+
+1. **Create or Join a Room**
+   - Click "Create Room" to generate a new room ID
+   - Or enter an existing room ID and click "Join Room"
+
+2. **Start Drawing**
+   - Use Excalidraw's tools to draw, add shapes, text, etc.
+   - Changes sync in real-time with other users
+
+3. **Collaborate**
+   - Share room links with others
+   - See who's currently in the room
+   - Master user controls the drawing state
+
+## Architecture
+
+- **Frontend**: React + Vite + Excalidraw
+- **Collaboration**: Azure WebPubSub/SignalR
+- **Backend**: Azure Functions (existing)
+
+## Files Structure
+
+```
+src/
+├── components/          # React components
+│   ├── RoomControls.jsx
+│   ├── CollaborationStatus.jsx
+│   └── Notification.jsx
+├── hooks/              # Custom React hooks
+│   └── useCollaboration.js
+├── App.jsx             # Main app component
+├── main.jsx            # React entry point
+└── index.css           # Global styles
 ```
 
-### 2. Configure Environment
+## Development
 
-Set these environment variables or use defaults:
-```bash
-export FUNCTION_URL="http://localhost:7071/api/negotiate"  # Your negotiate endpoint
-export ROOM_ID="test-room"                                 # Room to join
-export USERNAME="test-user"                                # Your username
-export USER_ROLE="writer"                                  # Role: writer or reader
-```
+The app uses your existing collaboration infrastructure:
+- `webpubsub-simple.js` - WebPubSub client
+- `collaboration-bridge.js` - Collaboration logic
+- Azure Functions backend for SignalR negotiation
 
-### 3. Run Tests
-
-```bash
-# Basic test
-python test_webpubsub.py
-
-# With diagnostics
-python test_webpubsub.py --diagnose
-
-# Skip client connection test
-python test_webpubsub.py --no-client
-```
-
-## Project Structure
-
-```
-.
-├── test_webpubsub.py      # Main test script for Web PubSub
-├── requirements.txt       # Python dependencies
-├── backend/              # Azure Functions backend
-│   ├── negotiate/        # Negotiate endpoint function
-│   ├── host.json        # Function app configuration
-│   └── local.settings.json  # Local development settings
-└── README.md            # This file
-```
-
-## Backend Setup
-
-See [backend/README.md](backend/README.md) for detailed instructions on:
-- Creating Azure Web PubSub resources
-- Configuring the negotiate function
-- Local development setup
-- Deployment to Azure
-
-## Testing Flow
-
-1. **Negotiate Test**: Calls the negotiate endpoint to get WebSocket connection info
-2. **Connection Test**: Establishes WebSocket connection using the negotiated URL
-3. **Messaging Test**: Joins a room and sends/receives messages
-
-## Common Issues
-
-### Connection Refused
-- Ensure Azure Functions is running: `cd backend && func start`
-- Check if Azurite is running for local storage
-
-### Missing Connection String
-- Set `AZURE_WEB_PUBSUB_CONNECTION_STRING` in `backend/local.settings.json`
-- Get connection string from Azure Portal
-
-### Hub Not Found
-- Create hub "ViewerHub" in your Web PubSub resource
-- Or update `WEB_PUBSUB_HUB_NAME` in settings
-
-## Dependencies
-
-- `requests`: HTTP client for negotiate endpoint
-- `azure-messaging-webpubsubclient`: Official Web PubSub client library
-- `azure-functions`: Required for backend development
-
-## License
-
-MIT
+All collaboration features are preserved and enhanced with React's reactive UI updates.

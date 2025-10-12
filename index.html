@@ -1,91 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Excalidraw Drawing App</title>
-    <!-- WebPubSub Client - Simple WebSocket Implementation -->
-    <script src="webpubsub-simple.js"></script>
-    <!-- Collaboration Bridge for Real-time Sync -->
-    <script src="collaboration-bridge.js" defer></script>
-    <!-- Excalidraw -->
-    <script src="https://unpkg.com/@excalidraw/excalidraw@0.18.0/dist/excalidraw.production.min.js" onload="console.log('Excalidraw script loaded')" onerror="console.error('Failed to load Excalidraw script')"></script>
-    <script>
-        // Check if Excalidraw is available and what the global variable name is
-        window.addEventListener('load', () => {
-            console.log('[Debug] Checking for Excalidraw after script load...');
-            console.log('[Debug] window.Excalidraw:', typeof window.Excalidraw);
-            console.log('[Debug] window.excalidraw:', typeof window.excalidraw);
-            console.log('[Debug] window.ExcalidrawApp:', typeof window.ExcalidrawApp);
-            console.log('[Debug] All window properties containing "excalidraw":', Object.keys(window).filter(k => k.toLowerCase().includes('excalidraw')));
-        });
-    </script>
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial;
-            overflow: hidden;
-        }
-
-        #room-controls {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        #room-controls input {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-
-        #room-controls button {
-            padding: 8px 16px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.2s;
-        }
-
-        #room-controls button:hover {
-            background: #0056b3;
-        }
-
-        #excalidraw-container {
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-        }
-
-    </style>
-</head>
-
-<body>
-    <!-- Room Controls -->
-    <div id="room-controls">
-        <input type="text" id="room-id" placeholder="Enter Room ID">
-        <button id="join-room">Join Room</button>
-        <button id="create-room">Create Room</button>
-        <button id="copy-link">Copy Link</button>
-    </div>
-    
-    <!-- Excalidraw Container -->
-    <div id="excalidraw-container" style="width: 100vw; height: 100vh; position: relative;"></div>
-    <!-- Excalidraw Integration Script -->
-    <script src="excalidraw-integration.js"></script>
-</body>
-
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Excalidraw Collaboration App</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
