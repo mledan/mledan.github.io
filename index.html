@@ -12,11 +12,13 @@
     <!-- Excalidraw -->
     <script src="https://unpkg.com/@excalidraw/excalidraw@0.18.0/dist/excalidraw.production.min.js" onload="console.log('Excalidraw script loaded')" onerror="console.error('Failed to load Excalidraw script')"></script>
     <script>
-        // Debug: Check what's available after Excalidraw loads
+        // Check if Excalidraw is available and what the global variable name is
         window.addEventListener('load', () => {
-            console.log('[Debug] Window loaded, checking for Excalidraw...');
+            console.log('[Debug] Checking for Excalidraw after script load...');
             console.log('[Debug] window.Excalidraw:', typeof window.Excalidraw);
-            console.log('[Debug] Available properties:', Object.keys(window).filter(k => k.toLowerCase().includes('excalidraw')));
+            console.log('[Debug] window.excalidraw:', typeof window.excalidraw);
+            console.log('[Debug] window.ExcalidrawApp:', typeof window.ExcalidrawApp);
+            console.log('[Debug] All window properties containing "excalidraw":', Object.keys(window).filter(k => k.toLowerCase().includes('excalidraw')));
         });
     </script>
     <style>
