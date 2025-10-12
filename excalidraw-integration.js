@@ -264,10 +264,15 @@ class ExcalidrawCollaborationBridge {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('[Excalidraw] DOM loaded, waiting for Excalidraw library...');
+    
     // Wait for Excalidraw to load
     const checkExcalidraw = setInterval(async () => {
+        console.log('[Excalidraw] Checking for library...', typeof window.Excalidraw);
+        
         if (typeof window.Excalidraw !== 'undefined') {
             clearInterval(checkExcalidraw);
+            console.log('[Excalidraw] Library found, initializing...');
             
             // Initialize the integration
             window.excalidrawBridge = new ExcalidrawCollaborationBridge();
@@ -279,15 +284,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('[Excalidraw] Integration failed');
             }
         }
-    }, 100);
+    }, 500); // Check every 500ms instead of 100ms
 
-    // Timeout after 10 seconds
+    // Timeout after 15 seconds
     setTimeout(() => {
         clearInterval(checkExcalidraw);
         if (typeof window.Excalidraw === 'undefined') {
-            console.error('[Excalidraw] Failed to load Excalidraw library');
+            console.error('[Excalidraw] Failed to load Excalidraw library after 15 seconds');
+            console.log('[Excalidraw] Available window properties:', Object.keys(window).filter(k => k.toLowerCase().includes('excalidraw')));
         }
-    }, 10000);
+    }, 15000);
 });
 
 // Global functions for compatibility with existing code
