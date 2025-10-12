@@ -4,610 +4,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Infinite Zoom Drawing App</title>
+        <title>Excalidraw Drawing App</title>
     <!-- WebPubSub Client - Simple WebSocket Implementation -->
     <script src="webpubsub-simple.js"></script>
     <!-- Collaboration Bridge for Real-time Sync -->
     <script src="collaboration-bridge.js" defer></script>
+    <!-- Excalidraw -->
+    <script src="https://unpkg.com/@excalidraw/excalidraw@0.18.0/dist/excalidraw.production.min.js"></script>
     <style>
         body {
             margin: 0;
             font-family: Arial;
+            overflow: hidden;
         }
 
-        canvas {
-            display: block;
-            touch-action: none;
-        }
-
-        #info {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            color: white;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            max-width: 400px;
-            font-size: 14px;
-            display: none;
-        }
-
-        #controls {
-            position: absolute;
-            top: 50px;
-            left: 10px;
-            color: white;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            display: none;
-        }
-
-        /* Brush Toolbar Styles */
-        #brush-toolbar {
+        #room-controls {
             position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 20px;
-            padding: 15px 20px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+            top: 20px;
+            left: 20px;
             z-index: 1000;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        #brush-toolbar:hover {
-            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.7) inset;
-        }
-
-        .brush-section {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 0 10px;
-            border-right: 1px solid rgba(0, 0, 0, 0.1);
-        }
-
-        .brush-section:last-child {
-            border-right: none;
-        }
-
-        /* Brush Presets */
-        .brush-preset {
-            width: 40px;
-            height: 40px;
-            border: 2px solid transparent;
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
             border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             display: flex;
+            gap: 10px;
             align-items: center;
-            justify-content: center;
-            color: #333;
         }
 
-        .brush-preset:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        #room-controls input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
         }
 
-        .brush-preset.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        #room-controls button {
+            padding: 8px 16px;
+            background: #007bff;
             color: white;
-            transform: scale(1.1);
-        }
-
-        .brush-preset svg {
-            width: 24px;
-            height: 24px;
-        }
-
-        /* Color Palette */
-        .color-palette {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        #color-picker {
-            width: 40px;
-            height: 40px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
+            border: none;
+            border-radius: 5px;
             cursor: pointer;
-            background: white;
+            font-size: 14px;
+            transition: background 0.2s;
         }
 
-        .color-preset {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            border: 2px solid transparent;
-            cursor: pointer;
-            transition: all 0.2s;
+        #room-controls button:hover {
+            background: #0056b3;
+        }
+
+        #excalidraw-container {
+            width: 100vw;
+            height: 100vh;
             position: relative;
         }
 
-        .color-preset:hover {
-            transform: scale(1.2);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .color-preset.active {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-        }
-
-        /* Brush Properties */
-        .brush-properties {
-            display: flex;
-            gap: 15px;
-        }
-
-        .slider-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .slider-group label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #666;
-            min-width: 35px;
-        }
-
-        .slider-group input[type="range"] {
-            width: 80px;
-            height: 4px;
-            border-radius: 2px;
-            background: #ddd;
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        .slider-group input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .slider-value {
-            font-size: 11px;
-            color: #666;
-            min-width: 30px;
-            text-align: right;
-        }
-
-        /* Effects Toggles */
-        .effect-toggle {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            padding: 8px 12px;
-            border: 2px solid #ddd;
-            background: white;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .effect-toggle:hover {
-            background: #f8f8f8;
-            transform: translateY(-2px);
-        }
-
-        .effect-toggle.active {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            border-color: transparent;
-            color: white;
-        }
-
-        .effect-icon {
-            font-size: 20px;
-        }
-
-        .effect-label {
-            font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        /* Toolbar Actions */
-        .toolbar-actions button {
-            width: 36px;
-            height: 36px;
-            border: none;
-            background: #f0f0f0;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #666;
-        }
-
-        .toolbar-actions button:hover {
-            background: #e0e0e0;
-            transform: translateY(-2px);
-        }
-
-        .toolbar-actions button:active {
-            transform: scale(0.95);
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            #brush-toolbar {
-                bottom: 10px;
-                left: 10px;
-                right: 10px;
-                transform: none;
-                flex-wrap: wrap;
-                gap: 10px;
-                padding: 10px;
-            }
-
-            .brush-section {
-                padding: 5px;
-                border-right: none;
-                border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-                width: 100%;
-                justify-content: center;
-            }
-
-            .brush-section:last-child {
-                border-bottom: none;
-            }
-
-            .brush-preset, #color-picker {
-                width: 35px;
-                height: 35px;
-            }
-
-            .color-preset {
-                width: 25px;
-                height: 25px;
-            }
-        }
-
-        #controls label {
-            margin-right: 5px;
-        }
-
-        #controls input[type="number"] {
-            width: 60px;
-            margin: 2px;
-        }
-
-        #controls input[type="checkbox"] {
-            margin: 2px;
-        }
-
-        #controls button {
-            margin: 5px 0;
-            padding: 5px;
-        }
-
-
-        #mobile-controls button:hover {
-            background: rgba(0, 0, 0, 0.7);
-        }
-
-        @media (max-width: 600px) {
-            #mobile-controls button {
-                padding: 8px 12px;
-                font-size: 14px;
-            }
-        }
-
-        .panel-text {
-            position: absolute;
-            width: 200px;
-            height: 150px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            pointer-events: none;
-            font-family: 'Kalam', cursive;
-            color: #2c3e50;
-            text-align: center;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 5px;
-            padding: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .handwritten {
-            font-family: 'Kalam', cursive;
-            font-weight: 700;
-            font-size: 18px;
-            line-height: 1.4;
-            letter-spacing: 0.5px;
-            text-shadow: 0.5px 0.5px 0px rgba(0, 0, 0, 0.1);
-        }
-
-        .handwritten-large {
-            font-size: 22px;
-            font-weight: 700;
-        }
-
-        .handwritten-small {
-            font-size: 16px;
-        }
-
-        .char-1 {
-            transform: rotate(-1deg);
-            display: inline-block;
-        }
-
-        .char-2 {
-            transform: rotate(0.5deg);
-            display: inline-block;
-        }
-
-        .char-3 {
-            transform: rotate(-0.5deg);
-            display: inline-block;
-        }
-
-        .char-4 {
-            transform: rotate(1deg);
-            display: inline-block;
-        }
-
-        .char-5 {
-            transform: rotate(-0.3deg);
-            display: inline-block;
-        }
-
-        .countdown-text {
-            color: #e74c3c;
-            margin-bottom: 5px;
-        }
-
-        .camping-text {
-            color: #27ae60;
-        }
-
-        .love-text {
-            color: #e91e63;
-        }
-
-        .heart-icon {
-            color: #e74c3c;
-            font-size: 24px;
-            animation: heartbeat 1.5s ease-in-out infinite;
-        }
-
-        @keyframes heartbeat {
-            0% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.1);
-            }
-
-            100% {
-                transform: scale(1);
-            }
-        }
-
-        .campfire-icon {
-            width: 30px;
-            height: 30px;
-            margin: 5px;
-        }
-
-        @font-face {
-            font-family: 'DfThin';
-            src: url('df-thin-font/DfThin-W8Z4.ttf') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-        }
-
-        @font-face {
-            font-family: 'MarkerFont';
-            src: url('marker-font/MarkerFont-AyOm.ttf') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-        }
-
-        @font-face {
-            font-family: 'Pwscritch';
-            src: url('pwscritch-font/Pwscritch-7yBE.ttf') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-        }
-
-        @font-face {
-            font-family: 'SmoothMarker';
-            src: url('smooth-marker-font/SmoothMarker-45d6.ttf') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-        }
-
-        @font-face {
-            font-family: 'WhiteboardRegular';
-            src: url('whiteboard-font/WhiteboardRegular-O7gp.ttf') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-        }
     </style>
 </head>
 
 <body>
+    <!-- Room Controls -->
     <div id="room-controls">
         <input type="text" id="room-id" placeholder="Enter Room ID">
         <button id="join-room">Join Room</button>
         <button id="create-room">Create Room</button>
         <button id="copy-link">Copy Link</button>
     </div>
-        <div id="info"></div>
-    <div id="controls" style="display: none;">
-    </div>
-    <!-- Brush Toolbar -->
-    <div id="brush-toolbar">
-        <!-- Brush Presets -->
-        <div class="brush-section brush-presets">
-            <button class="brush-preset active" data-brush="pencil" title="Pencil">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                </svg>
-            </button>
-            <button class="brush-preset" data-brush="marker" title="Marker">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.75 7L14 3.25l-10 10V17h3.75l10-10zm2.96-2.96c.39-.39.39-1.02 0-1.41L18.37.29c-.39-.39-1.02-.39-1.41 0L15 2.25 18.75 6l1.96-1.96z"/>
-                    <path fill-opacity=".36" d="M0 20h24v4H0z"/>
-                </svg>
-            </button>
-            <button class="brush-preset" data-brush="airbrush" title="Airbrush">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <circle cx="12" cy="12" r="8" opacity="0.3"/>
-                    <circle cx="12" cy="12" r="4"/>
-                </svg>
-            </button>
-            <button class="brush-preset" data-brush="glow" title="Glow Brush">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <circle cx="12" cy="12" r="6" fill="url(#glowGradient)"/>
-                    <defs>
-                        <radialGradient id="glowGradient">
-                            <stop offset="0%" stop-color="#fff" stop-opacity="1"/>
-                            <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
-                        </radialGradient>
-                    </defs>
-                </svg>
-            </button>
-            <button class="brush-preset" data-brush="sparkle" title="Sparkle Brush">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2L14.09 8.26L20 9L15 13.14L16.18 19.02L12 15.77L7.82 19.02L9 13.14L4 9L9.91 8.26L12 2z"/>
-                </svg>
-            </button>
-            <button class="brush-preset" data-brush="rainbow" title="Rainbow Brush">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.19 0 2.34-.21 3.41-.6.3-.11.49-.4.49-.72 0-.43-.35-.78-.78-.78-.17 0-.33.06-.46.14-.83.32-1.74.49-2.66.49-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7c0 .92-.17 1.83-.49 2.66-.08.13-.14.29-.14.46 0 .43.35.78.78.78.32 0 .61-.19.72-.49.39-1.07.6-2.22.6-3.41 0-5.52-4.48-10-10-10z" fill="url(#rainbow)"/>
-                    <defs>
-                        <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stop-color="#ff0000"/>
-                            <stop offset="16.66%" stop-color="#ff8800"/>
-                            <stop offset="33.33%" stop-color="#ffff00"/>
-                            <stop offset="50%" stop-color="#00ff00"/>
-                            <stop offset="66.66%" stop-color="#0088ff"/>
-                            <stop offset="83.33%" stop-color="#0000ff"/>
-                            <stop offset="100%" stop-color="#8800ff"/>
-                        </linearGradient>
-                    </defs>
-                </svg>
-            </button>
-            <button class="brush-preset" data-brush="eraser" title="Eraser">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M15.14 3c-.51 0-1.02.2-1.41.59L2.59 14.73c-.78.78-.78 2.05 0 2.83L5.03 20H7.66l7.75-7.75 4-4c.78-.78.78-2.05 0-2.83l-2.86-2.83c-.39-.39-.9-.59-1.41-.59zM5.03 16.87L14 7.9l2.86 2.86-8.96 8.96-2.87-2.85z"/>
-                </svg>
-            </button>
-        </div>
-
-        <!-- Color Palette -->
-        <div class="brush-section color-palette">
-            <input type="color" id="color-picker" value="#000000">
-            <button class="color-preset" data-color="#000000" style="background-color: #000000;"></button>
-            <button class="color-preset" data-color="#ffffff" style="background-color: #ffffff; border: 1px solid #ccc;"></button>
-            <button class="color-preset" data-color="#ff0000" style="background-color: #ff0000;"></button>
-            <button class="color-preset" data-color="#00ff00" style="background-color: #00ff00;"></button>
-            <button class="color-preset" data-color="#0000ff" style="background-color: #0000ff;"></button>
-            <button class="color-preset" data-color="#ffff00" style="background-color: #ffff00;"></button>
-            <button class="color-preset" data-color="#ff00ff" style="background-color: #ff00ff;"></button>
-            <button class="color-preset" data-color="#00ffff" style="background-color: #00ffff;"></button>
-            <button class="color-preset" data-color="#ff8800" style="background-color: #ff8800;"></button>
-            <button class="color-preset" data-color="#8800ff" style="background-color: #8800ff;"></button>
-            <button class="color-preset" data-color="#ff0088" style="background-color: #ff0088;"></button>
-            <button class="color-preset" data-color="#88ff00" style="background-color: #88ff00;"></button>
-        </div>
-
-        <!-- Brush Properties -->
-        <div class="brush-section brush-properties">
-            <div class="slider-group">
-                <label>Size</label>
-                <input type="range" id="brush-size" min="1" max="100" value="5">
-                <span class="slider-value" id="size-value">5</span>
-            </div>
-            <div class="slider-group">
-                <label>Opacity</label>
-                <input type="range" id="brush-opacity" min="0" max="100" value="100">
-                <span class="slider-value" id="opacity-value">100%</span>
-            </div>
-        </div>
-
-        <!-- Effects Toggles -->
-        <div class="brush-section effects-toggles">
-            <button class="effect-toggle" data-effect="glow" title="Glow Effect">
-                <span class="effect-icon">✨</span>
-                <span class="effect-label">Glow</span>
-            </button>
-            <button class="effect-toggle" data-effect="sparkle" title="Sparkle Trail">
-                <span class="effect-icon">⭐</span>
-                <span class="effect-label">Sparkle</span>
-            </button>
-            <button class="effect-toggle" data-effect="rainbow" title="Rainbow Mode">
-                <span class="effect-icon">🌈</span>
-                <span class="effect-label">Rainbow</span>
-            </button>
-            <button class="effect-toggle" data-effect="pulse" title="Pulsing Effect">
-                <span class="effect-icon">💫</span>
-                <span class="effect-label">Pulse</span>
-            </button>
-        </div>
-
-        <!-- Toolbar Actions -->
-        <div class="brush-section toolbar-actions">
-            <button id="clear-canvas" title="Clear Canvas">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                </svg>
-            </button>
-            <button id="undo-action" title="Undo">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/>
-                </svg>
-            </button>
-            <button id="redo-action" title="Redo">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/>
-                </svg>
-            </button>
-        </div>
-    </div>
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
-            }
-        }
-    </script>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Caveat:wght@700&family=Kalam:wght@700&family=Shadows+Into+Light&family=Patrick+Hand&family=Coming+Soon&family=Architects+Daughter&family=Indie+Flower&display=swap"
-        rel="stylesheet">
-    <script src="brush-engine.js"></script>
-    <script type="module" src="drawing-app.js"></script>
-    <script src="quadtree.js"></script>
-    <script src="douglas-peucker.js"></script>
-    <script src="rle.js"></script>
-    <script src="stroke-properties-factory.js"></script>
-    <script src="binary-serializer.js"></script>
-    <script src="binary-deserializer.js"></script>
+    
+    <!-- Excalidraw Container -->
+    <div id="excalidraw-container" style="width: 100vw; height: 100vh; position: relative;"></div>
+    <!-- Excalidraw Integration Script -->
+    <script src="excalidraw-integration.js"></script>
 </body>
 
 </html>
