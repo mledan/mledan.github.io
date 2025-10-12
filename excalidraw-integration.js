@@ -263,9 +263,9 @@ class ExcalidrawCollaborationBridge {
 }
 
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     // Wait for Excalidraw to load
-    const checkExcalidraw = setInterval(() => {
+    const checkExcalidraw = setInterval(async () => {
         if (typeof window.Excalidraw !== 'undefined') {
             clearInterval(checkExcalidraw);
             
