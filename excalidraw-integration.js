@@ -16,7 +16,7 @@ class ExcalidrawCollaborationBridge {
     async initialize() {
         try {
             // Wait for Excalidraw to be available
-            if (typeof Excalidraw === 'undefined') {
+            if (typeof window.Excalidraw === 'undefined') {
                 console.error('Excalidraw not loaded');
                 return false;
             }
@@ -39,11 +39,11 @@ class ExcalidrawCollaborationBridge {
             container.appendChild(excalidrawElement);
 
             // Initialize Excalidraw with proper API
-            const { Excalidraw } = window;
-            this.excalidrawAPI = Excalidraw.Excalidraw;
+            const ExcalidrawClass = window.Excalidraw.Excalidraw;
+            this.excalidrawAPI = ExcalidrawClass;
             
             // Create the Excalidraw component
-            const excalidrawComponent = new Excalidraw.Excalidraw({
+            const excalidrawComponent = new ExcalidrawClass({
                 target: excalidrawElement,
                 props: {
                     onChange: this.handleExcalidrawChange.bind(this),
@@ -267,7 +267,7 @@ class ExcalidrawCollaborationBridge {
 document.addEventListener('DOMContentLoaded', async () => {
     // Wait for Excalidraw to load
     const checkExcalidraw = setInterval(() => {
-        if (typeof Excalidraw !== 'undefined') {
+        if (typeof window.Excalidraw !== 'undefined') {
             clearInterval(checkExcalidraw);
             
             // Initialize the integration
@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Timeout after 10 seconds
     setTimeout(() => {
         clearInterval(checkExcalidraw);
-        if (typeof Excalidraw === 'undefined') {
+        if (typeof window.Excalidraw === 'undefined') {
             console.error('[Excalidraw] Failed to load Excalidraw library');
         }
     }, 10000);
