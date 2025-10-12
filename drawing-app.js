@@ -1,10 +1,67 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { PerfectFreehandHelper } from './perfect-freehand-helper.js';
+import { LineDrawingHelper } from './line-drawing-helper.js';
+import { StrokePropertiesFactory } from './stroke-properties-factory.js';
+import { Quadtree } from './quadtree.js';
+
+// Douglas-Peucker line simplification algorithm
+function simplifyDouglasPeucker(points, tolerance) {
+    if (points.length <= 2) return points;
+    
+    // Find the point with the maximum distance from the line between start and end
+    let maxDistance = 0;
+    let maxIndex = 0;
+    const start = points[0];
+    const end = points[points.length - 1];
+    
+    for (let i = 1; i < points.length - 1; i++) {
+        const distance = perpendicularDistance(points[i], start, end);
+        if (distance > maxDistance) {
+            maxDistance = distance;
+            maxIndex = i;
+        }
+    }
+    
+    // If max distance is greater than tolerance, recursively simplify
+    if (maxDistance > tolerance) {
+        const left = simplifyDouglasPeucker(points.slice(0, maxIndex + 1), tolerance);
+        const right = simplifyDouglasPeucker(points.slice(maxIndex), tolerance);
+        return left.slice(0, -1).concat(right);
+    } else {
+        return [start, end];
+    }
+}
+
+function perpendicularDistance(point, lineStart, lineEnd) {
+    const dx = lineEnd.x - lineStart.x;
+    const dy = lineEnd.y - lineStart.y;
+    const dz = (lineEnd.z || 0) - (lineStart.z || 0);
+    
+    if (dx === 0 && dy === 0 && dz === 0) {
+        // Line start and end are the same
+        const pdx = point.x - lineStart.x;
+        const pdy = point.y - lineStart.y;
+        const pdz = (point.z || 0) - (lineStart.z || 0);
+        return Math.sqrt(pdx * pdx + pdy * pdy + pdz * pdz);
+    }
+    
+    const t = ((point.x - lineStart.x) * dx + (point.y - lineStart.y) * dy + ((point.z || 0) - (lineStart.z || 0)) * dz) / (dx * dx + dy * dy + dz * dz);
+    const t_clamped = Math.max(0, Math.min(1, t));
+    
+    const nearestX = lineStart.x + t_clamped * dx;
+    const nearestY = lineStart.y + t_clamped * dy;
+    const nearestZ = (lineStart.z || 0) + t_clamped * dz;
+    
+    const distX = point.x - nearestX;
+    const distY = point.y - nearestY;
+    const distZ = (point.z || 0) - nearestZ;
+    
+    return Math.sqrt(distX * distX + distY * distY + distZ * distZ);
+}
 
 window.addEventListener('DOMContentLoaded', () => {
-    // Initialize Perfect Freehand helper
-    const freehandHelper = new PerfectFreehandHelper();
+    // Initialize Line Drawing helper
+    const lineDrawingHelper = new LineDrawingHelper();
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xdddddd);
 
@@ -44,13 +101,13 @@ window.addEventListener('DOMContentLoaded', () => {
         
         // Glow effect - create a larger, semi-transparent copy behind the stroke
         if (effects.includes('glow') && stroke.points.length > 1) {
-            const glowOptions = freehandHelper.getOptionsFromBrush({
+            const glowOptions = lineDrawingHelper.getOptionsFromBrush({
                 width: stroke.properties.width * 2.5, // Larger for glow
                 opacity: 0.3,
                 brush: 'glow'
             });
             
-            const glowMesh = freehandHelper.createStrokeMesh(
+            const glowMesh = lineDrawingHelper.createStrokeMesh(
                 stroke.points,
                 stroke.properties.color,
                 glowOptions
@@ -186,15 +243,15 @@ window.addEventListener('DOMContentLoaded', () => {
         };
         strokes.push(currentStroke);
 
-        // Create initial mesh using perfect-freehand (will be updated as we draw)
-        const freehandOptions = freehandHelper.getOptionsFromBrush({
+        // Create initial mesh using line drawing algorithm (will be updated as we draw)
+        const freehandOptions = lineDrawingHelper.getOptionsFromBrush({
             width: currentStroke.properties.width,
             opacity: currentStroke.properties.opacity,
             brush: brushProps ? brushProps.brush : 'pencil'
         });
         
         // Start with a simple point - will be updated on move
-        const mesh = freehandHelper.createStrokeMesh(
+        const mesh = lineDrawingHelper.createStrokeMesh(
             currentStroke.points,
             currentStroke.properties.color,
             freehandOptions
@@ -250,16 +307,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
         currentStroke.points.push(intersection.clone());
         
-        // Update the stroke mesh with perfect-freehand
+        // Update the stroke mesh with line drawing algorithm
         if (currentStroke.line && currentStroke.points.length > 1) {
             const brushProps = window.brushEngine ? window.brushEngine.getBrushProperties() : null;
-            const freehandOptions = freehandHelper.getOptionsFromBrush({
+            const freehandOptions = lineDrawingHelper.getOptionsFromBrush({
                 width: currentStroke.properties.width,
                 opacity: currentStroke.properties.opacity,
                 brush: brushProps ? brushProps.brush : 'pencil'
             });
             
-            freehandHelper.updateStrokeMesh(currentStroke.line, currentStroke.points, freehandOptions);
+            lineDrawingHelper.updateStrokeMesh(currentStroke.line, currentStroke.points, freehandOptions);
         }
 
         if (window.collaborationBridge) {
@@ -277,13 +334,13 @@ window.addEventListener('DOMContentLoaded', () => {
                 
                 // Create simplified mesh
                 const brushProps = window.brushEngine ? window.brushEngine.getBrushProperties() : null;
-                const freehandOptions = freehandHelper.getOptionsFromBrush({
+                const freehandOptions = lineDrawingHelper.getOptionsFromBrush({
                     width: lastStroke.properties.width,
                     opacity: lastStroke.properties.opacity,
                     brush: brushProps ? brushProps.brush : 'pencil'
                 });
                 
-                const simplifiedMesh = freehandHelper.createStrokeMesh(
+                const simplifiedMesh = lineDrawingHelper.createStrokeMesh(
                     simplifiedPoints,
                     lastStroke.properties.color,
                     freehandOptions
@@ -422,14 +479,14 @@ window.addEventListener('DOMContentLoaded', () => {
                     };
                     remoteStrokes[userId] = stroke;
 
-                    // Create initial mesh with perfect-freehand
-                    const freehandOptions = freehandHelper.getOptionsFromBrush({
+                    // Create initial mesh with line drawing algorithm
+                    const freehandOptions = lineDrawingHelper.getOptionsFromBrush({
                         width: stroke.properties.width,
                         opacity: stroke.properties.opacity || 1,
                         brush: 'pencil'
                     });
                     
-                    const mesh = freehandHelper.createStrokeMesh(
+                    const mesh = lineDrawingHelper.createStrokeMesh(
                         stroke.points,
                         stroke.properties.color,
                         freehandOptions
@@ -444,14 +501,14 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (stroke && stroke.line) {
                         stroke.points.push(new THREE.Vector3(x, y, 0));
                         
-                        // Update mesh with perfect-freehand
+                        // Update mesh with line drawing algorithm
                         if (stroke.points.length > 1) {
-                            const freehandOptions = freehandHelper.getOptionsFromBrush({
+                            const freehandOptions = lineDrawingHelper.getOptionsFromBrush({
                                 width: stroke.properties.width,
                                 opacity: stroke.properties.opacity || 1,
                                 brush: 'pencil'
                             });
-                            freehandHelper.updateStrokeMesh(stroke.line, stroke.points, freehandOptions);
+                            lineDrawingHelper.updateStrokeMesh(stroke.line, stroke.points, freehandOptions);
                         }
                     }
                     break;
@@ -460,12 +517,12 @@ window.addEventListener('DOMContentLoaded', () => {
                         stroke.points = points.map(p => new THREE.Vector3(p.x, p.y, p.z || 0));
                         
                         // Final update with all points
-                        const freehandOptions = freehandHelper.getOptionsFromBrush({
+                        const freehandOptions = lineDrawingHelper.getOptionsFromBrush({
                             width: stroke.properties.width,
                             opacity: stroke.properties.opacity || 1,
                             brush: 'pencil'
                         });
-                        freehandHelper.updateStrokeMesh(stroke.line, stroke.points, freehandOptions);
+                        lineDrawingHelper.updateStrokeMesh(stroke.line, stroke.points, freehandOptions);
                         
                         // Move to permanent strokes
                         strokes.push(stroke);
