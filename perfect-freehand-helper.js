@@ -1,5 +1,5 @@
 // Perfect Freehand Helper - Converts perfect-freehand strokes to Three.js geometry
-import getStroke from './node_modules/perfect-freehand/dist/index.mjs';
+import getStroke from 'https://unpkg.com/perfect-freehand@1.2.2/dist/esm/index.mjs';
 import * as THREE from 'three';
 
 export class PerfectFreehandHelper {
