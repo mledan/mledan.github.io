@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Excalidraw } from '@excalidraw/excalidraw';
+// Replace Excalidraw with custom Whiteboard
+import Whiteboard from './components/Whiteboard.jsx';
 import { useCollaboration } from './hooks/useCollaboration';
 import RoomControls from './components/RoomControls';
 import CollaborationStatus from './components/CollaborationStatus';
@@ -20,7 +21,7 @@ function App() {
     createRoom,
     copyRoomLink,
     showNotification,
-    sendExcalidrawSync,
+    sendWhiteboardSync,
     excalidrawRef
   } = useCollaboration();
 
@@ -63,19 +64,11 @@ function App() {
     copyRoomLink();
   };
 
-  const handleExcalidrawChange = (elements, appState) => {
-    // Throttle sync messages
+  const handleWhiteboardChange = (event) => {
     const now = Date.now();
-    if (now - (handleExcalidrawChange.lastSyncTime || 0) < 100) {
-      return;
-    }
-    handleExcalidrawChange.lastSyncTime = now;
-    
-    sendExcalidrawSync(elements, appState);
-  };
-
-  const handleExcalidrawRef = (ref) => {
-    excalidrawRef.current = ref;
+    if (now - (handleWhiteboardChange.lastSyncTime || 0) < 50) return;
+    handleWhiteboardChange.lastSyncTime = now;
+    sendWhiteboardSync(event);
   };
 
   return (
@@ -108,19 +101,7 @@ function App() {
       )}
       
       <div className="excalidraw-container">
-        <Excalidraw
-          ref={handleExcalidrawRef}
-          onChange={handleExcalidrawChange}
-          isCollaborating={isConnected}
-          UIOptions={{
-            canvasActions: {
-              loadScene: false,
-              saveToActiveFile: false,
-              export: true,
-              toggleTheme: true
-            }
-          }}
-        />
+        <Whiteboard onChange={handleWhiteboardChange} />
       </div>
     </div>
   );

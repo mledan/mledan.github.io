@@ -107,11 +107,11 @@ export const useCollaboration = () => {
     }
   }, []);
 
-  const sendExcalidrawSync = useCallback((elements, appState) => {
+  // Whiteboard sync (incremental events)
+  const sendWhiteboardSync = useCallback((event) => {
     if (collaborationBridgeRef.current && isConnected) {
-      collaborationBridgeRef.current.sendMessage('excalidraw_sync', {
-        elements: elements,
-        appState: appState,
+      collaborationBridgeRef.current.sendMessage('whiteboard_sync', {
+        event,
         timestamp: Date.now()
       });
     }
@@ -130,22 +130,23 @@ export const useCollaboration = () => {
     }
   }, []);
 
-  // Set up Excalidraw sync handler
+  // Set up whiteboard sync handler
   useEffect(() => {
     if (collaborationBridgeRef.current) {
       const originalHandleGroupMessage = collaborationBridgeRef.current.handleGroupMessage.bind(collaborationBridgeRef.current);
       collaborationBridgeRef.current.handleGroupMessage = (e) => {
         const message = e.message.data;
         
-        if (message.type === 'excalidraw_sync') {
-          handleRemoteExcalidrawSync(message);
+        if (message.type === 'whiteboard_sync') {
+          // Bubble event for listeners (Whiteboard component can subscribe if needed)
+          window.dispatchEvent(new CustomEvent('whiteboard-remote', { detail: message }));
         } else {
           // Pass through other messages
           originalHandleGroupMessage(e);
         }
       };
     }
-  }, [handleRemoteExcalidrawSync]);
+  }, []);
 
   return {
     // State
@@ -161,7 +162,7 @@ export const useCollaboration = () => {
     createRoom,
     copyRoomLink,
     showNotification,
-    sendExcalidrawSync,
+    sendWhiteboardSync,
     
     // Refs
     excalidrawRef,
