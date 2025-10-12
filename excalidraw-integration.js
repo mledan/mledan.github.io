@@ -29,8 +29,7 @@ class ExcalidrawCollaborationBridge {
             }
 
             // Create Excalidraw instance
-            const { Excalidraw } = window;
-            this.excalidrawAPI = Excalidraw.Excalidraw;
+            // (Removed duplicate declaration - using ExcalidrawClass below)
             
             // Initialize with collaboration support
             const excalidrawElement = document.createElement('div');
