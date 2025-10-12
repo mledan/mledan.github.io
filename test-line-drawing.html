@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Line Drawing Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        #controls input[type="color"],
+        #controls input[type="range"] {
+            margin: 0 10px;
+        }
+        
+        #brush-toolbar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .brush-button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 5px;
+            background: #e0e0e0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .brush-button.active {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .brush-button:hover {
+            background: #d0d0d0;
+        }
+        
+        .brush-button.active:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <label>Color: <input type="color" id="color-picker" value="#000000"></label>
+        <label>Width: <input type="range" id="width-slider" min="1" max="50" value="10"></label>
+        <span id="width-value">10</span>
+        <button id="clear-button">Clear</button>
+    </div>
+    
+    <div id="brush-toolbar">
+        <button class="brush-button active" data-brush="pencil">Pencil</button>
+        <button class="brush-button" data-brush="marker">Marker</button>
+        <button class="brush-button" data-brush="airbrush">Airbrush</button>
+    </div>
+
+    <!-- Import maps for Three.js -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.159.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.159.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <!-- Drawing app with new LineDrawing system -->
+    <script type="module" src="./drawing-app.js"></script>
+    
+    <!-- Simple brush engine -->
+    <script type="module">
+        window.brushEngine = {
+            currentBrush: 'pencil',
+            properties: {
+                color: '#000000',
+                width: 10,
+                opacity: 1,
+                effects: []
+            },
+            
+            getBrushProperties() {
+                return {
+                    brush: this.currentBrush,
+                    ...this.properties
+                };
+            },
+            
+            getCurrentBrushState() {
+                return {
+                    properties: this.getBrushProperties()
+                };
+            }
+        };
+        
+        // Set up controls
+        document.addEventListener('DOMContentLoaded', () => {
+            const colorPicker = document.getElementById('color-picker');
+            const widthSlider = document.getElementById('width-slider');
+            const widthValue = document.getElementById('width-value');
+            const clearButton = document.getElementById('clear-button');
+            const brushButtons = document.querySelectorAll('.brush-button');
+            
+            colorPicker.addEventListener('change', (e) => {
+                window.brushEngine.properties.color = e.target.value;
+            });
+            
+            widthSlider.addEventListener('input', (e) => {
+                window.brushEngine.properties.width = parseInt(e.target.value);
+                widthValue.textContent = e.target.value;
+            });
+            
+            clearButton.addEventListener('click', () => {
+                if (window.drawingApp && window.drawingApp.clearCanvas) {
+                    window.drawingApp.clearCanvas();
+                }
+            });
+            
+            brushButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    brushButtons.forEach(b => b.classList.remove('active'));
+                    button.classList.add('active');
+                    window.brushEngine.currentBrush = button.dataset.brush;
+                });
+            });
+        });
+    </script>
+</body>
+</html>

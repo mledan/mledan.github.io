@@ -3,6 +3,20 @@
  * Handles real-time collaboration without breaking existing functionality
  */
 
+// Simple serialization functions for stroke data
+function serialize(strokes) {
+    return JSON.stringify(strokes);
+}
+
+function deserialize(data) {
+    try {
+        return JSON.parse(data);
+    } catch (e) {
+        console.error('Failed to deserialize stroke data:', e);
+        return [];
+    }
+}
+
 class CollaborationBridge {
     constructor() {
         this.client = null;
