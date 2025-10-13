@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 // Replace Excalidraw with custom Whiteboard
 import Whiteboard from './components/Whiteboard.jsx';
 import { useCollaboration } from './hooks/useCollaboration';

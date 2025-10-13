@@ -478,10 +478,10 @@ export default function Whiteboard({
 
   // Simple footer controls inside component
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative', background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)' }}>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative', background: '#0b0f14' }}>
       <canvas
         ref={canvasRef}
-        style={{ width: '100%', height: '100%', cursor: tool === 'pan' ? 'grab' : 'crosshair', background: 'rgba(255, 255, 255, 0.95)', borderRadius: '8px', margin: '8px' }}
+        style={{ width: '100%', height: '100%', cursor: tool === 'pan' ? 'grab' : 'crosshair', background: '#ffffff', borderRadius: 0, margin: 0 }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -493,62 +493,64 @@ export default function Whiteboard({
         style={{
           position: 'absolute',
           left: '50%',
-          bottom: 24,
+          bottom: 16,
           transform: 'translateX(-50%)',
-          background: 'linear-gradient(145deg, rgba(30, 30, 60, 0.95), rgba(20, 20, 40, 0.95))',
-          borderRadius: 16,
-          padding: '12px 18px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(102, 126, 234, 0.3)',
+          background: '#0d1117',
+          borderRadius: 4,
+          padding: '10px 14px',
+          boxShadow: '0 0 8px rgba(0,209,255,0.6), 0 0 24px rgba(0,209,255,0.25)',
           display: 'flex',
           gap: 10,
           alignItems: 'center',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(20px)',
+          border: '1px solid #00d1ff33',
+          backdropFilter: 'blur(6px)',
+          maxWidth: '90vw',
+          overflowX: 'auto'
         }}
       >
         <button 
           onClick={() => setTool('pencil')} 
           style={{ 
-            padding: '8px 14px', 
-            background: tool === 'pencil' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'rgba(255, 255, 255, 0.1)', 
-            color: '#fff', 
-            border: tool === 'pencil' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)', 
-            borderRadius: 10,
+            padding: '8px 12px', 
+            background: tool === 'pencil' ? '#0a1e28' : '#0f141b', 
+            color: '#e5e7eb', 
+            border: tool === 'pencil' ? '1px solid #00d1ff' : '1px solid #1f2937', 
+            borderRadius: 4,
             cursor: 'pointer',
-            fontWeight: '600',
+            fontWeight: 600,
             fontSize: '13px',
-            transition: 'all 0.3s ease',
-            boxShadow: tool === 'pencil' ? '0 4px 15px rgba(102, 126, 234, 0.4)' : 'none'
+            transition: 'all 0.15s ease',
+            boxShadow: tool === 'pencil' ? '0 0 6px rgba(0,209,255,0.8), 0 0 18px rgba(0,209,255,0.35)' : 'none'
           }}
         >✏️ Pencil</button>
         <button 
           onClick={() => setTool('eraser')} 
           style={{ 
-            padding: '8px 14px', 
-            background: tool === 'eraser' ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' : 'rgba(255, 255, 255, 0.1)', 
-            color: '#fff', 
-            border: tool === 'eraser' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)', 
-            borderRadius: 10,
+            padding: '8px 12px', 
+            background: tool === 'eraser' ? '#24160a' : '#0f141b', 
+            color: '#e5e7eb', 
+            border: tool === 'eraser' ? '1px solid #ff7a00' : '1px solid #1f2937', 
+            borderRadius: 4,
             cursor: 'pointer',
-            fontWeight: '600',
+            fontWeight: 600,
             fontSize: '13px',
-            transition: 'all 0.3s ease',
-            boxShadow: tool === 'eraser' ? '0 4px 15px rgba(240, 93, 251, 0.4)' : 'none'
+            transition: 'all 0.15s ease',
+            boxShadow: tool === 'eraser' ? '0 0 6px rgba(255,122,0,0.9), 0 0 18px rgba(255,122,0,0.35)' : 'none'
           }}
         >🧹 Eraser</button>
         <button 
           onClick={() => setTool('pan')} 
           style={{ 
-            padding: '8px 14px', 
-            background: tool === 'pan' ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' : 'rgba(255, 255, 255, 0.1)', 
-            color: '#fff', 
-            border: tool === 'pan' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)', 
-            borderRadius: 10,
+            padding: '8px 12px', 
+            background: tool === 'pan' ? '#0a1e28' : '#0f141b', 
+            color: '#e5e7eb', 
+            border: tool === 'pan' ? '1px solid #00d1ff' : '1px solid #1f2937', 
+            borderRadius: 4,
             cursor: 'pointer',
-            fontWeight: '600',
+            fontWeight: 600,
             fontSize: '13px',
-            transition: 'all 0.3s ease',
-            boxShadow: tool === 'pan' ? '0 4px 15px rgba(56, 239, 125, 0.4)' : 'none'
+            transition: 'all 0.15s ease',
+            boxShadow: tool === 'pan' ? '0 0 6px rgba(0,209,255,0.8), 0 0 18px rgba(0,209,255,0.35)' : 'none'
           }}
         >🖐️ Pan</button>
         <div style={{ width: 1, height: 28, background: 'rgba(255, 255, 255, 0.2)', margin: '0 8px' }} />
@@ -557,10 +559,10 @@ export default function Whiteboard({
           value={color} 
           onChange={(e) => setColor(e.target.value)} 
           style={{ 
-            width: 40, 
-            height: 40, 
-            border: '2px solid rgba(255, 255, 255, 0.3)', 
-            borderRadius: 10, 
+            width: 36, 
+            height: 36, 
+            border: '1px solid #00d1ff33', 
+            borderRadius: 4, 
             cursor: 'pointer',
             background: 'transparent'
           }}
@@ -575,18 +577,29 @@ export default function Whiteboard({
           onChange={(e) => setOpacity(parseFloat(e.target.value))} 
           style={{
             width: 100,
-            accentColor: '#667eea'
+            accentColor: '#00d1ff'
           }}
+        />
+        <input 
+          title="Brush" 
+          type="range" 
+          min={1} 
+          max={24} 
+          step={1} 
+          value={strokeWidth} 
+          onChange={() => {}}
+          style={{ width: 100, accentColor: '#ff7a00' }}
         />
         <span style={{ 
           fontSize: 13, 
-          color: '#fff', 
-          fontWeight: '600',
+          color: '#e5e7eb', 
+          fontWeight: 600,
           minWidth: 50,
           textAlign: 'center',
-          background: 'rgba(255, 255, 255, 0.1)',
+          background: '#0f141b',
           padding: '6px 10px',
-          borderRadius: 8
+          borderRadius: 4,
+          border: '1px solid #1f2937'
         }}>{Math.round(zoom * 100)}%</span>
       </div>
     </div>
