@@ -45,9 +45,21 @@ A React-based infinite canvas drawing app with real-time collaboration powered b
 
 ## Architecture
 
-- **Frontend**: React + Vite + Excalidraw
-- **Collaboration**: Azure WebPubSub/SignalR
+- **Frontend**: React + Vite with custom Canvas-based whiteboard
+- **Line Drawing**: Custom implementation of [Krzysztof Zabłocki's smooth line drawing algorithm](https://www.merowing.info/drawing-smooth-lines-with-cocos2d-ios-inspired-by-paper/)
+- **Collaboration**: Azure WebPubSub/SignalR with real-time stroke synchronization
 - **Backend**: Azure Functions (existing)
+
+## Smooth Line Drawing Algorithm
+
+This app implements a sophisticated line drawing algorithm that creates smooth, natural-looking strokes:
+
+- **Quadratic Bezier Smoothing**: Raw input points are smoothed using quadratic Bezier curves with midpoints
+- **Speed-Based Width Variation**: Line thickness dynamically adjusts based on drawing velocity for a natural feel
+- **Anti-Aliasing**: Custom overdraw with gradient fading for professional-looking edges
+- **Circular End Caps**: Smooth rounded stroke endings
+
+See [SMOOTH_DRAWING_IMPLEMENTATION.md](./SMOOTH_DRAWING_IMPLEMENTATION.md) for detailed technical documentation.
 
 ## Files Structure
 
