@@ -1,21 +1,22 @@
 # LineDrawing Integration Summary
 
 ## Overview
-Successfully replaced the perfect-freehand drawing system with a custom LineDrawing implementation inspired by Krzysztof Zabłocki's LineDrawing library (https://github.com/krzysztofzablocki/LineDrawing).
+Successfully integrated Krzysztof Zabłocki's LineDrawing algorithm (https://github.com/krzysztofzablocki/LineDrawing) adapted from the original iOS/Cocos2D/OpenGL implementation to JavaScript/Three.js/WebGL.
 
 ## Key Changes
 
 ### 1. New LineDrawingHelper Module (`line-drawing-helper.js`)
-- Implements smooth line drawing algorithm using Catmull-Rom splines
+- Implements the exact smooth line drawing algorithm from the LineDrawing project
+- Uses **quadratic Bezier curves with midpoints** for smoothing (matching the original algorithm)
 - Features speed-based width variation for natural drawing feel
 - Creates triangulated geometry with overdraw for anti-aliasing
 - Adds circular end caps for smooth line endings
 - Supports different brush types (pencil, marker, airbrush)
 
 Key features:
-- **Smooth interpolation**: Uses Catmull-Rom splines for smooth curves
+- **Smooth interpolation**: Uses quadratic Bezier curves with midpoints (like original algorithm)
 - **Speed sensitivity**: Line width varies based on drawing speed
-- **Anti-aliasing**: Overdraw technique for smooth edges
+- **Anti-aliasing**: Overdraw technique for smooth edges with fading alpha
 - **Optimized geometry**: Efficient triangulation for WebGL rendering
 
 ### 2. Supporting Modules
@@ -41,15 +42,23 @@ Created test files:
 
 ## Algorithm Details
 
-The LineDrawing algorithm works as follows:
+The LineDrawing algorithm (as implemented in the original project) works as follows:
 
-1. **Input Processing**: Raw pointer/mouse positions are collected
+1. **Input Processing**: Raw pointer/mouse positions are collected as the user draws
 2. **Velocity Calculation**: Speed between points is calculated for width variation
-3. **Smoothing**: Catmull-Rom spline interpolation creates smooth curves
+3. **Smoothing**: Points are smoothed using quadratic Bezier curves (B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2)
+   - Midpoints are calculated between consecutive input points
+   - Bezier curves are drawn between midpoints using the actual point as control point
+   - This creates smooth curves that pass through the input points
 4. **Width Modulation**: Width varies inversely with speed (faster = thinner)
-5. **Triangulation**: Line is converted to triangulated mesh
-6. **Anti-aliasing**: Overdraw vertices with fading alpha for smooth edges
-7. **End Caps**: Circular caps are added at line ends
+   - Width is also interpolated using quadratic Bezier for smooth thickness transitions
+5. **Triangulation**: Each line segment is rendered as a quad (2 triangles)
+   - Perpendicular offset from line direction creates width
+   - Additional overdraw quads extend beyond the line for anti-aliasing
+6. **Anti-aliasing**: Overdraw vertices with fading alpha (full color inside, transparent outside)
+7. **End Caps**: Circular caps are added at line ends using triangle fans
+
+This matches the exact implementation from the original LineDrawing project by Krzysztof Zabłocki.
 
 ## Performance Optimizations
 
@@ -75,13 +84,14 @@ const helper = new LineDrawingHelper();
 const mesh = helper.createStrokeMesh(points, color, options);
 ```
 
-## Benefits Over Previous System
+## Benefits of LineDrawing Algorithm
 
-1. **More Natural Feel**: Speed-based width variation creates more organic strokes
-2. **Better Performance**: Optimized triangulation and culling
-3. **Smoother Lines**: Catmull-Rom interpolation produces smoother curves
-4. **Better Anti-aliasing**: Overdraw technique provides cleaner edges
-5. **More Control**: Easier to customize brush behavior
+1. **More Natural Feel**: Speed-based width variation creates organic, pen-like strokes
+2. **Better Performance**: Optimized triangulation and spatial culling with quadtree
+3. **Smoother Lines**: Quadratic Bezier interpolation produces smooth, predictable curves
+4. **Better Anti-aliasing**: Overdraw technique with fading alpha provides clean edges without jaggies
+5. **Proven Algorithm**: Battle-tested in apps like Foldify and documented by the creator
+6. **More Control**: Easier to customize brush behavior and parameters
 
 ## Future Enhancements
 

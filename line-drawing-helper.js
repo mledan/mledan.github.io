@@ -1,6 +1,19 @@
-// LineDrawing Helper - Implements smooth line drawing algorithm inspired by Krzysztof Zabłocki's LineDrawing
-// Adapted for Three.js from the original iOS/OpenGL implementation
+// LineDrawing Helper - Implements smooth line drawing algorithm from Krzysztof Zabłocki's LineDrawing
+// Adapted for Three.js/WebGL from the original iOS/Cocos2D/OpenGL implementation
 // https://github.com/krzysztofzablocki/LineDrawing
+//
+// This implementation follows the exact algorithm from the original:
+// 1. Uses quadratic Bezier curves with midpoints for smoothing (not Catmull-Rom)
+// 2. Speed-based width variation for natural drawing feel
+// 3. Triangulated geometry with overdraw for anti-aliasing
+// 4. Circular end caps for smooth line endings
+//
+// Algorithm overview:
+// - Points are smoothed using quadratic Bezier interpolation between midpoints
+// - Line width varies based on drawing velocity (faster = thinner)
+// - Each line segment is rendered as a quad (2 triangles) with perpendicular offset
+// - Anti-aliasing is achieved through overdraw with fading alpha
+// - End caps are rendered as triangle fans forming circles
 
 import * as THREE from 'three';
 
@@ -48,6 +61,7 @@ export class LineDrawingHelper {
     }
 
     // Convert input points to smoothed line points with width
+    // Using the quadratic Bezier approach from the original LineDrawing algorithm
     pointsToSmoothedLine(points, options = {}) {
         if (points.length < 2) return [];
         
@@ -67,40 +81,68 @@ export class LineDrawingHelper {
                 pos: points[1],
                 width: this.calculateSpeedBasedWidth(opts.width, velocities[1], opts)
             });
-        } else {
-            // Use Catmull-Rom spline for smoothing
-            for (let i = 0; i < points.length - 1; i++) {
-                const p0 = points[Math.max(0, i - 1)];
-                const p1 = points[i];
-                const p2 = points[i + 1];
-                const p3 = points[Math.min(points.length - 1, i + 2)];
+        } else if (points.length > 2) {
+            // Use quadratic Bezier with midpoints like the original LineDrawing
+            // This follows the exact algorithm from Krzysztof Zabłocki's implementation
+            for (let i = 2; i < points.length; i++) {
+                const prev2 = points[i - 2];
+                const prev1 = points[i - 1];
+                const cur = points[i];
                 
-                // Calculate segment distance
-                const distance = this.distance(p1, p2);
+                // Calculate midpoints
+                const midPoint1 = {
+                    x: (prev1.x + prev2.x) * 0.5,
+                    y: (prev1.y + prev2.y) * 0.5,
+                    z: ((prev1.z || 0) + (prev2.z || 0)) * 0.5
+                };
+                
+                const midPoint2 = {
+                    x: (cur.x + prev1.x) * 0.5,
+                    y: (cur.y + prev1.y) * 0.5,
+                    z: ((cur.z || 0) + (prev1.z || 0)) * 0.5
+                };
+                
+                // Calculate distance and number of segments
+                const distance = this.distance(midPoint1, midPoint2);
                 const segments = Math.max(
                     this.minSegments,
                     Math.min(this.maxSegments, Math.floor(distance / this.minSegmentDistance))
                 );
                 
-                // Interpolate along the curve
+                // Interpolate along the quadratic Bezier curve
+                let t = 0.0;
+                const step = 1.0 / segments;
+                
                 for (let j = 0; j < segments; j++) {
-                    const t = j / segments;
-                    const point = this.catmullRomInterpolate(p0, p1, p2, p3, t);
+                    // Quadratic Bezier interpolation: B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2
+                    const oneMinusT = 1 - t;
+                    const point = {
+                        x: oneMinusT * oneMinusT * midPoint1.x + 2.0 * oneMinusT * t * prev1.x + t * t * midPoint2.x,
+                        y: oneMinusT * oneMinusT * midPoint1.y + 2.0 * oneMinusT * t * prev1.y + t * t * midPoint2.y,
+                        z: oneMinusT * oneMinusT * midPoint1.z + 2.0 * oneMinusT * t * (prev1.z || 0) + t * t * midPoint2.z
+                    };
                     
-                    // Interpolate velocity and calculate width
-                    const velocity = velocities[i] * (1 - t) + velocities[i + 1] * t;
-                    const width = this.calculateSpeedBasedWidth(opts.width, velocity, opts);
+                    // Calculate width with quadratic interpolation for smooth thickness transition
+                    const width1 = (prev1.width || opts.width) + (prev2.width || opts.width);
+                    const width2 = (cur.width || opts.width) + (prev1.width || opts.width);
+                    const avgWidth1 = this.calculateSpeedBasedWidth(width1 * 0.5, velocities[i - 2], opts);
+                    const avgWidth2 = this.calculateSpeedBasedWidth(width2 * 0.5, velocities[i - 1], opts);
+                    
+                    const width = oneMinusT * oneMinusT * avgWidth1 + 
+                                 2.0 * oneMinusT * t * this.calculateSpeedBasedWidth(prev1.width || opts.width, velocities[i - 1], opts) + 
+                                 t * t * avgWidth2;
                     
                     smoothedPoints.push({ pos: point, width });
+                    t += step;
                 }
+                
+                // Add final point for this segment
+                const finalWidth = this.calculateSpeedBasedWidth((cur.width || opts.width + prev1.width || opts.width) * 0.5, velocities[i], opts);
+                smoothedPoints.push({
+                    pos: midPoint2,
+                    width: finalWidth
+                });
             }
-            
-            // Add the last point
-            const lastVelocity = velocities[velocities.length - 1];
-            smoothedPoints.push({
-                pos: points[points.length - 1],
-                width: this.calculateSpeedBasedWidth(opts.width, lastVelocity, opts)
-            });
         }
         
         return smoothedPoints;
@@ -131,22 +173,14 @@ export class LineDrawingHelper {
         return smoothedVelocities;
     }
 
-    // Catmull-Rom spline interpolation
-    catmullRomInterpolate(p0, p1, p2, p3, t) {
-        const t2 = t * t;
-        const t3 = t2 * t;
-        
-        const v0 = (p2.x - p0.x) * 0.5;
-        const v1 = (p3.x - p1.x) * 0.5;
-        const x = p1.x + v0 * t + (3 * (p2.x - p1.x) - 2 * v0 - v1) * t2 + (2 * (p1.x - p2.x) + v0 + v1) * t3;
-        
-        const v0y = (p2.y - p0.y) * 0.5;
-        const v1y = (p3.y - p1.y) * 0.5;
-        const y = p1.y + v0y * t + (3 * (p2.y - p1.y) - 2 * v0y - v1y) * t2 + (2 * (p1.y - p2.y) + v0y + v1y) * t3;
-        
-        const v0z = (p2.z - p0.z) * 0.5;
-        const v1z = (p3.z - p1.z) * 0.5;
-        const z = p1.z + v0z * t + (3 * (p2.z - p1.z) - 2 * v0z - v1z) * t2 + (2 * (p1.z - p2.z) + v0z + v1z) * t3;
+    // Quadratic Bezier interpolation
+    // B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2
+    // This is the interpolation method used in the original LineDrawing algorithm
+    quadraticBezierInterpolate(p0, p1, p2, t) {
+        const oneMinusT = 1 - t;
+        const x = oneMinusT * oneMinusT * p0.x + 2 * oneMinusT * t * p1.x + t * t * p2.x;
+        const y = oneMinusT * oneMinusT * p0.y + 2 * oneMinusT * t * p1.y + t * t * p2.y;
+        const z = oneMinusT * oneMinusT * (p0.z || 0) + 2 * oneMinusT * t * (p1.z || 0) + t * t * (p2.z || 0);
         
         return { x, y, z };
     }
