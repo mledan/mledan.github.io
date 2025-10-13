@@ -5,12 +5,12 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  color: #ffffff;
 }
 
 #root {
@@ -18,77 +18,208 @@ body {
   height: 100vh;
 }
 
+.app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Animated Background */
+.app::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(240, 56, 255, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(88, 101, 242, 0.2) 0%, transparent 50%);
+  animation: gradientShift 15s ease infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes gradientShift {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.1); }
+}
+
 /* Room Controls */
 .room-controls {
   position: fixed;
-  top: 20px;
-  left: 20px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 15px;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(145deg, rgba(30, 30, 60, 0.95), rgba(20, 20, 40, 0.95));
+  padding: 40px 50px;
+  border-radius: 24px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 60px rgba(138, 43, 226, 0.3);
   display: flex;
-  gap: 10px;
-  align-items: center;
-  backdrop-filter: blur(10px);
+  flex-direction: column;
+  gap: 20px;
+  align-items: stretch;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-width: 400px;
+}
+
+.room-controls::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  border-radius: 24px 24px 0 0;
+}
+
+.room-controls h2 {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 10px;
+  text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
 }
 
 .room-controls input {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 14px;
-  min-width: 200px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-size: 16px;
+  color: #ffffff;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.room-controls input:focus {
+  border-color: #667eea;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+}
+
+.room-controls input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.room-controls-buttons {
+  display: flex;
+  gap: 12px;
 }
 
 .room-controls button {
-  padding: 8px 16px;
-  background: #007bff;
+  flex: 1;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 14px;
-  transition: background 0.2s;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.room-controls button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.room-controls button:hover::before {
+  left: 100%;
 }
 
 .room-controls button:hover {
-  background: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+}
+
+.room-controls button:active {
+  transform: translateY(0);
 }
 
 .room-controls button:disabled {
-  background: #ccc;
+  background: linear-gradient(135deg, #555 0%, #333 100%);
   cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.room-controls button:disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 /* Collaboration Status */
 .collab-status {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: 24px;
+  right: 24px;
   z-index: 1000;
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 12px;
+  padding: 12px 20px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.8);
+  gap: 10px;
   color: white;
   cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
 }
 
 .collab-status.connected {
-  background: rgba(76, 175, 80, 0.9);
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  box-shadow: 0 4px 20px rgba(56, 239, 125, 0.4);
+  animation: pulse 2s ease-in-out infinite;
 }
 
 .collab-status.disconnected {
-  background: rgba(244, 67, 54, 0.9);
+  background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+  box-shadow: 0 4px 20px rgba(235, 51, 73, 0.4);
 }
 
 .collab-status.connecting {
-  background: rgba(255, 193, 7, 0.9);
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  box-shadow: 0 4px 20px rgba(245, 87, 108, 0.4);
+  animation: connecting 1.5s ease-in-out infinite;
+}
+
+.collab-status:hover {
+  transform: scale(1.05);
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(56, 239, 125, 0.4); }
+  50% { box-shadow: 0 4px 30px rgba(56, 239, 125, 0.6); }
+}
+
+@keyframes connecting {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
 }
 
 /* Excalidraw Container */
@@ -101,33 +232,155 @@ body {
 /* Notifications */
 .notification {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  padding: 12px 20px;
-  border-radius: 8px;
+  bottom: 24px;
+  right: 24px;
+  padding: 16px 24px;
+  border-radius: 16px;
   color: white;
   z-index: 10001;
-  animation: slideIn 0.3s ease;
+  animation: slideInBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  min-width: 250px;
 }
 
 .notification.info {
-  background: #3b82f6;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
 }
 
 .notification.error {
-  background: #ef4444;
+  background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+  box-shadow: 0 8px 25px rgba(235, 51, 73, 0.4);
 }
 
 .notification.success {
-  background: #10b981;
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  box-shadow: 0 8px 25px rgba(56, 239, 125, 0.4);
 }
 
-@keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+@keyframes slideInBounce {
+  0% { 
+    transform: translateX(400px) scale(0.5);
+    opacity: 0;
+  }
+  60% {
+    transform: translateX(-10px) scale(1.05);
+    opacity: 1;
+  }
+  100% { 
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes slideOut {
   from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(400px); opacity: 0; }
+}
+
+/* Logo/Branding */
+.app-logo {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  z-index: 999;
+  font-size: 24px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: -1px;
+}
+
+.app-logo:hover {
+  transform: scale(1.05);
+  filter: brightness(1.2);
+}
+
+/* Master Badge Enhancement */
+.master-badge {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 10px rgba(240, 147, 251, 0.4);
+  animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 2px 10px rgba(240, 147, 251, 0.4); }
+  50% { box-shadow: 0 2px 20px rgba(240, 147, 251, 0.7); }
+}
+
+/* Canvas styling improvements */
+.excalidraw-container canvas {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Loading animation for status dot */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status-dot.connected {
+  background: #38ef7d;
+  box-shadow: 0 0 10px rgba(56, 239, 125, 0.6);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .room-controls {
+    min-width: 320px;
+    padding: 30px 25px;
+  }
+  
+  .room-controls h2 {
+    font-size: 22px;
+  }
+  
+  .app-logo {
+    font-size: 18px;
+    top: 16px;
+    left: 16px;
+  }
+  
+  .collab-status {
+    top: 16px;
+    right: 16px;
+    font-size: 11px;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .room-controls {
+    min-width: 280px;
+    padding: 25px 20px;
+  }
+  
+  .room-controls-buttons {
+    flex-direction: column;
+  }
+  
+  .room-controls button {
+    width: 100%;
+  }
 }

@@ -73,6 +73,12 @@ function App() {
 
   return (
     <div className="app">
+      {!showRoomControls && (
+        <div className="app-logo" title="Collaborative Whiteboard">
+          🎨 CollabBoard
+        </div>
+      )}
+      
       {showRoomControls && (
         <RoomControls
           roomId={roomId}

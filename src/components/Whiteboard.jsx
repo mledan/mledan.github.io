@@ -167,10 +167,10 @@ export default function Whiteboard({
 
   // Simple footer controls inside component
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative', background: '#fff' }}>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative', background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)' }}>
       <canvas
         ref={canvasRef}
-        style={{ width: '100%', height: '100%', cursor: tool === 'pan' ? 'grab' : 'crosshair' }}
+        style={{ width: '100%', height: '100%', cursor: tool === 'pan' ? 'grab' : 'crosshair', background: 'rgba(255, 255, 255, 0.95)', borderRadius: '8px', margin: '8px' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -182,24 +182,101 @@ export default function Whiteboard({
         style={{
           position: 'absolute',
           left: '50%',
-          bottom: 12,
+          bottom: 24,
           transform: 'translateX(-50%)',
-          background: 'rgba(255,255,255,0.95)',
-          borderRadius: 12,
-          padding: '8px 12px',
-          boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+          background: 'linear-gradient(145deg, rgba(30, 30, 60, 0.95), rgba(20, 20, 40, 0.95))',
+          borderRadius: 16,
+          padding: '12px 18px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(102, 126, 234, 0.3)',
           display: 'flex',
-          gap: 8,
+          gap: 10,
           alignItems: 'center',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(20px)',
         }}
       >
-        <button onClick={() => setTool('pencil')} style={{ padding: '6px 10px', background: tool === 'pencil' ? '#2563eb' : '#e5e7eb', color: tool === 'pencil' ? '#fff' : '#111', border: 'none', borderRadius: 8 }}>Pencil</button>
-        <button onClick={() => setTool('eraser')} style={{ padding: '6px 10px', background: tool === 'eraser' ? '#2563eb' : '#e5e7eb', color: tool === 'eraser' ? '#fff' : '#111', border: 'none', borderRadius: 8 }}>Eraser</button>
-        <button onClick={() => setTool('pan')} style={{ padding: '6px 10px', background: tool === 'pan' ? '#2563eb' : '#e5e7eb', color: tool === 'pan' ? '#fff' : '#111', border: 'none', borderRadius: 8 }}>Pan</button>
-        <div style={{ width: 1, height: 24, background: '#ddd', margin: '0 8px' }} />
-        <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
-        <input title="Opacity" type="range" min={0.1} max={1} step={0.05} value={opacity} onChange={(e) => setOpacity(parseFloat(e.target.value))} />
-        <span style={{ fontSize: 12, color: '#444' }}>{Math.round(zoom * 100)}%</span>
+        <button 
+          onClick={() => setTool('pencil')} 
+          style={{ 
+            padding: '8px 14px', 
+            background: tool === 'pencil' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'rgba(255, 255, 255, 0.1)', 
+            color: '#fff', 
+            border: tool === 'pencil' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)', 
+            borderRadius: 10,
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '13px',
+            transition: 'all 0.3s ease',
+            boxShadow: tool === 'pencil' ? '0 4px 15px rgba(102, 126, 234, 0.4)' : 'none'
+          }}
+        >✏️ Pencil</button>
+        <button 
+          onClick={() => setTool('eraser')} 
+          style={{ 
+            padding: '8px 14px', 
+            background: tool === 'eraser' ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' : 'rgba(255, 255, 255, 0.1)', 
+            color: '#fff', 
+            border: tool === 'eraser' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)', 
+            borderRadius: 10,
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '13px',
+            transition: 'all 0.3s ease',
+            boxShadow: tool === 'eraser' ? '0 4px 15px rgba(240, 93, 251, 0.4)' : 'none'
+          }}
+        >🧹 Eraser</button>
+        <button 
+          onClick={() => setTool('pan')} 
+          style={{ 
+            padding: '8px 14px', 
+            background: tool === 'pan' ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' : 'rgba(255, 255, 255, 0.1)', 
+            color: '#fff', 
+            border: tool === 'pan' ? 'none' : '1px solid rgba(255, 255, 255, 0.2)', 
+            borderRadius: 10,
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '13px',
+            transition: 'all 0.3s ease',
+            boxShadow: tool === 'pan' ? '0 4px 15px rgba(56, 239, 125, 0.4)' : 'none'
+          }}
+        >🖐️ Pan</button>
+        <div style={{ width: 1, height: 28, background: 'rgba(255, 255, 255, 0.2)', margin: '0 8px' }} />
+        <input 
+          type="color" 
+          value={color} 
+          onChange={(e) => setColor(e.target.value)} 
+          style={{ 
+            width: 40, 
+            height: 40, 
+            border: '2px solid rgba(255, 255, 255, 0.3)', 
+            borderRadius: 10, 
+            cursor: 'pointer',
+            background: 'transparent'
+          }}
+        />
+        <input 
+          title="Opacity" 
+          type="range" 
+          min={0.1} 
+          max={1} 
+          step={0.05} 
+          value={opacity} 
+          onChange={(e) => setOpacity(parseFloat(e.target.value))} 
+          style={{
+            width: 100,
+            accentColor: '#667eea'
+          }}
+        />
+        <span style={{ 
+          fontSize: 13, 
+          color: '#fff', 
+          fontWeight: '600',
+          minWidth: 50,
+          textAlign: 'center',
+          background: 'rgba(255, 255, 255, 0.1)',
+          padding: '6px 10px',
+          borderRadius: 8
+        }}>{Math.round(zoom * 100)}%</span>
       </div>
     </div>
   );
