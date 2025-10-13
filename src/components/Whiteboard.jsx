@@ -511,11 +511,13 @@ export default function Whiteboard({
       ctx.save();
       ctx.translate(offset.x, offset.y);
       ctx.scale(zoom, zoom);
-      ctx.setLineDash([6 / zoom, 6 / zoom]);
+      ctx.setLineDash([8 / zoom, 6 / zoom]);
       viewportByUser.forEach((r, uid) => {
         const c = colorFor(uid);
         ctx.strokeStyle = c;
-        ctx.lineWidth = 1 / zoom;
+        ctx.shadowColor = c;
+        ctx.shadowBlur = 8 / zoom;
+        ctx.lineWidth = 2 / zoom;
         ctx.strokeRect(r.x, r.y, r.w, r.h);
       });
       ctx.restore();
