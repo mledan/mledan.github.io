@@ -225,12 +225,16 @@ export default function Whiteboard({
   const containerRef = useRef(null);
   const ctxRef = useRef(null);
   const smoothDrawerRef = useRef(new SmoothLineDrawer());
+  const viewportByUserRef = useRef(new Map());
+  const followUserRef = useRef(null);
+  const tweenRef = useRef(null);
 
   const [tool, setTool] = useState('pencil'); // 'pencil' | 'eraser' | 'pan'
   const [color, setColor] = useState(initialColor);
   const [opacity, setOpacity] = useState(initialOpacity);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isMobile, setIsMobile] = useState(false);
 
   const isDrawingRef = useRef(false);
   const lastPosRef = useRef({ x: 0, y: 0 });
@@ -257,6 +261,17 @@ export default function Whiteboard({
     window.addEventListener('resize', resizeCanvas);
     return () => window.removeEventListener('resize', resizeCanvas);
   }, [resizeCanvas]);
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const apply = () => setIsMobile(mq.matches);
+    apply();
+    mq.addEventListener ? mq.addEventListener('change', apply) : mq.addListener(apply);
+    return () => {
+      mq.removeEventListener ? mq.removeEventListener('change', apply) : mq.removeListener(apply);
+    };
+  }, []);
 
   const toWorld = (clientX, clientY) => {
     const rect = canvasRef.current.getBoundingClientRect();
@@ -332,6 +347,39 @@ export default function Whiteboard({
     }
   };
 
+  // Douglas–Peucker simplification
+  const simplifyDP = (pts, tol) => {
+    if (pts.length <= 2) return pts;
+    const sqTol = tol * tol;
+    const sqDist = (p1, p2, p) => {
+      let x = p1.x, y = p1.y;
+      let dx = p2.x - x, dy = p2.y - y;
+      if (dx !== 0 || dy !== 0) {
+        const t = ((p.x - x) * dx + (p.y - y) * dy) / (dx * dx + dy * dy);
+        if (t > 1) { x = p2.x; y = p2.y; }
+        else if (t > 0) { x += dx * t; y += dy * t; }
+      }
+      dx = p.x - x; dy = p.y - y;
+      return dx * dx + dy * dy;
+    };
+    const simplify = (ptsArr, first, last, out) => {
+      let maxDist = 0, index = -1;
+      for (let i = first + 1; i < last; i++) {
+        const d = sqDist(ptsArr[first], ptsArr[last], ptsArr[i]);
+        if (d > maxDist) { index = i; maxDist = d; }
+      }
+      if (maxDist > sqTol && index !== -1) {
+        simplify(ptsArr, first, index, out);
+        out.push(ptsArr[index]);
+        simplify(ptsArr, index, last, out);
+      }
+    };
+    const out = [pts[0]];
+    simplify(pts, 0, pts.length - 1, out);
+    out.push(pts[pts.length - 1]);
+    return out;
+  };
+
   const handlePointerDown = (e) => {
     const isPrimary = e.isPrimary !== false;
     if (!isPrimary) return;
@@ -351,14 +399,7 @@ export default function Whiteboard({
       points: [pt],
       timestamp: Date.now()
     };
-    onChange?.({ 
-      type: 'stroke-start', 
-      stroke: currentStrokeRef.current,
-      action: 'start',
-      x: pt.x,
-      y: pt.y,
-      lineWidth: strokeWidth
-    });
+    onChange?.({ type: 'stroke-start', stroke: currentStrokeRef.current });
     redraw();
   };
 
@@ -374,14 +415,7 @@ export default function Whiteboard({
     }
     const pt = toWorld(e.clientX, e.clientY);
     currentStrokeRef.current.points.push(pt);
-    onChange?.({ 
-      type: 'stroke-append', 
-      id: currentStrokeRef.current.id, 
-      point: pt,
-      action: 'move',
-      x: pt.x,
-      y: pt.y
-    });
+    // Commit-only default: do not send appends; local draw only
     redraw();
   };
 
@@ -390,13 +424,12 @@ export default function Whiteboard({
     isDrawingRef.current = false;
     if (tool !== 'pan' && currentStrokeRef.current) {
       strokesRef.current.push(currentStrokeRef.current);
-      onChange?.({ 
-        type: 'stroke-end', 
-        stroke: currentStrokeRef.current, 
-        scene: strokesRef.current,
-        action: 'end',
-        points: currentStrokeRef.current.points
-      });
+      // Simplify in screen space tolerance
+      const tolWorld = 0.75 / zoom;
+      const simplified = simplifyDP(currentStrokeRef.current.points, tolWorld);
+      const finished = { ...currentStrokeRef.current, points: simplified };
+      // Send a single compressed commit stroke
+      onChange?.({ type: 'stroke-full', stroke: finished });
       currentStrokeRef.current = null;
       redraw();
     }
@@ -447,26 +480,51 @@ export default function Whiteboard({
             currentStrokeRef.current = null;
             redraw();
           }
+        } else if (evt.t === 'f') {
+          // Full stroke payload
+          const pts = [];
+          for (let i = 0; i < evt.p.length; i += 2) {
+            pts.push({ x: evt.p[i], y: evt.p[i + 1] });
+          }
+          strokesRef.current.push({ id: evt.i, tool: 'pencil', color: evt.c, opacity: evt.o, width: evt.w, points: pts });
+          redraw();
         }
       }
     };
     
     window.addEventListener('whiteboard-remote-batch', handleRemoteDrawing);
+    // Track and draw remote viewports (colored by user)
+    const viewportByUser = viewportByUserRef.current;
+    const colors = ['#00d1ff', '#ff7a00', '#1ce1ac', '#ffd166', '#7dd3fc'];
+    const colorFor = (uid) => {
+      let h = 0;
+      for (let i = 0; i < uid.length; i++) h = (h * 31 + uid.charCodeAt(i)) >>> 0;
+      return colors[h % colors.length];
+    };
     const handleViewportRemote = (e) => {
-      // Draw viewport rectangles of others (overlay)
-      const { rect } = e.detail || {};
-      if (!rect) return;
-      const ctx = ctxRef.current;
-      if (!ctx) return;
+      const { userId, rect } = e.detail || {};
+      if (!userId || !rect) return;
+      viewportByUser.set(userId, rect);
+      // overlay draw
+      const ctx = ctxRef.current; if (!ctx) return;
       redraw();
       ctx.save();
       ctx.translate(offset.x, offset.y);
       ctx.scale(zoom, zoom);
-      ctx.strokeStyle = 'rgba(99, 102, 241, 0.7)';
-      ctx.lineWidth = 1 / zoom;
       ctx.setLineDash([6 / zoom, 6 / zoom]);
-      ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+      viewportByUser.forEach((r, uid) => {
+        const c = colorFor(uid);
+        ctx.strokeStyle = c;
+        ctx.lineWidth = 1 / zoom;
+        ctx.strokeRect(r.x, r.y, r.w, r.h);
+      });
       ctx.restore();
+
+      // Follow user camera tween
+      if (followUserRef.current && viewportByUser.has(followUserRef.current)) {
+        const r = viewportByUser.get(followUserRef.current);
+        tweenToViewport(r);
+      }
     };
     window.addEventListener('whiteboard-viewport-remote', handleViewportRemote);
     
@@ -476,12 +534,66 @@ export default function Whiteboard({
     };
   }, []);
 
+  // Tween camera to fit a viewport rectangle
+  const tweenToViewport = (rect) => {
+    if (!rect) return;
+    if (tweenRef.current) cancelAnimationFrame(tweenRef.current);
+    const canvas = canvasRef.current;
+    const viewW = canvas.clientWidth; const viewH = canvas.clientHeight;
+    const padding = 40;
+    const targetZoom = clamp(Math.min((viewW - padding) / rect.w, (viewH - padding) / rect.h), 0.1, 4);
+    const targetCenter = { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 };
+    const toScreen = (wx, wy, z, off) => ({ x: wx * z + off.x, y: wy * z + off.y });
+    const step = () => {
+      const z = zoom + (targetZoom - zoom) * 0.2;
+      const screenCenter = { x: viewW / 2, y: viewH / 2 };
+      const desired = toScreen(targetCenter.x, targetCenter.y, z, offset);
+      const dx = screenCenter.x - desired.x;
+      const dy = screenCenter.y - desired.y;
+      setZoom(z);
+      setOffset({ x: offset.x + dx * 0.2, y: offset.y + dy * 0.2 });
+      if (Math.abs(dx) + Math.abs(dy) + Math.abs(targetZoom - z) > 0.5) {
+        tweenRef.current = requestAnimationFrame(step);
+      }
+    };
+    tweenRef.current = requestAnimationFrame(step);
+  };
+
+  // External commands: go to user or rect, follow
+  useEffect(() => {
+    const onGoToUser = (e) => {
+      const { userId } = e.detail || {};
+      if (!userId) return;
+      const vp = viewportByUserRef.current.get(userId);
+      if (vp) tweenToViewport(vp);
+    };
+    const onFollowUser = (e) => {
+      const { userId } = e.detail || {};
+      followUserRef.current = userId || null;
+    };
+    window.addEventListener('whiteboard-go-to-user', onGoToUser);
+    window.addEventListener('whiteboard-follow-user', onFollowUser);
+    return () => {
+      window.removeEventListener('whiteboard-go-to-user', onGoToUser);
+      window.removeEventListener('whiteboard-follow-user', onFollowUser);
+    };
+  }, []);
+
   // Simple footer controls inside component
+  const TOOLBAR_H = 64; // px
+
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative', background: '#0b0f14' }}>
       <canvas
         ref={canvasRef}
-        style={{ width: '100%', height: '100%', cursor: tool === 'pan' ? 'grab' : 'crosshair', background: '#ffffff', borderRadius: 0, margin: 0 }}
+        style={{ 
+          width: '100%', 
+          height: isMobile ? `calc(100% - ${TOOLBAR_H}px)` : '100%', 
+          cursor: tool === 'pan' ? 'grab' : 'crosshair', 
+          background: '#ffffff', 
+          borderRadius: 0, 
+          margin: 0 
+        }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -492,11 +604,12 @@ export default function Whiteboard({
       <div
         style={{
           position: 'absolute',
-          left: '50%',
-          bottom: 16,
-          transform: 'translateX(-50%)',
+          left: isMobile ? 0 : '50%',
+          right: isMobile ? 0 : 'auto',
+          bottom: isMobile ? 0 : 16,
+          transform: isMobile ? 'none' : 'translateX(-50%)',
           background: '#0d1117',
-          borderRadius: 4,
+          borderRadius: isMobile ? 0 : 4,
           padding: '10px 14px',
           boxShadow: '0 0 8px rgba(0,209,255,0.6), 0 0 24px rgba(0,209,255,0.25)',
           display: 'flex',
@@ -504,8 +617,10 @@ export default function Whiteboard({
           alignItems: 'center',
           border: '1px solid #00d1ff33',
           backdropFilter: 'blur(6px)',
-          maxWidth: '90vw',
-          overflowX: 'auto'
+          maxWidth: isMobile ? '100vw' : '90vw',
+          overflowX: 'auto',
+          height: isMobile ? TOOLBAR_H : 'auto',
+          justifyContent: isMobile ? 'center' : 'flex-start'
         }}
       >
         <button 

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 
-const CollaborationStatus = ({ status, isConnected, isMaster, roomId, remoteUsers, username }) => {
+const CollaborationStatus = ({ status, isConnected, roomId, remoteUsers, username }) => {
   const [showDetails, setShowDetails] = useState(false);
+  const [followingUserId, setFollowingUserId] = useState(null);
 
   const getStatusColor = () => {
     switch (status) {
@@ -30,6 +31,25 @@ const CollaborationStatus = ({ status, isConnected, isMaster, roomId, remoteUser
     }
   };
 
+  // Match Whiteboard color assignment for viewport boxes
+  const colorFor = (uid) => {
+    const colors = ['#00d1ff', '#ff7a00', '#1ce1ac', '#ffd166', '#7dd3fc'];
+    if (!uid) return colors[0];
+    let h = 0;
+    for (let i = 0; i < uid.length; i++) h = (h * 31 + uid.charCodeAt(i)) >>> 0;
+    return colors[h % colors.length];
+  };
+
+  const goToUser = (userId) => {
+    window.dispatchEvent(new CustomEvent('whiteboard-go-to-user', { detail: { userId } }));
+  };
+
+  const toggleFollowUser = (userId) => {
+    const next = followingUserId === userId ? null : userId;
+    setFollowingUserId(next);
+    window.dispatchEvent(new CustomEvent('whiteboard-follow-user', { detail: { userId: next } }));
+  };
+
   return (
     <>
       <div 
@@ -41,11 +61,6 @@ const CollaborationStatus = ({ status, isConnected, isMaster, roomId, remoteUser
         {isConnected && roomId && (
           <span style={{ fontSize: '10px', opacity: 0.7 }}>
             Room: {roomId.substring(0, 8)}
-          </span>
-        )}
-        {isMaster && (
-          <span className="master-badge">
-            MASTER
           </span>
         )}
       </div>
@@ -118,15 +133,7 @@ const CollaborationStatus = ({ status, isConnected, isMaster, roomId, remoteUser
             <strong style={{ color: '#667eea' }}>Status:</strong> <span style={{ color: isConnected ? '#38ef7d' : '#f45c43' }}>{isConnected ? '✓ Connected' : '✗ Disconnected'}</span>
           </div>
           
-          <div style={{ 
-            marginBottom: '12px',
-            padding: '12px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            borderRadius: '10px',
-            border: '1px solid rgba(255, 255, 255, 0.1)'
-          }}>
-            <strong style={{ color: '#667eea' }}>Role:</strong> {isMaster ? '👑 Master' : '👤 Follower'}
-          </div>
+          {/* Role removed: all room members are peers */}
           
           <div style={{ 
             marginBottom: '15px',
@@ -141,15 +148,29 @@ const CollaborationStatus = ({ status, isConnected, isMaster, roomId, remoteUser
           <div style={{ 
             marginBottom: '20px',
             padding: '12px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            borderRadius: '10px',
-            border: '1px solid rgba(255, 255, 255, 0.1)'
+            background: '#0d1117',
+            borderRadius: '8px',
+            border: '1px solid #1f2937'
           }}>
-            <strong style={{ color: '#667eea', display: 'block', marginBottom: '8px' }}>Active Users:</strong>
-            <ul style={{ marginTop: '8px', paddingLeft: '20px', listStyle: 'none' }}>
-              <li style={{ marginBottom: '5px' }}>🟢 You ({username || 'Unknown'})</li>
-              {Array.from(remoteUsers.values()).map((user, index) => (
-                <li key={index} style={{ marginBottom: '5px' }}>🟢 {user.username}</li>
+            <strong style={{ color: '#e5e7eb', display: 'block', marginBottom: '8px' }}>Active Users</strong>
+            <ul style={{ marginTop: '8px', paddingLeft: 0, listStyle: 'none' }}>
+              <li style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 10, height: 10, background: '#22c55e', display: 'inline-block' }} />
+                <span style={{ color: '#e5e7eb' }}>You ({username || 'Unknown'})</span>
+              </li>
+              {Array.from(remoteUsers.entries()).map(([userId, user]) => (
+                <li key={userId} style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 10, height: 10, background: colorFor(userId), display: 'inline-block' }} />
+                  <span style={{ color: '#e5e7eb', flex: 1 }}>{user.username || userId}</span>
+                  <button
+                    onClick={() => goToUser(userId)}
+                    style={{ padding: '4px 8px', borderRadius: 4, background: '#0a1e28', color: '#e5e7eb', border: '1px solid #00d1ff', cursor: 'pointer' }}
+                  >Go To</button>
+                  <button
+                    onClick={() => toggleFollowUser(userId)}
+                    style={{ padding: '4px 8px', borderRadius: 4, background: followingUserId === userId ? '#24160a' : '#0f141b', color: '#e5e7eb', border: followingUserId === userId ? '1px solid #ff7a00' : '1px solid #1f2937', cursor: 'pointer' }}
+                  >{followingUserId === userId ? 'Following' : 'Follow'}</button>
+                </li>
               ))}
             </ul>
           </div>

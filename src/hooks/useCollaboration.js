@@ -119,6 +119,7 @@ export const useCollaboration = () => {
     // stroke-start -> {t:'s', i, c, o, w, x, y}
     // stroke-append -> {t:'a', i, x, y}
     // stroke-end   -> {t:'e', i}
+    // stroke-full  -> {t:'f', i, c, o, w, p:[x1,y1,...]}
     if (!evt || !evt.type) return null;
     if (evt.type === 'stroke-start') {
       return { t: 's', i: evt.stroke.id, c: evt.stroke.color, o: evt.stroke.opacity, w: evt.stroke.width, x: evt.stroke.points[0].x, y: evt.stroke.points[0].y };
@@ -128,6 +129,15 @@ export const useCollaboration = () => {
     }
     if (evt.type === 'stroke-end') {
       return { t: 'e', i: evt.stroke.id };
+    }
+    if (evt.type === 'stroke-full' && evt.stroke) {
+      const s = evt.stroke;
+      // Simple compression: quantize to 2 decimals & flatten
+      const p = [];
+      for (const pt of s.points) {
+        p.push(Math.round(pt.x * 100) / 100, Math.round(pt.y * 100) / 100);
+      }
+      return { t: 'f', i: s.id, c: s.color, o: s.opacity, w: s.width, p };
     }
     return null;
   };
