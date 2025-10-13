@@ -31,8 +31,9 @@ class CollaborationBridge {
         this.drawingBatchTimer = null;
         this.syncInterval = null;
         
-        this.isMaster = false; // Is this client the master?
-        this.masterId = null;   // The userId of the current master
+        // Master/follower removed – all users are peers
+        this.isMaster = false;
+        this.masterId = null;
         this.electionInProgress = false;
         this.electionTimeout = null;
 
@@ -146,8 +147,7 @@ class CollaborationBridge {
         this.isConnected = true;
         this.processPendingUpdates();
         
-        // Start master election
-        this.startMasterElection();
+        // No master election – peers only
     }
 
     /**
@@ -183,70 +183,13 @@ class CollaborationBridge {
     /**
      * Master Election Logic
      */
-    startMasterElection() {
-        if (this.electionInProgress) return;
-        
-        console.log('[Collaboration] Starting master election...');
-        this.electionInProgress = true;
-        this.masterId = null; // Unset current master
-        
-        // Send a request to become master
-        this.sendMessage('request_master', { proposedMasterId: this.userId }, true);
-        
-        // After a timeout, if no one else has claimed master, we become master
-        this.electionTimeout = setTimeout(() => {
-            if (!this.masterId) {
-                console.log('[Collaboration] Election timeout, claiming master');
-                this.claimMaster();
-            }
-        }, 2000 + Math.random() * 1000); // Random delay to prevent race conditions
-    }
+    startMasterElection() {}
 
-    claimMaster() {
-        this.isMaster = true;
-        this.masterId = this.userId;
-        this.electionInProgress = false;
-        clearTimeout(this.electionTimeout);
-        
-        console.log('[Collaboration] I am now the master');
-        this.sendMessage('announce_master', { masterId: this.userId }, true);
-        this.updateUIRole();
-        this.toggleFollowerUI(false); // Enable controls for master
-    }
+    claimMaster() {}
 
-    handleMasterRequest(message) {
-        // If we think we are master, re-assert our claim
-        if (this.isMaster) {
-            this.sendMessage('announce_master', { masterId: this.userId }, true);
-        } else if (!this.masterId) {
-            // If there is no master, and this new user has a lower ID, let them be master
-            if (message.data.proposedMasterId < this.userId) {
-                // Defer to the other user
-                console.log(`[Collaboration] Deferring master to ${message.username}`);
-            } else {
-                // Our ID is lower, so we should be master
-                if (!this.electionInProgress) {
-                    this.startMasterElection();
-                }
-            }
-        }
-    }
+    handleMasterRequest() {}
 
-    handleMasterAnnouncement(message) {
-        console.log(`[Collaboration] Master announced: ${message.username}`);
-        this.masterId = message.data.masterId;
-        this.isMaster = this.userId === this.masterId;
-        this.electionInProgress = false;
-        clearTimeout(this.electionTimeout);
-        
-        this.updateUIRole();
-        this.toggleFollowerUI(!this.isMaster);
-
-        // If we are master, send a full state sync
-        if (this.isMaster) {
-            this.sendFullState(true);
-        }
-    }
+    handleMasterAnnouncement() {}
 
     handleActivityUpdate(message) {
         const { activity, username } = message.data;
@@ -307,8 +250,7 @@ class CollaborationBridge {
         // Ignore our own messages
         if (message.userId === this.userId) return;
         
-        // The master only sends; it does not process incoming state changes
-        if (this.isMaster && message.type.includes('_sync')) return;
+        // No master filtering – peers process messages equally
 
         console.log('[Collaboration] Received message:', message.type, message);
         
@@ -319,12 +261,7 @@ class CollaborationBridge {
             case 'user_leave':
                 this.handleUserLeave(message);
                 break;
-            case 'request_master':
-                this.handleMasterRequest(message);
-                break;
-            case 'announce_master':
-                this.handleMasterAnnouncement(message);
-                break;
+            // master/follower messages ignored
             case 'activity_update':
                 this.handleActivityUpdate(message);
                 break;
@@ -332,7 +269,7 @@ class CollaborationBridge {
                 this.handleStateRequest(message);
                 break;
             case 'full_state_sync':
-                this.handleStateSync(message.data.panels);
+                // ignore legacy full-state sync in peer mode
                 break;
             case 'draw_stroke':
                 this.handleRemoteDrawing(message);
@@ -393,12 +330,7 @@ class CollaborationBridge {
     /**
      * Send full state to group
      */
-    sendFullState(immediate = false) {
-        if (!this.isMaster) return;
-        
-        const state = this.getComprehensiveState();
-        this.sendMessage('full_state_sync', { state }, immediate);
-    }
+    sendFullState() {}
 
     /**
      * Get comprehensive state of the application
@@ -435,78 +367,17 @@ class CollaborationBridge {
     /**
      * Apply comprehensive state from master
      */
-    applyComprehensiveState(state) {
-        if (this.isMaster) return; // Master does not accept state
-
-        // Follower camera is independent, so we do not apply camera/control state from master.
-
-        // Apply panel state (drawings, text, etc.)
-        if (state.panels && typeof window.loadState === 'function') {
-            window.loadState(JSON.stringify(state.panels));
-            this.lastSyncTime = Date.now(); // Record that we have received a state update
-        }
-    }
+    applyComprehensiveState() {}
 
     /**
      * Toggle UI for follower mode
      */
-    toggleFollowerUI(isFollower) {
-        // Elements to disable for followers (anything that changes state)
-        const elementsToDisable = [
-            ...document.querySelectorAll('#brush-toolbar, #controls')
-        ];
-
-        elementsToDisable.forEach(el => {
-            el.style.display = isFollower ? 'none' : '';
-        });
-
-        if (isFollower) {
-            // Turn off autoslide for followers
-            if (window.controls) window.controls.enabled = true;
-            window.isAutoSliding = false;
-            if (window.updateModeIndicator) window.updateModeIndicator();
-            this.showNotification('You are in Follower Mode. Drawing state is synced, but your camera is independent.', 'info');
-        } else {
-            // Restore full UI for master
-            const toolbar = document.getElementById('brush-toolbar');
-            if (toolbar) toolbar.style.display = '';
-        }
-
-        // Remove the old overlay logic
-        let overlay = document.getElementById('follower-overlay');
-        if (overlay) {
-            overlay.remove();
-        }
-    }
+    toggleFollowerUI() {}
 
     /**
      * Update UI with current role (Master/Follower)
      */
-    updateUIRole() {
-        let statusEl = document.getElementById('collab-status');
-        if (!statusEl) return;
-        
-        let roleEl = document.getElementById('collab-role');
-        if (!roleEl) {
-            roleEl = document.createElement('span');
-            roleEl.id = 'collab-role';
-            roleEl.style.cssText = `
-                font-weight: bold;
-                margin-left: 10px;
-                padding: 2px 6px;
-                border-radius: 4px;
-            `;
-            statusEl.appendChild(roleEl);
-        }
-        
-        if (this.isMaster) {
-            roleEl.textContent = 'MASTER';
-            roleEl.style.background = '#f59e0b';
-        } else {
-            roleEl.textContent = 'FOLLOWER';
-            roleEl.style.background = '#3b82f6';
-        }
-    }
+    updateUIRole() {}
 
     /**
      * Handle state request
@@ -709,18 +580,14 @@ class CollaborationBridge {
      * Start periodic state sync
      */
     startPeriodicSync() {
-        // Sync every 2 seconds for master, 30 seconds for followers
-        const syncInterval = this.isMaster ? 2000 : 30000;
+        // Uniform periodic tasks in peer mode
+        const syncInterval = 30000;
         
         this.syncInterval = setInterval(() => {
             if (this.isConnected) {
-                if (this.isMaster) {
-                    this.sendFullState();
-                } else {
-                    // Followers can request a state sync if they haven't received one
-                    if (Date.now() - this.lastSyncTime > 60000) {
-                        this.sendMessage('request_state', {});
-                    }
+                // In peer mode, only request state occasionally for legacy panels
+                if (Date.now() - this.lastSyncTime > 60000) {
+                    this.sendMessage('request_state', {});
                 }
             }
         }, syncInterval);

@@ -594,7 +594,8 @@ export default function Whiteboard({
           cursor: tool === 'pan' ? 'grab' : 'crosshair', 
           background: '#ffffff', 
           borderRadius: 0, 
-          margin: 0 
+          margin: 0,
+          touchAction: 'none' 
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
