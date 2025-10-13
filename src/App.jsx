@@ -22,6 +22,7 @@ function App() {
     copyRoomLink,
     showNotification,
     sendWhiteboardSync,
+    sendWhiteboardViewport,
     excalidrawRef
   } = useCollaboration();
 
@@ -71,6 +72,16 @@ function App() {
     sendWhiteboardSync(event);
   };
 
+  // Debounced viewport publish (world coords from Whiteboard)
+  const handleViewportChange = useCallback((rect) => {
+    if (!rect) return;
+    if (typeof handleViewportChange.t !== 'number') handleViewportChange.t = 0;
+    const now = Date.now();
+    if (now - handleViewportChange.t < 150) return;
+    handleViewportChange.t = now;
+    sendWhiteboardViewport(rect);
+  }, [sendWhiteboardViewport]);
+
   return (
     <div className="app">
       {!showRoomControls && (
@@ -107,7 +118,7 @@ function App() {
       )}
       
       <div className="excalidraw-container">
-        <Whiteboard onChange={handleWhiteboardChange} />
+        <Whiteboard onChange={handleWhiteboardChange} onViewportChange={handleViewportChange} />
       </div>
     </div>
   );

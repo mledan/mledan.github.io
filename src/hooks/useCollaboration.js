@@ -49,6 +49,9 @@ export const useCollaboration = () => {
         setIsMaster(bridge.isMaster);
       };
 
+      // Avoid legacy full-state calls expecting Excalidraw
+      bridge.sendFullState = () => {};
+
       const originalHandleUserJoin = bridge.handleUserJoin.bind(bridge);
       bridge.handleUserJoin = (message) => {
         originalHandleUserJoin(message);
@@ -107,13 +110,52 @@ export const useCollaboration = () => {
     }
   }, []);
 
-  // Whiteboard sync (incremental events)
-  const sendWhiteboardSync = useCallback((event) => {
+  // Whiteboard sync (batched + compact). Packs events every ~16ms.
+  const batchRef = useRef([]);
+  const frameScheduledRef = useRef(false);
+
+  const packEvent = (evt) => {
+    // Compact keys for minimal payload
+    // stroke-start -> {t:'s', i, c, o, w, x, y}
+    // stroke-append -> {t:'a', i, x, y}
+    // stroke-end   -> {t:'e', i}
+    if (!evt || !evt.type) return null;
+    if (evt.type === 'stroke-start') {
+      return { t: 's', i: evt.stroke.id, c: evt.stroke.color, o: evt.stroke.opacity, w: evt.stroke.width, x: evt.stroke.points[0].x, y: evt.stroke.points[0].y };
+    }
+    if (evt.type === 'stroke-append') {
+      return { t: 'a', i: evt.id, x: evt.point.x, y: evt.point.y };
+    }
+    if (evt.type === 'stroke-end') {
+      return { t: 'e', i: evt.stroke.id };
+    }
+    return null;
+  };
+
+  const flushBatch = () => {
+    const packed = batchRef.current;
+    batchRef.current = [];
+    frameScheduledRef.current = false;
+    if (!packed.length) return;
     if (collaborationBridgeRef.current && isConnected) {
       collaborationBridgeRef.current.sendMessage('whiteboard_sync', {
-        event,
-        timestamp: Date.now()
+        events: packed,
+        ts: Date.now()
       });
+    }
+  };
+
+  const sendWhiteboardSync = useCallback((event) => {
+    const p = packEvent(event);
+    if (!p) return;
+    batchRef.current.push(p);
+    if (!frameScheduledRef.current) {
+      frameScheduledRef.current = true;
+      if (typeof window !== 'undefined' && window.requestAnimationFrame) {
+        window.requestAnimationFrame(flushBatch);
+      } else {
+        setTimeout(flushBatch, 16);
+      }
     }
   }, [isConnected]);
 
@@ -138,8 +180,12 @@ export const useCollaboration = () => {
         const message = e.message.data;
         
         if (message.type === 'whiteboard_sync') {
-          // Bubble event for listeners (Whiteboard component can subscribe if needed)
-          window.dispatchEvent(new CustomEvent('whiteboard-remote', { detail: message }));
+          const payload = message.data || {};
+          const evts = payload.events || [];
+          window.dispatchEvent(new CustomEvent('whiteboard-remote-batch', { detail: { userId: message.userId, events: evts } }));
+        } else if (message.type === 'whiteboard_viewport') {
+          const payload = message.data || {};
+          window.dispatchEvent(new CustomEvent('whiteboard-viewport-remote', { detail: { userId: message.userId, rect: payload.rect, ts: payload.ts } }));
         } else {
           // Pass through other messages
           originalHandleGroupMessage(e);
@@ -147,6 +193,16 @@ export const useCollaboration = () => {
       };
     }
   }, []);
+
+  // Send viewport rectangle (world coords)
+  const sendWhiteboardViewport = useCallback((rect) => {
+    if (collaborationBridgeRef.current && isConnected) {
+      collaborationBridgeRef.current.sendMessage('whiteboard_viewport', {
+        rect,
+        ts: Date.now()
+      });
+    }
+  }, [isConnected]);
 
   return {
     // State
@@ -163,6 +219,7 @@ export const useCollaboration = () => {
     copyRoomLink,
     showNotification,
     sendWhiteboardSync,
+    sendWhiteboardViewport,
     
     // Refs
     excalidrawRef,

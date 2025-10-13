@@ -216,6 +216,7 @@ class SmoothLineDrawer {
 
 export default function Whiteboard({
   onChange,
+  onViewportChange,
   initialColor = '#000000',
   initialOpacity = 1,
   strokeWidth = 4,
@@ -263,6 +264,19 @@ export default function Whiteboard({
     const y = (clientY - rect.top - offset.y) / zoom;
     return { x, y };
   };
+
+  const publishViewport = useCallback(() => {
+    if (!onViewportChange) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const worldTopLeft = toWorld(rect.left, rect.top);
+    const worldBottomRight = toWorld(rect.right, rect.bottom);
+    onViewportChange({
+      x: worldTopLeft.x,
+      y: worldTopLeft.y,
+      w: worldBottomRight.x - worldTopLeft.x,
+      h: worldBottomRight.y - worldTopLeft.y
+    });
+  }, [zoom, offset, onViewportChange]);
 
   const redraw = () => {
     const ctx = ctxRef.current;
@@ -407,45 +421,58 @@ export default function Whiteboard({
     setZoom(newZoom);
   };
 
-  useEffect(() => { redraw(); }, [zoom, offset]);
+  useEffect(() => { redraw(); publishViewport(); }, [zoom, offset, publishViewport]);
 
   // Listen for remote drawing events from collaboration
   useEffect(() => {
     const handleRemoteDrawing = (event) => {
-      const { data } = event.detail;
-      
-      if (!data.event) return;
-      
-      const drawEvent = data.event;
-      
-      // Handle different drawing actions
-      if (drawEvent.type === 'stroke-start' && drawEvent.stroke) {
-        // Start a new remote stroke (we won't store it until it's complete)
-      } else if (drawEvent.type === 'stroke-end' && drawEvent.stroke) {
-        // Complete stroke received - add it to our local scene
-        const remoteStroke = {
-          id: drawEvent.stroke.id,
-          tool: drawEvent.stroke.tool,
-          color: drawEvent.stroke.color,
-          opacity: drawEvent.stroke.opacity,
-          width: drawEvent.stroke.width,
-          points: drawEvent.stroke.points,
-          timestamp: drawEvent.stroke.timestamp
-        };
-        
-        // Check if we already have this stroke (deduplicate)
-        const existingStrokeIndex = strokesRef.current.findIndex(s => s.id === remoteStroke.id);
-        if (existingStrokeIndex === -1) {
-          strokesRef.current.push(remoteStroke);
-          redraw();
+      const payload = event.detail || {};
+      const evts = payload.events || [];
+      // Reconstruct strokes incrementally
+      for (const evt of evts) {
+        if (evt.t === 's') {
+          currentStrokeRef.current = {
+            id: evt.i,
+            tool: 'pencil',
+            color: evt.c,
+            opacity: evt.o,
+            width: evt.w,
+            points: [{ x: evt.x, y: evt.y }]
+          };
+        } else if (evt.t === 'a' && currentStrokeRef.current && currentStrokeRef.current.id === evt.i) {
+          currentStrokeRef.current.points.push({ x: evt.x, y: evt.y });
+        } else if (evt.t === 'e') {
+          if (currentStrokeRef.current && currentStrokeRef.current.id === evt.i) {
+            strokesRef.current.push(currentStrokeRef.current);
+            currentStrokeRef.current = null;
+            redraw();
+          }
         }
       }
     };
     
-    window.addEventListener('whiteboard-remote', handleRemoteDrawing);
+    window.addEventListener('whiteboard-remote-batch', handleRemoteDrawing);
+    const handleViewportRemote = (e) => {
+      // Draw viewport rectangles of others (overlay)
+      const { rect } = e.detail || {};
+      if (!rect) return;
+      const ctx = ctxRef.current;
+      if (!ctx) return;
+      redraw();
+      ctx.save();
+      ctx.translate(offset.x, offset.y);
+      ctx.scale(zoom, zoom);
+      ctx.strokeStyle = 'rgba(99, 102, 241, 0.7)';
+      ctx.lineWidth = 1 / zoom;
+      ctx.setLineDash([6 / zoom, 6 / zoom]);
+      ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+      ctx.restore();
+    };
+    window.addEventListener('whiteboard-viewport-remote', handleViewportRemote);
     
     return () => {
-      window.removeEventListener('whiteboard-remote', handleRemoteDrawing);
+      window.removeEventListener('whiteboard-remote-batch', handleRemoteDrawing);
+      window.removeEventListener('whiteboard-viewport-remote', handleViewportRemote);
     };
   }, []);
 
