@@ -9,7 +9,7 @@ const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 // LineDrawing algorithm implementation for 2D canvas
 class SmoothLineDrawer {
   constructor() {
-    this.overdraw = 3.0; // Extra pixels for anti-aliasing
+    this.overdraw = 5.0; // Extra pixels for anti-aliasing (increased for smoother edges)
     this.minSegmentDistance = 2;
     this.maxSegments = 128;
     this.minSegments = 32;
@@ -250,7 +250,12 @@ export default function Whiteboard({
     canvas.height = Math.floor(container.clientHeight * dpr);
     canvas.style.width = container.clientWidth + 'px';
     canvas.style.height = container.clientHeight + 'px';
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+
+    // Enable high-quality canvas smoothing and antialiasing
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctxRef.current = ctx;
     redraw();
@@ -588,14 +593,17 @@ export default function Whiteboard({
     <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative', background: '#0b0f14' }}>
       <canvas
         ref={canvasRef}
-        style={{ 
-          width: '100%', 
-          height: isMobile ? `calc(100% - ${TOOLBAR_H}px)` : '100%', 
-          cursor: tool === 'pan' ? 'grab' : 'crosshair', 
-          background: '#ffffff', 
-          borderRadius: 0, 
+        style={{
+          width: '100%',
+          height: isMobile ? `calc(100% - ${TOOLBAR_H}px)` : '100%',
+          cursor: tool === 'pan' ? 'grab' : 'crosshair',
+          background: '#ffffff',
+          borderRadius: 0,
           margin: 0,
-          touchAction: 'none' 
+          touchAction: 'none',
+          imageRendering: 'auto',
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale'
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
