@@ -232,6 +232,7 @@ export default function Whiteboard({
   const [tool, setTool] = useState('pencil'); // 'pencil' | 'eraser' | 'pan'
   const [color, setColor] = useState(initialColor);
   const [opacity, setOpacity] = useState(initialOpacity);
+  const [brushWidth, setBrushWidth] = useState(strokeWidth);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isMobile, setIsMobile] = useState(false);
@@ -400,7 +401,7 @@ export default function Whiteboard({
       tool,
       color,
       opacity,
-      width: strokeWidth,
+      width: brushWidth,
       points: [pt],
       timestamp: Date.now()
     };
@@ -712,8 +713,8 @@ export default function Whiteboard({
           min={1} 
           max={24} 
           step={1} 
-          value={strokeWidth} 
-          onChange={() => {}}
+          value={brushWidth}
+          onChange={(e) => setBrushWidth(Number(e.target.value))}
           style={{ width: 100, accentColor: '#ff7a00' }}
         />
         <span style={{ 
